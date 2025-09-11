@@ -25,3 +25,5 @@
         `python db/db_setup_tables.py`
 
 ### Take note that the files in `.gitignore` are *NOT* to be pushed into git (venv, kira.db etc.)
+7. to test out view all tasks function and view subtask function
+    follow all the steps above until step 5, now you can comment out all the codes and uncomment codes for each function (all task viewing and sub-task viewing) 
