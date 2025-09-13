@@ -1,5 +1,5 @@
-from db.task_operations import add_task, update_task, list_parent_tasks, get_task_with_subtasks
 
+from db.task_operations import add_task, start_task, complete_task, mark_blocked, update_task, list_parent_tasks, get_task_with_subtasks
 from db.db_setup import SessionLocal
 from models.task import Task
 from datetime import date
@@ -97,4 +97,37 @@ with SessionLocal() as session:
         subtasks = session.query(Task).filter(Task.parent_id == t.id).all()
         for st in subtasks:
             print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
+
+            
+# --- Function for KIRA-22 Testing----           
+print("\n=== AFTER STARTING SUBTASK (should be 'In progress') ===")
+start_task(subtask_id)
+with SessionLocal() as session:
+    parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
+    for t in parent_tasks:
+        print(f"Parent Task: {t.title} | Status: {t.status} | Priority: {t.priority} | Notes: {t.notes}")
+        subtasks = session.query(Task).filter(Task.parent_id == t.id).all()
+        for st in subtasks:
+            print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
+
+print("\n=== AFTER COMPLETING SUBTASK (should be 'Completed') ===")
+complete_task(subtask_id)
+with SessionLocal() as session:
+    parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
+    for t in parent_tasks:
+        print(f"Parent Task: {t.title} | Status: {t.status} | Priority: {t.priority} | Notes: {t.notes}")
+        subtasks = session.query(Task).filter(Task.parent_id == t.id).all()
+        for st in subtasks:
+            print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
+
+print("\n=== AFTER MARKING PARENT AS PENDING APPROVAL (should be 'Blocked') ===")
+mark_blocked(parent_id)
+with SessionLocal() as session:
+    parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
+    for t in parent_tasks:
+        print(f"Parent Task: {t.title} | Status: {t.status} | Priority: {t.priority} | Notes: {t.notes}")
+        subtasks = session.query(Task).filter(Task.parent_id == t.id).all()
+        for st in subtasks:
+            print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
+
 
