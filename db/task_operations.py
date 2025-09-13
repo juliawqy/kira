@@ -1,9 +1,11 @@
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
+from typing import Optional
 from db.db_setup import SessionLocal
 from models.task import Task
 from datetime import date
 
 ALLOWED_STATUSES = {"To-do", "In progress", "Completed", "Blocked"}
-
 
 def add_task(title, description, start_date, deadline,
              priority="Medium", status="To-do", collaborators=None,
@@ -24,8 +26,9 @@ def add_task(title, description, start_date, deadline,
         session.add(task)
         session.commit()
         return task.id
-    
 
+    
+#KIRA-22 Update Task Progress Status
 def update_task_status(task_id: int, new_status: str) -> str:
     """
     Generic status updater with validation.
@@ -54,3 +57,64 @@ def complete_task(task_id: int) -> str:
 def mark_blocked(task_id: int) -> str:
     """A task pending approval has a 'Blocked' status."""
     return update_task_status(task_id, "Blocked")
+  
+
+
+# KIRA-2: task-viewing (view all parents tasks)
+def list_parent_tasks():
+    with SessionLocal() as session:
+        stmt = (select(Task)
+                .where(Task.parent_id.is_(None))
+                .options(joinedload(Task.subtasks))
+                .order_by(Task.deadline.is_(None), Task.deadline.asc()))
+        return session.execute(stmt).unique().scalars().all()
+
+# KIRA-2: task-viewing (view subtask by parent taks)      
+def get_task_with_subtasks(task_id):
+    with SessionLocal() as session:
+        stmt = (select(Task)
+                .options(joinedload(Task.subtasks))
+                .where(Task.id == task_id))
+        return session.execute(stmt).unique().scalar_one_or_none()
+ 
+# KIRA-3: task-update
+def update_task(task_id: int,
+                title: Optional[str] = None,
+                description: Optional[str] = None,
+                start_date: Optional[date] = None,
+                deadline: Optional[date] = None,
+                priority: Optional[str] = None,
+                status: Optional[str] = None,
+                collaborators: Optional[str] = None,
+                notes: Optional[str] = None,
+                parent_id: Optional[int] = None):
+    with SessionLocal() as session:
+        task = session.get(Task, task_id)
+        if task is None:
+            return None
+
+        if title is not None: task.title = title
+        if description is not None: task.description = description
+        if start_date is not None: task.start_date = start_date
+        if deadline is not None: task.deadline = deadline
+        if priority is not None: task.priority = priority
+        if status is not None: task.status = status
+        if collaborators is not None: task.collaborators = collaborators
+        if notes is not None: task.notes = notes
+        if parent_id is not None: task.parent_id = parent_id
+
+        session.add(task)
+        session.commit()
+        return task.id
+
+def assign_task(task_id, new_members: list[str]):
+    with SessionLocal() as session:
+        task = session.get(Task, task_id)
+        if not task:
+            raise ValueError("Task not found")
+
+        existing = set(task.collaborators.split(",")) if task.collaborators else set()
+        updated = existing.union(new_members)
+        task.collaborators = ",".join(updated)
+
+        session.commit()
