@@ -1,8 +1,19 @@
 
-from db.task_operations import add_task, start_task, complete_task, mark_blocked, update_task, list_parent_tasks, get_task_with_subtasks
+from db.task_operations import add_task, delete_task, start_task, complete_task, mark_blocked, update_task, list_parent_tasks, get_task_with_subtasks, delete_subtask
 from db.db_setup import SessionLocal
 from models.task import Task
 from datetime import date
+
+#Current order of test, if you run the whole script, it will be
+#1. Create parent + subtask
+
+#2. View (KIRA-1/2)
+
+#3. Update (KIRA-3/22)
+
+#4. Delete subtask (KIRA-4)
+
+#5. Create a temp parent+subtask, delete parent to prove children get detached (KIRA-4)
 
 # Add parent task
 parent_id = add_task(
@@ -131,3 +142,47 @@ with SessionLocal() as session:
             print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
 
 
+# --- Function for KIRA-4 Testing ---
+print("\n=== TEST DELETING SUBTASK ===")
+result = delete_subtask(subtask_id)
+print(f"Deleted subtask {subtask_id}: {result}")
+
+with SessionLocal() as session:
+    parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
+    for t in parent_tasks:
+        print(f"Parent Task: {t.title} | Status: {t.status}")
+        subtasks = session.query(Task).filter(Task.parent_id == t.id).all()
+        if subtasks:
+            for st in subtasks:
+                print(f"  Subtask: {st.title} (id={st.id})")
+        else:
+            print("  Subtasks: (none)")
+
+print("\n=== TEST DELETING PARENT TASK (with subtasks) ===")
+# First re-create a parent with a subtask to test deletion cascade
+pid2 = add_task(
+    title="Temp Parent",
+    description="To be deleted",
+    start_date=date(2025, 9, 14),
+    deadline=None,
+    status="To-do"
+)
+sid2 = add_task(
+    title="Temp Subtask",
+    description="Child of Temp Parent",
+    start_date=date(2025, 9, 15),
+    deadline=None,
+    parent_id=pid2,
+    status="To-do"
+)
+
+print(f"Created parent {pid2} with subtask {sid2}")
+
+summary = delete_task(pid2)
+print("Delete summary:", summary)
+
+with SessionLocal() as session:
+    remaining = session.query(Task).all()
+    print("\nRemaining tasks in DB after parent deletion:")
+    for t in remaining:
+        print(f"- {t.id}: {t.title} (parent_id={t.parent_id})")

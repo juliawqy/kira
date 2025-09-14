@@ -6,7 +6,7 @@ from models.task import Task
 from datetime import date
 
 ALLOWED_STATUSES = {"To-do", "In progress", "Completed", "Blocked"}
-
+#KIRA-1: task-creation
 def add_task(title, description, start_date, deadline,
              priority="Medium", status="To-do", collaborators=None,
              notes=None, parent_id=None):
@@ -106,7 +106,8 @@ def update_task(task_id: int,
         session.add(task)
         session.commit()
         return task.id
-
+    
+#KIRA-13: task-assign
 def assign_task(task_id, new_members: list[str]):
     with SessionLocal() as session:
         task = session.get(Task, task_id)
@@ -118,3 +119,60 @@ def assign_task(task_id, new_members: list[str]):
         task.collaborators = ",".join(updated)
 
         session.commit()
+
+# KIRA-4: task-deletion 
+# Delete a subtask only (not a parent task)
+def delete_subtask(subtask_id: int) -> bool:
+    """
+    Delete a subtask by id.
+    Returns True if deleted, False if not found.
+    """
+    with SessionLocal() as session:
+        sub = session.get(Task, subtask_id)
+        if sub is None:
+            return False
+        # Safety: only allow deleting if it is a subtask (has a parent)
+        if sub.parent_id is None:
+            # It's a parent task; use delete_task() instead
+            raise ValueError(f"Task {subtask_id} is not a subtask (no parent). Use delete_task().")
+        session.delete(sub)
+        session.commit()
+        return True
+
+#KIRA-4: task-deletion
+# Delete a parent task (and detach its subtasks)
+def delete_task(task_id: int) -> dict:
+    """
+    Delete a task by id.
+    - If the task has subtasks, detach them first (parent_id -> None)
+      so they return to the product backlog as independent tasks.
+    Returns a summary dict: {"deleted": task_id, "subtasks_detached": N}
+    """
+    with SessionLocal() as session:
+        task = session.get(Task, task_id)
+        if task is None:
+            raise ValueError(f"Task id {task_id} not found")
+
+        # Detach subtasks (move back to backlog)
+        # Note: we don't change status; AC only requires making them independent.
+        detached = 0
+        # Use relationship if available; otherwise query by parent_id
+        if hasattr(task, "subtasks"):
+            for st in list(task.subtasks):
+                st.parent_id = None
+                detached += 1
+        else:
+            # Fallback if relationship not configured
+            from sqlalchemy import select
+            subs = session.execute(
+                select(Task).where(Task.parent_id == task_id)
+            ).scalars().all()
+            for st in subs:
+                st.parent_id = None
+                detached += 1
+
+        session.flush()  # ensure children updates hit DB before deleting parent
+        session.delete(task)
+        session.commit()
+        return {"deleted": task_id, "subtasks_detached": detached}
+
