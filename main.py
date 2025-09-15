@@ -98,3 +98,50 @@ with SessionLocal() as session:
         for st in subtasks:
             print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
 
+
+
+# --- Function for KIRA-23 Testing ---
+from datetime import date
+
+def unassign_task(task_id: int, members_to_remove: list[str]):
+    with SessionLocal() as session:
+        task = session.get(Task, task_id)
+        if not task:
+            raise ValueError("Task not found")
+
+        existing = set(task.collaborators.split(",")) if task.collaborators else set()
+        updated = existing - set(members_to_remove)
+
+        task.collaborators = ",".join(updated) if updated else None
+
+        session.commit()
+        return task.collaborators
+
+
+def test_unassign_task_with_print():
+    print("\n=== TEST: unassign_task_with_print() ===")
+
+    parent_id = add_task(
+        title="Develop Onboarding Plan",
+        description="Create training materials and sessions",
+        start_date=date(2025, 9, 10),
+        deadline=date(2025, 9, 20),
+        priority="High",
+        status="To-do",
+        collaborators="manager@example.com,trainer@example.com",
+        notes="HR kickoff scheduled"
+    )
+
+    unassign_task(parent_id, ["manager@example.com"])
+
+    print("\nAfter Unassigning 'manager@example.com':")
+    with SessionLocal() as session:
+        parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
+        for t in parent_tasks:
+            print(f"Parent Task: {t.title} | Status: {t.status} | Priority: {t.priority} | Notes: {t.notes} | Collaborators: {t.collaborators or 'None'}")
+            subtasks = session.query(Task).filter(Task.parent_id == t.id).all()
+            for st in subtasks:
+                print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline} | Collaborators: {st.collaborators or 'None'}")
+
+test_unassign_task_with_print()
+

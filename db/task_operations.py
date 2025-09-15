@@ -84,3 +84,17 @@ def assign_task(task_id, new_members: list[str]):
         task.collaborators = ",".join(updated)
 
         session.commit()
+
+def unassign_task(task_id: int, members_to_remove: list[str]):
+    with SessionLocal() as session:
+        task = session.get(Task, task_id)
+        if not task:
+            raise ValueError("Task not found")
+
+        existing = set(task.collaborators.split(",")) if task.collaborators else set()
+        updated = existing - set(members_to_remove)
+
+        task.collaborators = ",".join(updated) if updated else None
+
+        session.commit()
+        return task.collaborators
