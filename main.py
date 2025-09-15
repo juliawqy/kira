@@ -1,8 +1,9 @@
 
-from db.task_operations import add_task, start_task, complete_task, mark_blocked, update_task, list_parent_tasks, get_task_with_subtasks
+from db.task_operations import add_task, delete_task, start_task, complete_task, mark_blocked, update_task, list_parent_tasks, get_task_with_subtasks, delete_subtask
 from db.db_setup import SessionLocal
 from models.task import Task
 from datetime import date
+
 
 # Add parent task
 parent_id = add_task(
@@ -29,7 +30,7 @@ subtask_id = add_task(
 
 print("Tasks created successfully!\n")
 
-# --- Function for KIRA-1 Testing  ---
+
 with SessionLocal() as session:
     parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
     for t in parent_tasks:
@@ -38,7 +39,7 @@ with SessionLocal() as session:
         for st in subtasks:
             print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Assigned to: {st.collaborators}")
 
-# --- Function for KIRA-2 Testing ---
+
 def show_task_details(task, indent=""):
     print(f"{indent}ID: {task.id}")
     print(f"{indent}Title: {task.title}")
@@ -75,7 +76,7 @@ if task:
 else:
     print("No task found with ID=1")
 
-# --- Function for KIRA-3 Testing ---
+
 updated_parent = update_task(
     parent_id,
     status="In-progress",
@@ -88,7 +89,7 @@ updated_subtask = update_task(
     deadline=date(2025, 9, 11)
 )
 
-# --- Function for KIRA-3 Testing ---
+
 print("\nAfter updates:")
 with SessionLocal() as session:
     parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
@@ -98,8 +99,7 @@ with SessionLocal() as session:
         for st in subtasks:
             print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
 
-            
-# --- Function for KIRA-22 Testing----           
+                     
 print("\n=== AFTER STARTING SUBTASK (should be 'In progress') ===")
 start_task(subtask_id)
 with SessionLocal() as session:
@@ -130,4 +130,46 @@ with SessionLocal() as session:
         for st in subtasks:
             print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
 
+print("\n=== TEST DELETING SUBTASK ===")
+result = delete_subtask(subtask_id)
+print(f"Deleted subtask {subtask_id}: {result}")
 
+with SessionLocal() as session:
+    parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
+    for t in parent_tasks:
+        print(f"Parent Task: {t.title} | Status: {t.status}")
+        subtasks = session.query(Task).filter(Task.parent_id == t.id).all()
+        if subtasks:
+            for st in subtasks:
+                print(f"  Subtask: {st.title} (id={st.id})")
+        else:
+            print("  Subtasks: (none)")
+
+print("\n=== TEST DELETING PARENT TASK (with subtasks) ===")
+# First re-create a parent with a subtask to test deletion cascade
+pid2 = add_task(
+    title="Temp Parent",
+    description="To be deleted",
+    start_date=date(2025, 9, 14),
+    deadline=None,
+    status="To-do"
+)
+sid2 = add_task(
+    title="Temp Subtask",
+    description="Child of Temp Parent",
+    start_date=date(2025, 9, 15),
+    deadline=None,
+    parent_id=pid2,
+    status="To-do"
+)
+
+print(f"Created parent {pid2} with subtask {sid2}")
+
+summary = delete_task(pid2)
+print("Delete summary:", summary)
+
+with SessionLocal() as session:
+    remaining = session.query(Task).all()
+    print("\nRemaining tasks in DB after parent deletion:")
+    for t in remaining:
+        print(f"- {t.id}: {t.title} (parent_id={t.parent_id})")
