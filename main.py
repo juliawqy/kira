@@ -1,4 +1,4 @@
-from db.task_operations import add_task, delete_task, start_task, complete_task, mark_blocked, update_task, list_parent_tasks, get_task_with_subtasks, delete_subtask, unassign_task
+from db.task_operations import add_task, delete_task, start_task, complete_task, mark_blocked, update_task, list_parent_tasks, get_task_with_subtasks, delete_subtask, unassign_task, assign_task
 from db.db_setup import SessionLocal
 from models.task import Task
 from datetime import date
@@ -202,3 +202,31 @@ with SessionLocal() as session:
     print("\nRemaining tasks in DB after parent deletion:")
     for t in remaining:
         print(f"- {t.id}: {t.title} (parent_id={t.parent_id})")
+
+#task_assign test
+# Recreate parent + subtask to ensure valid IDs
+new_parent_id = add_task(
+    title="Assign Test Parent",
+    description="Parent task for assign/unassign testing",
+    start_date=date(2025, 9, 15),
+    deadline=date(2025, 9, 20),
+    collaborators="Julia,Alex"
+)
+
+new_subtask_id = add_task(
+    title="Assign Test Subtask",
+    description="Subtask for assign/unassign testing",
+    start_date=date(2025, 9, 15),
+    deadline=date(2025, 9, 16),
+    parent_id=new_parent_id
+)
+
+print("\n=== TEST assign_task() ===")
+assign_task(new_parent_id, ["Sam"])  
+assign_task(new_subtask_id, ["Taylor", "Alex"])  
+
+with SessionLocal() as session:
+    parent_task = session.get(Task, new_parent_id)
+    subtask = session.get(Task, new_subtask_id)
+    print(f"Parent Task Collaborators: {parent_task.collaborators}")  
+    print(f"Subtask Collaborators: {subtask.collaborators}")  
