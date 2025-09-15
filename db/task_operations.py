@@ -6,7 +6,7 @@ from models.task import Task
 from datetime import date
 
 ALLOWED_STATUSES = {"To-do", "In progress", "Completed", "Blocked"}
-#KIRA-1: task-creation
+
 def add_task(title, description, start_date, deadline,
              priority="Medium", status="To-do", collaborators=None,
              notes=None, parent_id=None):
@@ -28,7 +28,7 @@ def add_task(title, description, start_date, deadline,
         return task.id
 
     
-#KIRA-22 Update Task Progress Status
+
 def update_task_status(task_id: int, new_status: str) -> str:
     """
     Generic status updater with validation.
@@ -60,7 +60,6 @@ def mark_blocked(task_id: int) -> str:
   
 
 
-# KIRA-2: task-viewing (view all parents tasks)
 def list_parent_tasks():
     with SessionLocal() as session:
         stmt = (select(Task)
@@ -69,7 +68,7 @@ def list_parent_tasks():
                 .order_by(Task.deadline.is_(None), Task.deadline.asc()))
         return session.execute(stmt).unique().scalars().all()
 
-# KIRA-2: task-viewing (view subtask by parent taks)      
+     
 def get_task_with_subtasks(task_id):
     with SessionLocal() as session:
         stmt = (select(Task)
@@ -77,7 +76,7 @@ def get_task_with_subtasks(task_id):
                 .where(Task.id == task_id))
         return session.execute(stmt).unique().scalar_one_or_none()
  
-# KIRA-3: task-update
+
 def update_task(task_id: int,
                 title: Optional[str] = None,
                 description: Optional[str] = None,
@@ -107,7 +106,7 @@ def update_task(task_id: int,
         session.commit()
         return task.id
     
-#KIRA-13: task-assign
+
 def assign_task(task_id, new_members: list[str]):
     with SessionLocal() as session:
         task = session.get(Task, task_id)
@@ -120,7 +119,7 @@ def assign_task(task_id, new_members: list[str]):
 
         session.commit()
 
-# KIRA-4: task-deletion 
+
 # Delete a subtask only (not a parent task)
 def delete_subtask(subtask_id: int) -> bool:
     """
@@ -139,7 +138,7 @@ def delete_subtask(subtask_id: int) -> bool:
         session.commit()
         return True
 
-#KIRA-4: task-deletion
+
 # Delete a parent task (and detach its subtasks)
 def delete_task(task_id: int) -> dict:
     """

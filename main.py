@@ -4,16 +4,6 @@ from db.db_setup import SessionLocal
 from models.task import Task
 from datetime import date
 
-#Current order of test, if you run the whole script, it will be
-#1. Create parent + subtask
-
-#2. View (KIRA-1/2)
-
-#3. Update (KIRA-3/22)
-
-#4. Delete subtask (KIRA-4)
-
-#5. Create a temp parent+subtask, delete parent to prove children get detached (KIRA-4)
 
 # Add parent task
 parent_id = add_task(
@@ -40,7 +30,7 @@ subtask_id = add_task(
 
 print("Tasks created successfully!\n")
 
-# --- Function for KIRA-1 Testing  ---
+
 with SessionLocal() as session:
     parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
     for t in parent_tasks:
@@ -49,7 +39,7 @@ with SessionLocal() as session:
         for st in subtasks:
             print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Assigned to: {st.collaborators}")
 
-# --- Function for KIRA-2 Testing ---
+
 def show_task_details(task, indent=""):
     print(f"{indent}ID: {task.id}")
     print(f"{indent}Title: {task.title}")
@@ -86,7 +76,7 @@ if task:
 else:
     print("No task found with ID=1")
 
-# --- Function for KIRA-3 Testing ---
+
 updated_parent = update_task(
     parent_id,
     status="In-progress",
@@ -99,7 +89,7 @@ updated_subtask = update_task(
     deadline=date(2025, 9, 11)
 )
 
-# --- Function for KIRA-3 Testing ---
+
 print("\nAfter updates:")
 with SessionLocal() as session:
     parent_tasks = session.query(Task).filter(Task.parent_id == None).all()
@@ -109,8 +99,7 @@ with SessionLocal() as session:
         for st in subtasks:
             print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
 
-            
-# --- Function for KIRA-22 Testing----           
+                     
 print("\n=== AFTER STARTING SUBTASK (should be 'In progress') ===")
 start_task(subtask_id)
 with SessionLocal() as session:
@@ -141,8 +130,6 @@ with SessionLocal() as session:
         for st in subtasks:
             print(f"  Subtask: {st.title} | Status: {st.status} | Priority: {st.priority} | Deadline: {st.deadline}")
 
-
-# --- Function for KIRA-4 Testing ---
 print("\n=== TEST DELETING SUBTASK ===")
 result = delete_subtask(subtask_id)
 print(f"Deleted subtask {subtask_id}: {result}")
