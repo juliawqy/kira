@@ -1,13 +1,9 @@
 /*************************************************
  * Kira Task Dashboard — API-first, modal UX
- * - Mock-friendly
- * - Update/Status modals locked to clicked task
- * - Create modal locks to clicked parent for subtasks
- * - Set Status modal = dropdown only (no quick buttons)
- * - Subtasks use .sub-badge pills (lighter, smaller)
+ * Now with Delete (and promote subtasks on parent delete)
  *************************************************/
 const USE_MOCK = true;                 // set false when backend APIs go live
-const API_BASE = "/api/v1";            // adjust if your backend prefix differs
+const API_BASE = "/api/v1";
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
 /* ----------------------- Real Service ----------------------- */
@@ -35,6 +31,11 @@ const RealService = {
     if (!r.ok) throw new Error(`Status failed: ${r.status}`);
     return r.json();
   },
+  async delete(id) {
+    const r = await fetch(`${API_BASE}/tasks/${id}`, { method: "DELETE" });
+    if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
+    return { id };
+  },
 };
 
 /* ----------------------- Mock Service ----------------------- */
@@ -48,11 +49,36 @@ const MockService = (() => {
       start_date:null, deadline:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()+7)),
       collaborators:"julia@kira.ai, alex@kira.ai", notes:"Include churn", description:"Compile metrics & slides", parent_id:null,
       subtasks:[
-        { id:2, title:"Pull revenue data", status:"In progress", priority:"Medium", deadline:null, parent_id:1, description:"BQ export", collaborators:"alex@kira.ai", notes:"partition by quarter" },
-        { id:3, title:"Build charts",      status:"To-do",       priority:"Low",    deadline:null, parent_id:1, description:"Looker + Slides", collaborators:"", notes:"" },
+        { id:2, title:"Pull revenue data", status:"In progress", priority:"Medium", deadline:null, parent_id:1,
+          description:"BQ export", collaborators:"alex@kira.ai", notes:"partition by quarter" },
+        { id:3, title:"Build charts", status:"To-do", priority:"Low", deadline:null, parent_id:1,
+          description:"Looker + Slides", collaborators:"", notes:"" }
       ]},
     { id:4, title:"Security review", status:"Blocked", priority:"Medium",
-      start_date:null, deadline:null, collaborators:"", notes:"Waiting on approval", description:"Vendor risk", parent_id:null, subtasks:[]},
+      start_date:null, deadline:null, collaborators:"", notes:"Waiting on approval", description:"Vendor risk", parent_id:null,
+      subtasks:[]},
+    { id:5, title:"Marketing site refresh", status:"In progress", priority:"High",
+      start_date:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()-3)),
+      deadline:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()+14)),
+      collaborators:"anita@kira.ai", notes:"Check branding guidelines", description:"Update homepage and blog layout",
+      parent_id:null, subtasks:[
+        { id:6, title:"Hero section redesign", status:"To-do", priority:"High", deadline:null,
+          parent_id:5, description:"Add new case studies", collaborators:"", notes:"" }
+      ]},
+    { id:7, title:"Incident postmortem", status:"Completed", priority:"Medium",
+      start_date:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()-10)),
+      deadline:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()-5)),
+      collaborators:"sam@kira.ai", notes:"Write timeline & action items", description:"Outage RCA", parent_id:null, subtasks:[]},
+    { id:8, title:"A/B test: Pricing page", status:"In progress", priority:"Low",
+      start_date:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)),
+      deadline:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()+10)),
+      collaborators:"rosa@kira.ai", notes:"Monitor variant B", description:"Run experiment on new pricing tiers",
+      parent_id:null, subtasks:[
+        { id:9, title:"Setup experiment in Optimizely", status:"Completed", priority:"Medium", deadline:null,
+          parent_id:8, description:"Configure traffic split", collaborators:"", notes:"" },
+        { id:10, title:"Collect initial results", status:"To-do", priority:"Low", deadline:null,
+          parent_id:8, description:"Export to Sheets", collaborators:"mei@kira.ai", notes:"" }
+      ]}
   ];
 
   function parents(){ return store; }
@@ -110,6 +136,38 @@ const MockService = (() => {
       const t = findAny(Number(id)); if(!t) throw new Error("Task not found");
       t.status = status; await sleep(30); return { id:t.id, status };
     },
+    // NEW: delete (promote subtasks if deleting a parent)
+    async delete(id){
+      id = Number(id);
+      // If it's a parent, promote its subtasks to top-level first
+      const pIndex = store.findIndex(p => p.id === id);
+      if (pIndex >= 0) {
+        const parent = store[pIndex];
+        const subs = parent.subtasks || [];
+        for (const s of subs) {
+          s.parent_id = null;
+          // ensure no nested subtasks for a subtask; we lift them as plain tasks
+          s.subtasks = [];
+          if (!store.find(p => p.id === s.id)) {
+            store.push(s);
+          }
+        }
+        // finally remove the parent
+        store.splice(pIndex, 1);
+        await sleep(30);
+        return { id };
+      }
+      // If it's a subtask, remove from whichever parent has it
+      for (const p of store) {
+        const sIndex = (p.subtasks||[]).findIndex(s => s.id === id);
+        if (sIndex >= 0) {
+          p.subtasks.splice(sIndex, 1);
+          await sleep(30);
+          return { id };
+        }
+      }
+      throw new Error("Task not found");
+    }
   };
 })();
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
@@ -177,14 +235,17 @@ function renderDashboard(tasks){
       <div class="row-end">
         <div class="meta" style="opacity:.85">${escapeHtml(t.collaborators||"")}</div>
         <div class="actions">
-          <button class="btn tiny secondary" data-open="update" data-id="${t.id}">✎</button>
+          <button class="btn tiny secondary" data-open="update" data-id="${t.id}">✏️</button>
           <button class="btn tiny secondary" data-open="status" data-id="${t.id}">✓</button>
           <button class="btn tiny" data-open="create" data-parent="${t.id}">＋</button>
+          <button class="btn tiny danger" data-open="delete" data-id="${t.id}">🗑</button>
         </div>
       </div>
     `;
     grid.appendChild(card);
   }
+  // keep parent pickers in sync with latest parent list
+  populateParentPickers(tasks);
 }
 
 function renderSubtasksInline(parent){
@@ -202,8 +263,9 @@ function renderSubtasksInline(parent){
           </div>
         </div>
         <div class="actions">
-          <button class="btn tiny secondary" data-open="update" data-id="${s.id}">✎</button>
+          <button class="btn tiny secondary" data-open="update" data-id="${s.id}">✏️</button>
           <button class="btn tiny secondary" data-open="status" data-id="${s.id}">✓</button>
+          <button class="btn tiny danger" data-open="delete" data-id="${s.id}">🗑</button>
         </div>
       </div>`).join("")}
   </div>`;
@@ -235,7 +297,7 @@ function closeDetail(){
 
 detailClose.addEventListener("click", closeDetail);
 
-// Escape key
+// Escape key for detail modal
 document.addEventListener("keydown",(e)=>{
   if(e.key==="Escape" && !detailModal.hidden){
     closeDetail();
@@ -255,6 +317,7 @@ function closeModal(){
   unlockCreateParent();
 }
 overlay.addEventListener("click", closeModal);
+// Escape to close any CRUD modal
 document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeModal(); });
 document.querySelectorAll("[data-close-modal]").forEach(b => b.addEventListener("click", closeModal));
 
@@ -303,6 +366,33 @@ function unlockCreateParent(){
   $("parentPicker").style.display = "none";
 }
 
+/* ----------------------- Populate parent pickers ----------------------- */
+function populateParentPickers(tasks){
+  const parents = Array.isArray(tasks) ? tasks : [];
+  const parentSelects = [ $("parentTaskId"), $("u_parentTaskId") ].filter(Boolean);
+  for (const sel of parentSelects){
+    const current = sel.value;
+    sel.innerHTML = "";
+    // optional header for update picker
+    if (sel.id === "u_parentTaskId") {
+      const opt0 = document.createElement("option");
+      opt0.value = "";
+      opt0.textContent = "(no change)";
+      sel.appendChild(opt0);
+    }
+    for (const p of parents){
+      const opt = document.createElement("option");
+      opt.value = String(p.id);
+      opt.textContent = `${p.title || "Untitled"} (#${p.id})`;
+      sel.appendChild(opt);
+    }
+    // try to retain previous selection if still present
+    if (current && [...sel.options].some(o => o.value === current)) {
+      sel.value = current;
+    }
+  }
+}
+
 /* ----------------------- Events ----------------------- */
 document.getElementById("openCreate").addEventListener("click", ()=>{
   document.getElementById("formCreate").reset();
@@ -315,8 +405,8 @@ document.getElementById("refreshBtn").addEventListener("click", hydrate);
 document.getElementById("q").addEventListener("input", hydrate);
 document.getElementById("filterStatus").addEventListener("change", hydrate);
 
-// click handling for view/update/status/create
-document.addEventListener("click", (e)=>{
+// click handling for view/update/status/create/delete
+document.addEventListener("click", async (e)=>{
   const card = e.target.closest("[data-view]");
   if (card && !e.target.closest(".actions")){
     const id = Number(card.dataset.id);
@@ -356,6 +446,19 @@ document.addEventListener("click", (e)=>{
     updateStatusChoices(); // preselect current status in dropdown
     openModal("status");
   }
+
+  if (which==="delete"){
+    const { item, parent } = findTaskById(id);
+    if (!item) return;
+    const isParent = !parent; // in our UI, parent = null for top-level
+    const confirmMsg = isParent
+      ? `Delete parent task "${item.title}" (#${item.id})?\n\nIts subtasks will be promoted to top-level tasks.`
+      : `Delete subtask "${item.title}" (#${item.id})?`;
+    if (confirm(confirmMsg)) {
+      await SVC.delete(id);
+      await hydrate();
+    }
+  }
 });
 
 /* ----------------------- Create ----------------------- */
@@ -394,14 +497,14 @@ $("formUpdate").addEventListener("submit", async (e)=>{
   const id = Number($("u_taskId").value);
   if (!id) return;
   const updates = {};
-  const put=(k,v)=>{ if(v && v.trim()!=="") updates[k]=v; };
+  const put=(k,v)=>{ if(v && v.trim && v.trim()!=="") updates[k]=v; else if (v && !v.trim) updates[k]=v; };
   put("title",$("u_title").value);
   put("description",$("u_description").value);
   put("start_date",$("u_start").value);
   put("deadline",$("u_deadline").value);
   put("notes",$("u_notes").value);
   put("collaborators",$("u_collab").value);
-  put("status",$("u_status").value);
+  if($("u_status").value) updates.status=$("u_status").value;
   put("comments",$("u_comments").value);
   if($("u_priority").value) updates.priority=$("u_priority").value;
   if($("u_parentTaskId").value) updates.parent_id=Number($("u_parentTaskId").value);

@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <!-- keep your original relative paths -->
   <link rel="stylesheet" href="../styles/styles.css" />
 </head>
 <body>
@@ -42,10 +43,10 @@
   <main class="container">
     <!-- Cascading vertical list -->
     <section id="dashboard" class="dashboard-stack"></section>
-    <div id="empty" class="empty" style="display:none">No tasks yet — try creating one!</div>
+    <div id="empty" class="empty" style="display:none">No tasks found</div>
   </main>
 
-  <!-- Slide-in Details Drawer -->
+  <!-- Centered Details Modal -->
   <div id="detailModal" class="detail-modal" hidden>
     <div class="detail-card">
       <div class="detail-head">
@@ -67,19 +68,6 @@
         <button class="btn icon" data-close-modal aria-label="Close">✕</button>
       </div>
       <form id="formCreate" class="modal-body grid2">
-        <div class="full">
-          <label>Is this a subtask?</label>
-          <select id="isSubtask">
-            <option value="no" selected>No (parent task)</option>
-            <option value="yes">Yes (link to a parent)</option>
-          </select>
-        </div>
-        <div class="full" id="parentPicker" style="display:none">
-          <label>Parent Task</label>
-          <select id="parentTaskId"></select>
-          <div class="hint">Parents load from the service</div>
-        </div>
-
         <div>
           <label>Title</label>
           <input id="c_title" required placeholder="e.g., Prepare Q4 report" />
@@ -115,6 +103,18 @@
         <div>
           <label>Comments</label>
           <input id="c_comments" placeholder="Optional initial comment"/>
+        </div>
+        <div class="full">
+          <label>Is this a subtask?</label>
+          <select id="isSubtask">
+            <option value="no" selected>No (parent task)</option>
+            <option value="yes">Yes (link to a parent)</option>
+          </select>
+        </div>
+        <div class="full" id="parentPicker" style="display:none">
+          <label>Parent Task</label>
+          <select id="parentTaskId"></select>
+          <div class="hint">Parents load from the service</div>
         </div>
         <div class="full actions">
           <button class="btn" type="submit">Create</button>
@@ -166,7 +166,7 @@
         <h3>Set Status</h3>
         <button class="btn icon" data-close-modal aria-label="Close">✕</button>
       </div>
-          <form id="formStatus" class="modal-body">
+      <form id="formStatus" class="modal-body">
         <label>Task</label>
         <div id="s_taskInfo" class="pill">—</div>
         <input type="hidden" id="s_taskId">
@@ -188,6 +188,7 @@
     </div>
   </div>
 
+  <!-- keep your original relative path -->
   <script src="../api/script.js"></script>
 </body>
 </html>

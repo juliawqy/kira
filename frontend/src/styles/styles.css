@@ -49,6 +49,13 @@ h1{margin:0;font-weight:800;letter-spacing:-.02em}
 .btn.icon{background:#eef6ff;color:#174a87;border:1px solid #d6e9ff;padding:6px 10px;border-radius:10px}
 .btn.tiny{padding:6px 10px;border-radius:10px;font-weight:700}
 
+/* NEW: danger style for Delete */
+.btn.danger{
+  background:linear-gradient(180deg,#ff6b6b,#d64545);
+  color:#fff;border:1px solid #ffb3b3;
+}
+.btn.danger:hover{box-shadow:0 6px 14px rgba(166,22,22,.25)}
+
 /* Inputs */
 .search{display:flex;gap:10px;margin-top:8px}
 .search input{flex:1;min-height:44px}
@@ -88,11 +95,13 @@ input:focus,textarea:focus,select:focus{border-color:var(--bb-500);box-shadow:0 
   margin-top:4px;
 }
 
+/* Make STATUS occupy the first row, but not full-width across content below */
 .card-task .meta .badge.status{
-  margin-right:auto;    
-  flex-basis:100%;    
-  margin-bottom:6px;         
+  margin-right:auto;
+  flex-basis:100%;
+  margin-bottom:6px;
 }
+
 .card-task .row-end{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
 
 /* Badges for parent tasks */
@@ -130,21 +139,21 @@ input:focus,textarea:focus,select:focus{border-color:var(--bb-500);box-shadow:0 
 }
 .sub-item:hover{background:#f0f7ff;border-color:#cfe4ff}
 
+/* Subtask meta spacing so pills don't look cramped */
 .sub-item .meta{
   display:flex;
   flex-wrap:wrap;
   align-items:center;
   font-size:12px;
   line-height:1.4;
-  gap:10px;           
+  gap:10px;
   margin-top:4px;
 }
 .sub-item .meta .sub-badge.status{
-  margin-right:auto;    
-  flex-basis:100%;    
-  margin-bottom:6px;     
+  margin-right:auto;
+  flex-basis:100%;
+  margin-bottom:6px;
 }
-
 
 /* Smaller, lighter pills for subtasks */
 .sub-badge{
@@ -161,14 +170,14 @@ input:focus,textarea:focus,select:focus{border-color:var(--bb-500);box-shadow:0 
 .sub-badge.status.done{background:#f0fbf4;color:#0d6a35;border-color:#cdebd8}
 .sub-badge.status.blocked{background:#fff4f4;color:#a11616;border-color:#ffd7d7}
 
-/* Task detail modal */
+/* Task detail modal (centered with Escape to close) */
 .detail-modal{
   position:fixed;
   inset:0;
   display:grid;
   place-items:center;
   z-index:50;
-  background:rgba(13,30,60,.30); /* semi-transparent backdrop */
+  background:rgba(13,30,60,.30);
   backdrop-filter:blur(4px);
 }
 .detail-modal[hidden]{display:none;}
@@ -200,8 +209,6 @@ input:focus,textarea:focus,select:focus{border-color:var(--bb-500);box-shadow:0 
   flex-direction:column;
   gap:12px;
 }
-
-
 
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .row .kv{background:#f7fbff;border:1px solid #e7f2ff;padding:8px 10px;border-radius:10px;font-size:13px}
