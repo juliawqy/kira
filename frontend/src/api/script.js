@@ -1,278 +1,187 @@
 /*************************************************
- * Kira Task Dashboard — API-first, modal UX
- * Now with Delete (and promote subtasks on parent delete)
+ * Kira Task Dashboard — script.js (ES module)
+ * Uses MockDB from mock-data.js for now.
+ * Later: swap out MockDB with API fetches inside Backend methods.
+ * Updates:
+ * - Status pill opens status modal (removed ✓ buttons)
+ * - Delegated handler prioritizes [data-open] over card detail
+ * - Keyboard support for clickable pills (Enter/Space)
+ * - Close buttons via [data-close-modal] / [data-close-detail]
  *************************************************/
-const USE_MOCK = true;                 // set false when backend APIs go live
-const API_BASE = "/api/v1";
-const JSON_HEADERS = { "Content-Type": "application/json" };
 
-/* ----------------------- Real Service ----------------------- */
-const RealService = {
-  async list({ q = "", status = "" } = {}) {
-    const url = new URL(`${API_BASE}/tasks`, window.location.origin);
-    if (q) url.searchParams.set("q", q);
-    if (status) url.searchParams.set("status", status);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`List failed: ${res.status}`);
-    return res.json();
-  },
-  async create(payload) {
-    const r = await fetch(`${API_BASE}/tasks`, { method:"POST", headers:JSON_HEADERS, body:JSON.stringify(payload) });
-    if (!r.ok) throw new Error(`Create failed: ${r.status}`);
-    return r.json();
-  },
-  async patch(id, updates) {
-    const r = await fetch(`${API_BASE}/tasks/${id}`, { method:"PATCH", headers:JSON_HEADERS, body:JSON.stringify(updates) });
-    if (!r.ok) throw new Error(`Update failed: ${r.status}`);
-    return r.json();
-  },
-  async setStatus(id, status) {
-    const r = await fetch(`${API_BASE}/tasks/${id}/status`, { method:"POST", headers:JSON_HEADERS, body:JSON.stringify({ status }) });
-    if (!r.ok) throw new Error(`Status failed: ${r.status}`);
-    return r.json();
-  },
-  async delete(id) {
-    const r = await fetch(`${API_BASE}/tasks/${id}`, { method: "DELETE" });
-    if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
-    return { id };
-  },
+// import the mock backend (script.js and mock-data.js are in the same /api folder)
+import { MockDB } from "./mock-data.js";
+
+const API_BASE = "/api/v1"; // for future API use
+
+/* ====================== Backend ====================== */
+/* Calls the mock backend now. Later, just replace with fetch(...) calls */
+const Backend = {
+  async list(args) { return MockDB.list(args); },
+  async create(payload) { return MockDB.create(payload); },
+  async patch(id, updates) { return MockDB.patch(id, updates); },
+  async setStatus(id, status) { return MockDB.setStatus(id, status); },
+  async delete(id) { return MockDB.delete(id); }
 };
 
-/* ----------------------- Mock Service ----------------------- */
-const MockService = (() => {
-  let seq = 1000;
-  const today = new Date();
-  const iso = (d) => d ? new Date(d).toISOString() : null;
-
-  const store = [
-    { id:1, title:"Prepare Q4 report", status:"To-do", priority:"High",
-      start_date:null, deadline:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()+7)),
-      collaborators:"julia@kira.ai, alex@kira.ai", notes:"Include churn", description:"Compile metrics & slides", parent_id:null,
-      subtasks:[
-        { id:2, title:"Pull revenue data", status:"In progress", priority:"Medium", deadline:null, parent_id:1,
-          description:"BQ export", collaborators:"alex@kira.ai", notes:"partition by quarter" },
-        { id:3, title:"Build charts", status:"To-do", priority:"Low", deadline:null, parent_id:1,
-          description:"Looker + Slides", collaborators:"", notes:"" }
-      ]},
-    { id:4, title:"Security review", status:"Blocked", priority:"Medium",
-      start_date:null, deadline:null, collaborators:"", notes:"Waiting on approval", description:"Vendor risk", parent_id:null,
-      subtasks:[]},
-    { id:5, title:"Marketing site refresh", status:"In progress", priority:"High",
-      start_date:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()-3)),
-      deadline:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()+14)),
-      collaborators:"anita@kira.ai", notes:"Check branding guidelines", description:"Update homepage and blog layout",
-      parent_id:null, subtasks:[
-        { id:6, title:"Hero section redesign", status:"To-do", priority:"High", deadline:null,
-          parent_id:5, description:"Add new case studies", collaborators:"", notes:"" }
-      ]},
-    { id:7, title:"Incident postmortem", status:"Completed", priority:"Medium",
-      start_date:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()-10)),
-      deadline:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()-5)),
-      collaborators:"sam@kira.ai", notes:"Write timeline & action items", description:"Outage RCA", parent_id:null, subtasks:[]},
-    { id:8, title:"A/B test: Pricing page", status:"In progress", priority:"Low",
-      start_date:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)),
-      deadline:iso(new Date(today.getFullYear(), today.getMonth(), today.getDate()+10)),
-      collaborators:"rosa@kira.ai", notes:"Monitor variant B", description:"Run experiment on new pricing tiers",
-      parent_id:null, subtasks:[
-        { id:9, title:"Setup experiment in Optimizely", status:"Completed", priority:"Medium", deadline:null,
-          parent_id:8, description:"Configure traffic split", collaborators:"", notes:"" },
-        { id:10, title:"Collect initial results", status:"To-do", priority:"Low", deadline:null,
-          parent_id:8, description:"Export to Sheets", collaborators:"mei@kira.ai", notes:"" }
-      ]}
-  ];
-
-  function parents(){ return store; }
-  function flat(){ const a=[]; for(const p of store){ a.push(p); (p.subtasks||[]).forEach(s=>a.push(s)); } return a; }
-  const findParent = (id) => store.find(x=>x.id===id);
-  const findAny = (id) => flat().find(x=>x.id===id);
-
-  return {
-    async list({ q = "", status = "" } = {}) {
-      let out = parents().map(p => ({ ...p, subtasks:[...(p.subtasks||[])] }));
-      if (q) { const Q = q.toLowerCase(); out = out.filter(t => (t.title||"").toLowerCase().includes(Q) || (t.collaborators||"").toLowerCase().includes(Q)); }
-      if (status) out = out.filter(t => (t.status||"").toLowerCase() === status.toLowerCase());
-      await sleep(100);
-      return out;
-    },
-    async create(payload){
-      const id = ++seq;
-      const base = { id, title:payload.title, status:payload.status||"To-do", priority:payload.priority||"Medium",
-        start_date:payload.start_date||null, deadline:payload.deadline||null,
-        collaborators:payload.collaborators||"", notes:payload.notes||"", description:payload.description||"",
-        parent_id:payload.parent_id||null, subtasks:[] };
-      if (payload.parent_id){
-        const par = findParent(payload.parent_id); if (!par) throw new Error("Parent not found");
-        par.subtasks.push(base);
-      } else store.push(base);
-      await sleep(60);
-      return { id };
-    },
-    async patch(id, updates){
-      const t = findAny(Number(id)); if (!t) throw new Error("Task not found");
-
-      // Handle re-parenting if provided
-      if ("parent_id" in updates && updates.parent_id !== t.parent_id){
-        // remove from old parent if it was a subtask
-        for (const p of store){
-          const idx = (p.subtasks||[]).findIndex(s => s.id === t.id);
-          if (idx >= 0) p.subtasks.splice(idx,1);
-        }
-        if (updates.parent_id){
-          const target = findParent(updates.parent_id);
-          if (target) target.subtasks.push(t);
-          t.parent_id = updates.parent_id;
-        } else {
-          // promote to parent
-          t.parent_id = null;
-          if (!store.find(p => p.id === t.id)) store.push(t);
-        }
-      }
-
-      Object.assign(t, updates);
-      await sleep(40);
-      return { id:t.id, updated:true };
-    },
-    async setStatus(id, status){
-      const t = findAny(Number(id)); if(!t) throw new Error("Task not found");
-      t.status = status; await sleep(30); return { id:t.id, status };
-    },
-    // NEW: delete (promote subtasks if deleting a parent)
-    async delete(id){
-      id = Number(id);
-      // If it's a parent, promote its subtasks to top-level first
-      const pIndex = store.findIndex(p => p.id === id);
-      if (pIndex >= 0) {
-        const parent = store[pIndex];
-        const subs = parent.subtasks || [];
-        for (const s of subs) {
-          s.parent_id = null;
-          // ensure no nested subtasks for a subtask; we lift them as plain tasks
-          s.subtasks = [];
-          if (!store.find(p => p.id === s.id)) {
-            store.push(s);
-          }
-        }
-        // finally remove the parent
-        store.splice(pIndex, 1);
-        await sleep(30);
-        return { id };
-      }
-      // If it's a subtask, remove from whichever parent has it
-      for (const p of store) {
-        const sIndex = (p.subtasks||[]).findIndex(s => s.id === id);
-        if (sIndex >= 0) {
-          p.subtasks.splice(sIndex, 1);
-          await sleep(30);
-          return { id };
-        }
-      }
-      throw new Error("Task not found");
-    }
-  };
-})();
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-const SVC = USE_MOCK ? MockService : RealService;
-
-/* ----------------------- DOM ----------------------- */
+/* ====================== DOM, State & Utils ====================== */
 const $ = (id)=>document.getElementById(id);
 const grid = $("dashboard");
 const emptyEl = $("empty");
 const detailModal = $("detailModal");
 const detailTitle = $("detailTitle");
 const detailBody = $("detailBody");
-const detailClose = $("detailClose");
 const overlay = $("modalOverlay");
 const modalCreate = $("modal-create");
 const modalUpdate = $("modal-update");
 const modalStatus = $("modal-status");
 
-/* Create-lock state (when adding a subtask from a parent card) */
 let LOCK_CREATE_PARENT_ID = null;
+const COLLAPSE_KEY = "kira_collapsed_parents";
+let COLLAPSED = loadCollapsed();
 
-/* ----------------------- Utils ----------------------- */
 function escapeHtml(str){
-  return String(str ?? "").replace(/[&<>"]/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"
-  }[c]));
+  return String(str ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]));
 }
-function chip(status){
-  const map = { "to-do":"todo", "in progress":"progress", "completed":"done", "blocked":"blocked" };
-  const key = (status||"").toLowerCase();
-  const cls = map[key] || "todo";
-  return `<span class="badge status ${cls}">${escapeHtml(status||"To-do")}</span>`;
+function highlightText(s, q){
+  s = String(s ?? ""); if (!q) return escapeHtml(s);
+  const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"), "gi");
+  let out = "", last = 0, m;
+  while ((m = re.exec(s))){
+    out += escapeHtml(s.slice(last, m.index));
+    out += `<mark class="highlight">${escapeHtml(m[0])}</mark>`;
+    last = m.index + m[0].length;
+  }
+  return out + escapeHtml(s.slice(last));
 }
-function subChip(status){
+function chip(status, id){
   const map = { "to-do":"todo", "in progress":"progress", "completed":"done", "blocked":"blocked" };
-  const key = (status||"").toLowerCase();
-  const cls = map[key] || "todo";
-  return `<span class="sub-badge status ${cls}">${escapeHtml(status||"To-do")}</span>`;
+  const cls = map[(status||"").toLowerCase()] || "todo";
+  const safe = escapeHtml(status || "To-do");
+  return `<span class="badge status ${cls}" data-open="status" data-id="${String(id)}" role="button" tabindex="0" aria-label="Change status">
+            ${safe} ▾
+          </span>`;
+}
+function subChip(status, id){
+  const map = { "to-do":"todo", "in progress":"progress", "completed":"done", "blocked":"blocked" };
+  const cls = map[(status||"").toLowerCase()] || "todo";
+  const safe = escapeHtml(status || "To-do");
+  return `<span class="sub-badge status ${cls}" data-open="status" data-id="${String(id)}" role="button" tabindex="0" aria-label="Change status">
+            ${safe} ▾
+          </span>`;
 }
 function fmt(d){ return d ? new Date(d).toLocaleDateString() : "—"; }
+function toInputDate(iso){
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 function setBodyModalOpen(open){ document.body.classList.toggle("modal-open", !!open); }
+function loadCollapsed(){ try{ return JSON.parse(localStorage.getItem(COLLAPSE_KEY)||"{}"); }catch{ return {}; } }
+function saveCollapsed(){ try{ localStorage.setItem(COLLAPSE_KEY, JSON.stringify(COLLAPSED)); }catch{} }
 
-/* ----------------------- Render ----------------------- */
+/* ====================== Update Prefill ====================== */
+function prefillUpdateForm(item, parent){
+  populateParentPickers(window.__TASKS || []);
+  $("u_taskId").value = item.id;
+  $("u_taskInfo").textContent = `${item.title || "Untitled"} (#${item.id})`;
+  $("u_title").value        = item.title || "";
+  $("u_description").value  = item.description || "";
+  $("u_notes").value        = item.notes || "";
+  $("u_collab").value       = item.collaborators || "";
+  $("u_comments").value     = ""; // append-only
+  $("u_start").value        = toInputDate(item.start_date);
+  $("u_deadline").value     = toInputDate(item.deadline);
+  $("u_priority").value     = item.priority || "";
+  $("u_status").value       = item.status || "";
+  $("u_parentTaskId").value = parent ? String(parent.id) : "";
+}
+
+/* ====================== Rendering ====================== */
 function renderDashboard(tasks){
+  const q = ($("q")?.value || "").trim();
   grid.innerHTML = "";
   if (!tasks || !tasks.length){ emptyEl.style.display = ""; return; }
   emptyEl.style.display = "none";
 
   for (const t of tasks){
+    const subsCount = (t.subtasks || []).length;
+    const stored = COLLAPSED[t.id];
+    const isCollapsed = stored === undefined ? true : !!stored;
+
+    const titleHtml = highlightText(t.title || "Untitled task", q);
+    const assigneeHtml = highlightText(t.collaborators || "—", q);
+
     const card = document.createElement("article");
     card.className = "card-task";
     card.setAttribute("data-view","parent");
     card.setAttribute("data-id", String(t.id));
     card.innerHTML = `
       <div>
-        <h3 class="title">${escapeHtml(t.title || "Untitled task")}</h3>
+        <h3 class="title">${titleHtml}</h3>
         <div class="meta">
-          ${chip(t.status)}
+          ${chip(t.status, t.id)}
+          <span class="badge">Task ID: #${t.id}</span>
           <span class="badge">Due: ${fmt(t.deadline)}</span>
-          <span class="badge">Priority: ${escapeHtml(t.priority || "—")}</span>
-          <span class="badge">#${t.id}</span>
+          <span class="badge priority ${t.priority ? t.priority.toLowerCase() : ''}">
+            Priority: ${escapeHtml(t.priority || "—")}
+          </span>
+          <span class="badge">Assigned to: ${assigneeHtml}</span>
+          <button class="badge subtoggle" data-toggle="subs" data-id="${t.id}" aria-expanded="${!isCollapsed}">
+            ${isCollapsed ? "▸" : "▾"} Subtasks (${subsCount})
+          </button>
         </div>
       </div>
-      ${ renderSubtasksInline(t) }
+      <div class="subs-wrap" id="subs-${t.id}" style="${isCollapsed ? "display:none" : ""}">
+        ${ renderSubtasksInline(t, q) }
+      </div>
       <div class="row-end">
-        <div class="meta" style="opacity:.85">${escapeHtml(t.collaborators||"")}</div>
+        <div class="meta"></div>
         <div class="actions">
-          <button class="btn tiny secondary" data-open="update" data-id="${t.id}">✏️</button>
-          <button class="btn tiny secondary" data-open="status" data-id="${t.id}">✓</button>
-          <button class="btn tiny" data-open="create" data-parent="${t.id}">＋</button>
-          <button class="btn tiny danger" data-open="delete" data-id="${t.id}">🗑</button>
+          <button class="btn tiny secondary" data-open="update" data-id="${t.id}" data-tooltip="Edit">✎</button>
+          <button class="btn tiny" data-open="create" data-parent="${t.id}" data-tooltip="Add subtask">＋</button>
+          <button class="btn tiny danger" data-open="delete" data-id="${t.id}" data-tooltip="Delete">🗑</button>
         </div>
       </div>
     `;
     grid.appendChild(card);
   }
-  // keep parent pickers in sync with latest parent list
   populateParentPickers(tasks);
 }
 
-function renderSubtasksInline(parent){
+function renderSubtasksInline(parent, q){
   const subs = parent.subtasks || [];
   if (!subs.length) return `<div class="subtasks-inline" style="opacity:.7">No subtasks</div>`;
   return `<div class="subtasks-inline">
-    ${subs.map(s => `
+    ${subs.map(s => {
+      const th = highlightText(s.title || "", q);
+      const assignee = highlightText(s.collaborators || "—", q);
+      return `
       <div class="sub-item" data-view="subtask" data-id="${s.id}">
         <div>
-          <div class="meta"><strong>${escapeHtml(s.title)}</strong> ${subChip(s.status)}</div>
+          <div class="meta"><strong>${th}</strong> ${subChip(s.status, s.id)}</div>
           <div class="meta">
+            <span class="sub-badge">Subtask ID: #${s.id}</span>
             <span class="sub-badge">Due: ${fmt(s.deadline)}</span>
-            <span class="sub-badge">Priority: ${escapeHtml(s.priority || "—")}</span>
-            <span class="sub-badge">#${s.id}</span>
+            <span class="sub-badge priority ${s.priority ? s.priority.toLowerCase() : ''}">
+              Priority: ${escapeHtml(s.priority || "—")}
+            </span>
+            <span class="sub-badge">Assigned to: ${assignee}</span>
           </div>
         </div>
         <div class="actions">
-          <button class="btn tiny secondary" data-open="update" data-id="${s.id}">✏️</button>
-          <button class="btn tiny secondary" data-open="status" data-id="${s.id}">✓</button>
-          <button class="btn tiny danger" data-open="delete" data-id="${s.id}">🗑</button>
+          <button class="btn tiny secondary" data-open="update" data-id="${s.id}" data-tooltip="Edit">✎</button>
+          <button class="btn tiny danger" data-open="delete" data-id="${s.id}" data-tooltip="Delete">🗑</button>
         </div>
-      </div>`).join("")}
+      </div>`;
+    }).join("")}
   </div>`;
 }
 
+/* ====================== Detail Modal ====================== */
 function openDetail(item, parentTitle){
-  detailTitle.textContent = item.title || "Task details";
+  const q = ($("q")?.value || "").trim();
+  detailTitle.innerHTML = highlightText(item.title || "Task details", q);
   detailBody.innerHTML = `
     <div class="row">
       ${parentTitle ? `<div class="kv"><strong>Parent:</strong> ${escapeHtml(parentTitle)}</div>` : ""}
@@ -282,29 +191,16 @@ function openDetail(item, parentTitle){
       <div class="kv"><strong>Start:</strong> ${fmt(item.start_date)}</div>
       <div class="kv"><strong>Deadline:</strong> ${fmt(item.deadline)}</div>
     </div>
-    <div class="row"><div class="kv"><strong>Collaborators:</strong> ${escapeHtml(item.collaborators||"—")}</div></div>
-    <div class="row"><div class="kv"><strong>Description:</strong> ${escapeHtml(item.description||"—")}</div></div>
-    <div class="row"><div class="kv"><strong>Notes:</strong> ${escapeHtml(item.notes||"—")}</div></div>
+    <div class="row"><div class="kv"><strong>Collaborators:</strong> ${highlightText(item.collaborators||"—", q)}</div></div>
+    <div class="row"><div class="kv"><strong>Description:</strong> ${highlightText(item.description||"—", q)}</div></div>
+    <div class="row"><div class="kv"><strong>Notes:</strong> ${highlightText(item.notes||"—", q)}</div></div>
   `;
   detailModal.hidden = false;
   setBodyModalOpen(true);
 }
+function closeDetail(){ detailModal.hidden = true; setBodyModalOpen(false); }
 
-function closeDetail(){
-  detailModal.hidden = true;
-  setBodyModalOpen(false);
-}
-
-detailClose.addEventListener("click", closeDetail);
-
-// Escape key for detail modal
-document.addEventListener("keydown",(e)=>{
-  if(e.key==="Escape" && !detailModal.hidden){
-    closeDetail();
-  }
-});
-
-/* ----------------------- Modals ----------------------- */
+/* ====================== Modals ====================== */
 function openModal(which){
   overlay.hidden = false; setBodyModalOpen(true);
   [modalCreate, modalUpdate, modalStatus].forEach(m => m.hidden = true);
@@ -313,15 +209,17 @@ function openModal(which){
 function closeModal(){
   overlay.hidden = true; setBodyModalOpen(false);
   [modalCreate, modalUpdate, modalStatus].forEach(m => m.hidden = true);
-  // also unlock Create if it was locked
   unlockCreateParent();
 }
 overlay.addEventListener("click", closeModal);
-// Escape to close any CRUD modal
-document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeModal(); });
-document.querySelectorAll("[data-close-modal]").forEach(b => b.addEventListener("click", closeModal));
+document.addEventListener("keydown",(e)=>{
+  if (e.key==="Escape") {
+    if (!detailModal.hidden) closeDetail();
+    closeModal();
+  }
+});
 
-/* ----------------------- Task lookup ----------------------- */
+/* ====================== Lookups & Parent Lock ====================== */
 function findTaskById(id){
   const data = window.__TASKS || [];
   for (const p of data){
@@ -331,72 +229,39 @@ function findTaskById(id){
   }
   return { item:null, parent:null };
 }
-
-/* ----------------------- Create Lock Helpers ----------------------- */
 function lockCreateToParent(parentId, parentTitle){
   LOCK_CREATE_PARENT_ID = Number(parentId);
-  $("isSubtask").value = "yes";
-  $("isSubtask").disabled = true;
-
-  $("parentPicker").style.display = "";
-  $("parentTaskId").value = String(parentId);
-  $("parentTaskId").disabled = true;
-  $("parentTaskId").style.pointerEvents = "none";
-  $("parentTaskId").style.opacity = "0.65";
-
+  $("isSubtask").value = "yes"; $("isSubtask").disabled = true;
+  $("parentPicker").style.display = ""; $("parentTaskId").value = String(parentId);
+  $("parentTaskId").disabled = true; $("parentTaskId").style.pointerEvents = "none"; $("parentTaskId").style.opacity = "0.65";
   let pill = document.getElementById("parentInfoPill");
-  if (!pill) {
-    pill = document.createElement("div");
-    pill.id = "parentInfoPill";
-    pill.className = "pill";
-    $("parentPicker").appendChild(pill);
-  }
+  if (!pill) { pill = document.createElement("div"); pill.id = "parentInfoPill"; pill.className = "pill"; $("parentPicker").appendChild(pill); }
   pill.textContent = `${parentTitle || "Selected parent"} (#${parentId})`;
 }
 function unlockCreateParent(){
   if (LOCK_CREATE_PARENT_ID == null) return;
   LOCK_CREATE_PARENT_ID = null;
-  $("isSubtask").disabled = false;
-  $("parentTaskId").disabled = false;
-  $("parentTaskId").style.pointerEvents = "";
-  $("parentTaskId").style.opacity = "";
-  const pill = document.getElementById("parentInfoPill");
-  if (pill && pill.parentNode) pill.parentNode.removeChild(pill);
-  $("isSubtask").value = "no";
-  $("parentPicker").style.display = "none";
+  $("isSubtask").disabled = false; $("parentTaskId").disabled = false;
+  $("parentTaskId").style.pointerEvents = ""; $("parentTaskId").style.opacity = "";
+  const pill = document.getElementById("parentInfoPill"); if (pill?.parentNode) pill.parentNode.removeChild(pill);
+  $("isSubtask").value = "no"; $("parentPicker").style.display = "none";
 }
-
-/* ----------------------- Populate parent pickers ----------------------- */
 function populateParentPickers(tasks){
   const parents = Array.isArray(tasks) ? tasks : [];
-  const parentSelects = [ $("parentTaskId"), $("u_parentTaskId") ].filter(Boolean);
-  for (const sel of parentSelects){
-    const current = sel.value;
-    sel.innerHTML = "";
-    // optional header for update picker
-    if (sel.id === "u_parentTaskId") {
-      const opt0 = document.createElement("option");
-      opt0.value = "";
-      opt0.textContent = "(no change)";
-      sel.appendChild(opt0);
-    }
-    for (const p of parents){
-      const opt = document.createElement("option");
-      opt.value = String(p.id);
-      opt.textContent = `${p.title || "Untitled"} (#${p.id})`;
-      sel.appendChild(opt);
-    }
-    // try to retain previous selection if still present
-    if (current && [...sel.options].some(o => o.value === current)) {
-      sel.value = current;
-    }
+  const selects = [ $("parentTaskId"), $("u_parentTaskId") ].filter(Boolean);
+  for (const sel of selects){
+    const current = sel.value; sel.innerHTML = "";
+    if (sel.id === "u_parentTaskId") { const opt0=document.createElement("option"); opt0.value=""; opt0.textContent="(no change)"; sel.appendChild(opt0); }
+    for (const p of parents){ const o=document.createElement("option"); o.value=String(p.id); o.textContent=`${p.title||"Untitled"} (#${p.id})`; sel.appendChild(o); }
+    if (current && [...sel.options].some(o=>o.value===current)) sel.value=current;
   }
 }
 
-/* ----------------------- Events ----------------------- */
+/* ====================== Events ====================== */
+// header
 document.getElementById("openCreate").addEventListener("click", ()=>{
   document.getElementById("formCreate").reset();
-  unlockCreateParent(); // ensure it's unlocked for top-level create
+  unlockCreateParent();
   $("isSubtask").value = "no";
   $("parentPicker").style.display = "none";
   openModal("create");
@@ -405,67 +270,94 @@ document.getElementById("refreshBtn").addEventListener("click", hydrate);
 document.getElementById("q").addEventListener("input", hydrate);
 document.getElementById("filterStatus").addEventListener("change", hydrate);
 
-// click handling for view/update/status/create/delete
+// global delegated clicks
 document.addEventListener("click", async (e)=>{
+  if (e.target.closest("[data-close-modal]")) { closeModal(); return; }
+  if (e.target.closest("[data-close-detail]")) { closeDetail(); return; }
+
+  // A) handle explicit opens FIRST (status, update, create, delete)
+  const btn = e.target.closest("[data-open]");
+  if (btn) {
+    const which = btn.dataset.open;
+    const id = Number(btn.dataset.id || btn.dataset.parent);
+
+    if (which==="create"){
+      document.getElementById("formCreate").reset();
+      if (btn.dataset.parent){
+        const { item: parentItem } = findTaskById(Number(btn.dataset.parent));
+        lockCreateToParent(btn.dataset.parent, parentItem ? parentItem.title : "");
+      } else { unlockCreateParent(); }
+      openModal("create"); return;
+    }
+
+    if (which==="update"){
+      const { item, parent } = findTaskById(id);
+      if (!item) return;
+      prefillUpdateForm(item, parent);
+      openModal("update"); return;
+    }
+
+    if (which==="status"){
+      const { item } = findTaskById(id);
+      if (!item) return;
+      $("s_taskId").value = item.id;
+      $("s_taskInfo").textContent = `${item.title || "Untitled"} (#${item.id})`;
+      updateStatusChoices();
+      openModal("status"); return;
+    }
+
+    if (which==="delete"){
+      const { item, parent } = findTaskById(id);
+      if (!item) return;
+      const isParent = !parent;
+      const msg = isParent
+        ? `Delete parent task "${item.title}" (#${item.id})?\n\nIts subtasks will be promoted to top-level tasks.`
+        : `Delete subtask "${item.title}" (#${item.id})?`;
+      if (confirm(msg)) { await Backend.delete(id); await hydrate(); }
+      return;
+    }
+  }
+
+  // B) subtasks collapse toggle
+  const toggleBtn = e.target.closest("[data-toggle='subs']");
+  if (toggleBtn) {
+    const pid = Number(toggleBtn.dataset.id);
+    const wrap = document.getElementById(`subs-${pid}`);
+    const collapsed = wrap && wrap.style.display !== "none";
+    if (wrap) wrap.style.display = collapsed ? "none" : "";
+    COLLAPSED[pid] = collapsed ? true : false;
+    const count = wrap ? wrap.querySelectorAll(".sub-item").length : 0;
+    toggleBtn.innerText = (collapsed ? "▸" : "▾") + ` Subtasks (${count})`;
+    toggleBtn.setAttribute("aria-expanded", String(!collapsed));
+    saveCollapsed();
+    return;
+  }
+
+  // C) open detail ONLY if click wasn’t on actions or any [data-open]
   const card = e.target.closest("[data-view]");
-  if (card && !e.target.closest(".actions")){
+  if (card && !e.target.closest(".actions") && !e.target.closest("[data-open]")) {
     const id = Number(card.dataset.id);
     const { item, parent } = findTaskById(id);
     if (item) openDetail(item, parent ? parent.title : null);
-  }
-
-  const btn = e.target.closest("[data-open]");
-  if (!btn) return;
-  const which = btn.dataset.open;
-  const id = Number(btn.dataset.id || btn.dataset.parent);
-
-  if (which==="create"){
-    document.getElementById("formCreate").reset();
-    if (btn.dataset.parent){
-      const { item: parentItem } = findTaskById(Number(btn.dataset.parent));
-      lockCreateToParent(btn.dataset.parent, parentItem ? parentItem.title : "");
-    } else {
-      unlockCreateParent();
-    }
-    openModal("create");
-  }
-
-  if (which==="update"){
-    const { item } = findTaskById(id);
-    if (!item) return;
-    $("u_taskId").value = item.id;
-    $("u_taskInfo").textContent = `${item.title || "Untitled"} (#${item.id})`;
-    openModal("update");
-  }
-
-  if (which==="status"){
-    const { item } = findTaskById(id);
-    if (!item) return;
-    $("s_taskId").value = item.id;
-    $("s_taskInfo").textContent = `${item.title || "Untitled"} (#${item.id})`;
-    updateStatusChoices(); // preselect current status in dropdown
-    openModal("status");
-  }
-
-  if (which==="delete"){
-    const { item, parent } = findTaskById(id);
-    if (!item) return;
-    const isParent = !parent; // in our UI, parent = null for top-level
-    const confirmMsg = isParent
-      ? `Delete parent task "${item.title}" (#${item.id})?\n\nIts subtasks will be promoted to top-level tasks.`
-      : `Delete subtask "${item.title}" (#${item.id})?`;
-    if (confirm(confirmMsg)) {
-      await SVC.delete(id);
-      await hydrate();
-    }
+    return;
   }
 });
 
-/* ----------------------- Create ----------------------- */
+// keyboard support for pills/spans with data-open
+document.addEventListener("keydown", (e)=>{
+  const t = e.target;
+  if (!t || !(t instanceof HTMLElement)) return;
+  if (!t.matches("[data-open]")) return;
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    t.click();
+  }
+});
+
+/* create */
 $("formCreate").addEventListener("change",(e)=>{
   if (e.target.id==="isSubtask" && LOCK_CREATE_PARENT_ID != null){
-    $("isSubtask").value = "yes";
-    $("parentPicker").style.display = "";
+    $("isSubtask").value = "yes"; $("parentPicker").style.display = "";
   } else if (e.target.id==="isSubtask"){
     $("parentPicker").style.display = e.target.value==="yes" ? "" : "none";
   }
@@ -487,15 +379,14 @@ $("formCreate").addEventListener("submit", async (e)=>{
     priority: $("c_priority").value,
     parent_id: isSub ? parentId : null,
   };
-  await SVC.create(payload);
+  await Backend.create(payload);
   closeModal(); await hydrate();
 });
 
-/* ----------------------- Update ----------------------- */
+/* update */
 $("formUpdate").addEventListener("submit", async (e)=>{
   e.preventDefault();
-  const id = Number($("u_taskId").value);
-  if (!id) return;
+  const id = Number($("u_taskId").value); if (!id) return;
   const updates = {};
   const put=(k,v)=>{ if(v && v.trim && v.trim()!=="") updates[k]=v; else if (v && !v.trim) updates[k]=v; };
   put("title",$("u_title").value);
@@ -505,37 +396,33 @@ $("formUpdate").addEventListener("submit", async (e)=>{
   put("notes",$("u_notes").value);
   put("collaborators",$("u_collab").value);
   if($("u_status").value) updates.status=$("u_status").value;
-  put("comments",$("u_comments").value);
+  put("comments",$("u_comments").value); // blank unless user types
   if($("u_priority").value) updates.priority=$("u_priority").value;
   if($("u_parentTaskId").value) updates.parent_id=Number($("u_parentTaskId").value);
-  await SVC.patch(id,updates);
+  await Backend.patch(id,updates);
   closeModal(); await hydrate();
 });
 
-/* ----------------------- Status (dropdown only) ----------------------- */
+/* status */
 function updateStatusChoices(){
   const id = Number($("s_taskId").value);
   const { item } = findTaskById(id);
   if (!item) return;
-
-  // Full list; preselect current status
   const statuses = ["To-do", "In progress", "Completed", "Blocked"];
-  const sel = $("s_status");
-  sel.innerHTML = statuses.map(s => `<option ${s === (item.status || "To-do") ? "selected" : ""}>${s}</option>`).join("");
+  $("s_status").innerHTML = statuses
+    .map(s => `<option ${s === (item.status || "To-do") ? "selected" : ""}>${s}</option>`).join("");
 }
 $("formStatus").addEventListener("submit", async (e)=>{
   e.preventDefault();
-  const id=Number($("s_taskId").value);
-  const status=$("s_status").value;
-  await SVC.setStatus(id,status);
+  await Backend.setStatus(Number($("s_taskId").value), $("s_status").value);
   closeModal(); await hydrate();
 });
 
-/* ----------------------- Hydration ----------------------- */
+/* hydration */
 async function hydrate(){
   const q=($("q")?.value||"").trim();
   const status=($("filterStatus")?.value||"");
-  const tasks=await SVC.list({ q,status });
+  const tasks=await Backend.list({ q,status });
   window.__TASKS=tasks;
   renderDashboard(tasks);
 }
