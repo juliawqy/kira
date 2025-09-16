@@ -1,3 +1,10 @@
-greenlet==3.2.4
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+pydantic==2.9.2
+pydantic-settings==2.4.0
+email-validator>=2,<3    
 SQLAlchemy==2.0.43
-typing_extensions==4.15.0
+psycopg2-binary==2.9.9          
+alembic==1.13.2
+greenlet==3.2.4                 
+typing_extensions==4.15.0   
