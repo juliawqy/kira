@@ -1,7 +1,6 @@
 from fastapi import APIRouter
+from .routes.task_route import router as task_router
 
-router = APIRouter()
+router = APIRouter(prefix="/kira/app/api/v1")
 
-@router.get("/health")
-async def health():
-    return {"status": "ok"}
+router.include_router(task_router)
