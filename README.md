@@ -12,7 +12,7 @@
     `pip install -r requirements.txt`
 
 4. put backend on the import part
-    windows: `$env:PYTHONPATH="backend/src`
+    windows: `set PYTHONPATH=C:\wamp64\www\kira\backend\src`
     mac: `export PYTHONPATH=backend/src`
 
 5. Create database and setup tables (SQLite)
