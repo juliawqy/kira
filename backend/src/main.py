@@ -1,9 +1,12 @@
 from fastapi import FastAPI
+from database.db_setup import Base, engine
+from database.models.task import Task  
 from api.v1.router import router as v1_router
 
-app = FastAPI(title="Kira API", version="0.1.0")
+Base.metadata.create_all(bind=engine)
 
-app.include_router(v1_router, prefix="/api/v1")
+app = FastAPI(title="KIRA API")
+app.include_router(v1_router)
 
 @app.get("/health")
 def health():
