@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KIRA • Task Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <!-- keep your original relative paths -->
+  <link rel="stylesheet" href="../styles/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container header-row">
+      <div class="brand">
+        <img src="../styles/kira_logo.png" alt="Kira" class="logo-img" />
+        <div>
+          <h1>Task Management Dashboard</h1>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn ghost" id="openCreate">＋ Create</button>
+        <button class="btn ghost" id="refreshBtn" title="Reload">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="container filter-row">
+      <div class="search search-wide">
+        <input id="q" placeholder="Search title or collaborator…" />
+        <select id="filterStatus" title="Filter by status" class="status-select">
+          <option value="">All</option>
+          <option>To-do</option>
+          <option>In progress</option>
+          <option>Completed</option>
+          <option>Blocked</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Cascading vertical list -->
+    <section id="dashboard" class="dashboard-stack"></section>
+    <div id="empty" class="empty" style="display:none">No tasks found</div>
+  </main>
+
+  <!-- Centered Details Modal -->
+  <div id="detailModal" class="detail-modal" hidden>
+    <div class="detail-card">
+      <div class="detail-head">
+        <h3 id="detailTitle">Task details</h3>
+        <button class="btn icon" id="detailClose" data-close-detail>✕</button>
+      </div>
+      <div class="detail-body" id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- Shared modal overlay -->
+  <div id="modalOverlay" class="modal-overlay" hidden></div>
+
+  <!-- Create Modal -->
+  <div id="modal-create" class="modal" hidden aria-modal="true" role="dialog">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Create Task/Subtask</h3>
+        <button class="btn icon" data-close-modal aria-label="Close">✕</button>
+      </div>
+      <form id="formCreate" class="modal-body grid2">
+        <div>
+          <label>Title</label>
+          <input id="c_title" required placeholder="e.g., Prepare Q4 report" />
+        </div>
+        <div>
+          <label>Priority</label>
+          <select id="c_priority"><option>Low</option><option selected>Medium</option><option>High</option></select>
+        </div>
+        <div class="full">
+          <label>Description</label>
+          <textarea id="c_description" placeholder="What needs to be done?"></textarea>
+        </div>
+        <div>
+          <label>Start Date</label>
+          <input id="c_start" type="date"/>
+        </div>
+        <div>
+          <label>Deadline</label>
+          <input id="c_deadline" type="date"/>
+        </div>
+        <div class="full">
+          <label>Notes</label>
+          <textarea id="c_notes" placeholder="Notes, links, constraints…"></textarea>
+        </div>
+        <div class="full">
+          <label>Invited Collaborators (comma-separated)</label>
+          <input id="c_collab" placeholder="julia@example.com, alex@example.com"/>
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="c_status"><option>To-do</option><option>In progress</option><option>Completed</option><option>Blocked</option></select>
+        </div>
+        <div>
+          <label>Comments</label>
+          <input id="c_comments" placeholder="Optional initial comment"/>
+        </div>
+        <div class="full">
+          <label>Is this a subtask?</label>
+          <select id="isSubtask">
+            <option value="no" selected>No (parent task)</option>
+            <option value="yes">Yes (link to a parent)</option>
+          </select>
+        </div>
+        <div class="full" id="parentPicker" style="display:none">
+          <label>Parent Task</label>
+          <select id="parentTaskId"></select>
+          <div class="hint">Parents load from the service</div>
+        </div>
+        <div class="full actions">
+          <button class="btn" type="submit">Create</button>
+          <button class="btn secondary" type="button" data-close-modal>Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Update Modal -->
+  <div id="modal-update" class="modal" hidden aria-modal="true" role="dialog">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Update Task/Subtask</h3>
+        <button class="btn icon" data-close-modal aria-label="Close">✕</button>
+      </div>
+      <form id="formUpdate" class="modal-body grid2">
+          <div class="full">
+            <label>Task</label>
+            <div id="u_taskInfo" class="pill">—</div>
+            <input type="hidden" id="u_taskId">
+          </div>
+          <div><label>Title</label><input id="u_title" placeholder="Leave blank to keep"/></div>
+          <div><label>Priority</label>
+            <select id="u_priority"><option value="">(no change)</option><option>Low</option><option>Medium</option><option>High</option></select>
+          </div>
+          <div class="full"><label>Description</label><textarea id="u_description" placeholder="Leave blank to keep"></textarea></div>
+          <div><label>Start Date</label><input id="u_start" type="date"/></div>
+          <div><label>Deadline</label><input id="u_deadline" type="date"/></div>
+          <div class="full"><label>Notes</label><textarea id="u_notes" placeholder="Leave blank to keep"></textarea></div>
+          <div class="full"><label>Invited Collaborators (comma-separated)</label><input id="u_collab" placeholder="Leave blank to keep"/></div>
+          <div><label>Status</label>
+            <select id="u_status"><option value="">(no change)</option><option>To-do</option><option>In progress</option><option>Completed</option><option>Blocked</option></select>
+          </div>
+          <div><label>Comments</label><input id="u_comments" placeholder="Append comment"/></div>
+          <div class="full"><label>Change Parent (optional)</label><select id="u_parentTaskId"><option value="">(no change)</option></select></div>
+          <div class="full actions">
+            <button class="btn" type="submit">Apply Update</button>
+            <button class="btn secondary" type="button" data-close-modal id="updateCancelBtn">Cancel</button>
+          </div>
+        </form>
+    </div>
+  </div>
+
+  <!-- Status Modal -->
+  <div id="modal-status" class="modal" hidden aria-modal="true" role="dialog">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Set Status</h3>
+        <button class="btn icon" data-close-modal aria-label="Close">✕</button>
+      </div>
+      <form id="formStatus" class="modal-body">
+        <label>Task</label>
+        <div id="s_taskInfo" class="pill">—</div>
+        <input type="hidden" id="s_taskId">
+
+        <div class="full" style="margin-top:10px">
+          <label>Set status</label>
+          <select id="s_status" class="full">
+            <option>To-do</option>
+            <option>In progress</option>
+            <option>Completed</option>
+            <option>Blocked</option>
+          </select>
+        </div>
+        <div class="actions" style="margin-top:10px">
+          <button class="btn" type="submit">Update Status</button>
+          <button class="btn secondary" type="button" data-close-modal>Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script type="module" src="../api/script.js"></script>
+</body>
+</html>
