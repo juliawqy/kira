@@ -1,12 +1,6 @@
 /*************************************************
- * Kira Task Dashboard — script.js (ES module)
  * Uses MockDB from mock-data.js for now.
  * Later: swap out MockDB with API fetches inside Backend methods.
- * Updates:
- * - Status pill opens status modal (removed ✓ buttons)
- * - Delegated handler prioritizes [data-open] over card detail
- * - Keyboard support for clickable pills (Enter/Space)
- * - Close buttons via [data-close-modal] / [data-close-detail]
  *************************************************/
 
 // import the mock backend (script.js and mock-data.js are in the same /api folder)
@@ -138,7 +132,7 @@ function renderDashboard(tasks){
       <div class="row-end">
         <div class="meta"></div>
         <div class="actions">
-          <button class="btn tiny secondary" data-open="update" data-id="${t.id}" data-tooltip="Edit">✎</button>
+          <button class="btn tiny secondary" data-open="update" data-id="${t.id}" data-tooltip="Edit">✏️</button>
           <button class="btn tiny" data-open="create" data-parent="${t.id}" data-tooltip="Add subtask">＋</button>
           <button class="btn tiny danger" data-open="delete" data-id="${t.id}" data-tooltip="Delete">🗑</button>
         </div>
@@ -170,7 +164,7 @@ function renderSubtasksInline(parent, q){
           </div>
         </div>
         <div class="actions">
-          <button class="btn tiny secondary" data-open="update" data-id="${s.id}" data-tooltip="Edit">✎</button>
+          <button class="btn tiny secondary" data-open="update" data-id="${s.id}" data-tooltip="Edit">✏️</button>
           <button class="btn tiny danger" data-open="delete" data-id="${s.id}" data-tooltip="Delete">🗑</button>
         </div>
       </div>`;

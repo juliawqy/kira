@@ -111,7 +111,6 @@ input:focus,textarea:focus,select:focus{border-color:var(--bb-500);box-shadow:0 
   display:flex;flex-wrap:wrap;gap:10px;color:#375b8c;font-size:13px;line-height:1.5;margin-top:4px;
 }
 
-/* Make STATUS occupy first row but not full-width below */
 .card-task .meta .badge.status{
   margin-right:auto;flex-basis:100%;margin-bottom:6px;
 }
@@ -256,7 +255,6 @@ body.modal-open{overflow:hidden}
   background:#e0f5e7;
   box-shadow:0 2px 6px rgba(22,115,67,.18);
 }
-
 
 /* Responsive tweaks */
 @media (max-width: 900px){
