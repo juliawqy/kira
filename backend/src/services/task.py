@@ -47,6 +47,13 @@ def add_task(
     parent_id: Optional[int] = None,
 ) -> Task:
     """Create a task and return it."""
+    if not title or not title.strip():
+        raise ValueError("Title cannot be empty")
+    if not status or not status.strip():
+        raise ValueError("Status cannot be empty")
+    if not priority or not priority.strip():
+        raise ValueError("Priority cannot be empty")
+    
     collaborators_csv = _list_to_csv(_csv_to_list(collaborators))
     with SessionLocal.begin() as session:
         task = Task(
