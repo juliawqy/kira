@@ -46,6 +46,9 @@ pytest tests/backend/integration
 pytest tests/e2e
 
 ### Check tests status
+1. update with most recent testing data
+    `python -m pytest --cov=backend/src --cov-report=html --cov-report=term`
+2. open HTML report
     windows: start htmlcov\index.html
     mac: open htmlcov/index.html
 

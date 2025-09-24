@@ -60,4 +60,5 @@ INVALID_TASK_NO_PRIORITY = {
     "collaborators": "Frank",
 }
 
+VALID_TASK_ID = 1
 INVALID_TASK_ID = 999 # ID does not exist in mock DB

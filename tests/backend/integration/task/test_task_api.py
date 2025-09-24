@@ -1,10 +1,3 @@
-''' 
-
-    CURRENT TESTS TO BE UPDATED WHEN TASK API UPDATES 
-    this is just a placeholder to serve as an example for writing integration tests 
-
-'''
-
 import pytest
 from httpx import AsyncClient, ASGITransport
 from backend.src.main import app
@@ -15,26 +8,17 @@ from tests.mock_data.task_data import (
     INVALID_TASK_NO_PRIORITY,
 )
 
-# ------------------------
-# Helper: create test client
-# ------------------------
 def get_client():
     return AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test"
     )
 
-# ------------------------
-#          Tests
-# ------------------------
-
 @pytest.mark.asyncio
 async def test_add_task_success():
     async with get_client() as ac:
-        response = await ac.post("/tasks", json=VALID_ADD)
-        # placeholder until API is ready
-        assert response.status_code in (200, 404)
-
+        response = await ac.post("/task/", json=VALID_ADD)
+        assert response.status_code in (201, 404)
 
 @pytest.mark.parametrize("invalid_task", [
     INVALID_TASK_NO_TITLE,
@@ -44,64 +28,53 @@ async def test_add_task_success():
 @pytest.mark.asyncio
 async def test_add_task_failure(invalid_task):
     async with get_client() as ac:
-        response = await ac.post("/tasks", json=invalid_task)
-        assert response.status_code in (400, 404)
-
-
-@pytest.mark.asyncio
-async def test_get_task_success():
-    async with get_client() as ac:
-        response = await ac.get("/tasks/1")
-        assert response.status_code in (200, 404)
-
+        response = await ac.post("/task/", json=invalid_task)
+        assert response.status_code == 404
 
 @pytest.mark.asyncio
 async def test_get_task_not_found():
     async with get_client() as ac:
-        response = await ac.get("/tasks/9999")
-        assert response.status_code in (404,)
-
-
-@pytest.mark.asyncio
-async def test_list_tasks():
-    async with get_client() as ac:
-        response = await ac.get("/tasks")
-        assert response.status_code in (200, 404)
-
+        response = await ac.get("/task/9999")
+        assert response.status_code == 404
 
 @pytest.mark.asyncio
-async def test_update_task_fields():
+async def test_update_task_not_found():
     async with get_client() as ac:
-        response = await ac.put("/tasks/1", json={
-            "title": "Updated Title",
-            "description": "Updated Description"
-        })
-        assert response.status_code in (200, 404)
-
-
-@pytest.mark.asyncio
-async def test_update_status():
-    async with get_client() as ac:
-        response = await ac.put("/tasks/1/status", json={"status": "Completed"})
-        assert response.status_code in (200, 404)
-
-
-@pytest.mark.asyncio
-async def test_update_priority():
-    async with get_client() as ac:
-        response = await ac.put("/tasks/1/priority", json={"priority": "High"})
-        assert response.status_code in (200, 404)
-
-
-@pytest.mark.asyncio
-async def test_delete_task_success():
-    async with get_client() as ac:
-        response = await ac.delete("/tasks/1")
-        assert response.status_code in (200, 404)
-
+        response = await ac.patch("/task/9999", json={"title": "ghost"})
+        assert response.status_code == 404
 
 @pytest.mark.asyncio
 async def test_delete_task_not_found():
     async with get_client() as ac:
-        response = await ac.delete("/tasks/9999")
-        assert response.status_code in (404,)
+        response = await ac.delete("/task/9999")
+        assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_start_task_not_found():
+    async with get_client() as ac:
+        response = await ac.post("/task/9999/start")
+        assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_complete_task_not_found():
+    async with get_client() as ac:
+        response = await ac.post("/task/9999/complete")
+        assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_assign_task_not_found():
+    async with get_client() as ac:
+        response = await ac.post("/task/9999/assign", json={"users": ["bob"]})
+        assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_unassign_task_not_found():
+    async with get_client() as ac:
+        response = await ac.post("/task/9999/unassign", json={"users": ["bob"]})
+        assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_delete_subtask_not_found():
+    async with get_client() as ac:
+        response = await ac.delete("/task/subtasks/9999")
+        assert response.status_code in (400, 404)

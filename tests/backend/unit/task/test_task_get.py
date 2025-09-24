@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from tests.mock_data.task_data import VALID_TASK_1, VALID_TASK_2
+from tests.mock_data.task_data import VALID_TASK_1, VALID_TASK_2, VALID_TASK_ID, INVALID_TASK_ID
 
 @patch("backend.src.services.task.SessionLocal")
 def test_get_task_by_id_success(mock_session_local):
@@ -14,8 +14,8 @@ def test_get_task_by_id_success(mock_session_local):
     mock_session_local.return_value.__enter__.return_value = mock_session
     mock_session.execute.return_value.scalar_one_or_none.return_value = mock_task # Mock returns actual value instead of mocked object
 
-    task = task_service.get_task_with_subtasks(1)
-    assert task.id == 1
+    task = task_service.get_task_with_subtasks(VALID_TASK_ID)
+    assert task.id == VALID_TASK_ID
     assert task.title == VALID_TASK_1["title"]
 
 @patch("backend.src.services.task.SessionLocal")
@@ -26,7 +26,7 @@ def test_get_task_by_id_failure(mock_session_local):
     mock_session_local.return_value.__enter__.return_value = mock_session
     mock_session.execute.return_value.scalar_one_or_none.return_value = None
 
-    task = task_service.get_task_with_subtasks(99)
+    task = task_service.get_task_with_subtasks(INVALID_TASK_ID)
     assert task is None
 
 @patch("backend.src.services.task.SessionLocal")
