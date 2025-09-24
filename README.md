@@ -45,6 +45,10 @@ pytest tests/backend/integration
 ### Run full-stack e2e tests
 pytest tests/e2e
 
+### Check tests status
+    windows: start htmlcov\index.html
+    mac: open htmlcov/index.html
+
 ### Run all frontend tests
 cd frontend && npm test
 
