@@ -7,8 +7,8 @@ from typing import Optional, Iterable
 from sqlalchemy import nulls_last, select
 from sqlalchemy.orm import selectinload
 
-from database.db_setup import SessionLocal
-from database.models.task import Task
+from backend.src.database.db_setup import SessionLocal
+from backend.src.database.models.task import Task
 
 
 # ---- Status --------------------------------------------------------------
