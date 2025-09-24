@@ -25,7 +25,7 @@ def get_client():
     )
 
 # ------------------------
-# Tests (placeholder mode)
+#          Tests
 # ------------------------
 
 @pytest.mark.asyncio
