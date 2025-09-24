@@ -8,3 +8,6 @@ __pycache__/
 # Local database file
 kira.db
 .DS_Store
+
+# Test cache
+.coverage
