@@ -4,8 +4,8 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from schemas.task import TaskCreate, TaskUpdate, TaskRead, TaskWithSubTasks
-import services.task as task_service
+from backend.src.schemas.task import TaskCreate, TaskUpdate, TaskRead, TaskWithSubTasks
+import backend.src.services.task as task_service
 
 router = APIRouter(prefix="/task", tags=["task"])
 
