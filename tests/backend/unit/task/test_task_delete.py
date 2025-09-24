@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from tests.mock_data.task_data import VALID_TASK_1, VALID_TASK_ID, INVALID_TASK_ID
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_delete_task_success(mock_session_local, mock_session):
     from backend.src.services import task as task_service
@@ -13,6 +14,7 @@ def test_delete_task_success(mock_session_local, mock_session):
     result = task_service.delete_task(VALID_TASK_ID)
     assert result["deleted"] == 1
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_delete_task_failure(mock_session_local, mock_session):
     from backend.src.services import task as task_service
@@ -23,6 +25,7 @@ def test_delete_task_failure(mock_session_local, mock_session):
     with pytest.raises(ValueError):
         task_service.delete_task(INVALID_TASK_ID)
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_delete_subtask_not_found_returns_false(mock_session_local, mock_session):
     from backend.src.services import task as task_service
@@ -32,6 +35,7 @@ def test_delete_subtask_not_found_returns_false(mock_session_local, mock_session
 
     assert task_service.delete_subtask(INVALID_TASK_ID) is False
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_delete_subtask_not_a_subtask_raises(mock_session_local, mock_session):
     from backend.src.services import task as task_service

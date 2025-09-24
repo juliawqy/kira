@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from tests.mock_data.task_data import VALID_TASK_1, VALID_TASK_ID, INVALID_TASK_ID
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_update_task_invalid_status_raises(mock_session_local, mock_session):
     from backend.src.services import task as task_service
@@ -9,6 +10,7 @@ def test_update_task_invalid_status_raises(mock_session_local, mock_session):
     with pytest.raises(ValueError, match="Invalid status"):
         task_service.update_task_status(VALID_TASK_ID, "INVALID")
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_start_and_complete_task(mock_session_local, mock_session):
     from backend.src.services import task as task_service
@@ -23,6 +25,7 @@ def test_start_and_complete_task(mock_session_local, mock_session):
     completed = task_service.complete_task(VALID_TASK_ID)
     assert completed.status == task_service.TaskStatus.COMPLETED.value
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_mark_task_blocked_success(mock_session_local, mock_session):
     from backend.src.services import task as task_service
@@ -37,6 +40,7 @@ def test_mark_task_blocked_success(mock_session_local, mock_session):
     assert result.status == task_service.TaskStatus.BLOCKED.value
     assert mock_task.status == task_service.TaskStatus.BLOCKED.value
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_mark_task_blocked_failure(mock_session_local, mock_session):
     from backend.src.services import task as task_service

@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from tests.mock_data.task_data import VALID_TASK_1, VALID_TASK_2, VALID_TASK_ID, INVALID_TASK_ID
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_get_task_by_id_success(mock_session_local):
     from backend.src.services import task as task_service
@@ -18,6 +19,7 @@ def test_get_task_by_id_success(mock_session_local):
     assert task.id == VALID_TASK_ID
     assert task.title == VALID_TASK_1["title"]
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_get_task_by_id_failure(mock_session_local):
     from backend.src.services import task as task_service
@@ -29,6 +31,7 @@ def test_get_task_by_id_failure(mock_session_local):
     task = task_service.get_task_with_subtasks(INVALID_TASK_ID)
     assert task is None
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_list_all_tasks_success(mock_session_local):
     from backend.src.services import task as task_service

@@ -1,6 +1,7 @@
 from unittest.mock import patch, MagicMock
 from tests.mock_data.task_data import VALID_TASK_1, VALID_TASK_ID
 
+# KIRA-001/001 (test case id corresponding to test case sheets)
 @patch("backend.src.services.task.SessionLocal")
 def test_assign_and_unassign_users(mock_session_local, mock_session):
     from backend.src.services import task as task_service
