@@ -45,13 +45,6 @@ pytest tests/backend/integration
 ### Run full-stack e2e tests
 pytest tests/e2e
 
-### Check tests status
-1. update with most recent testing data
-    `python -m pytest --cov=backend/src --cov-report=html --cov-report=term`
-2. open HTML report
-    windows: start htmlcov\index.html
-    mac: open htmlcov/index.html
-
 ### Run all frontend tests
 cd frontend && npm test
 
@@ -63,4 +56,8 @@ cd frontend && npm run test:integration
 
 ### Run frontend E2E tests (browser-based)
 cd frontend && npm run test:e2e
+
+### Check tests status on HTML page
+    windows: start htmlcov\index.html
+    mac: open htmlcov/index.html
 
