@@ -1,7 +1,8 @@
 from fastapi import FastAPI
-from backend.src.database.db_setup import Base, engine
-from backend.src.database.models.task import Task  
-from backend.src.api.v1.router import router as v1_router
+from database.db_setup import Base, engine
+from database.models.task import Task  
+from database.models.parent_assignment import ParentAssignment
+from api.v1.router import router as v1_router
 
 Base.metadata.create_all(bind=engine)
 
