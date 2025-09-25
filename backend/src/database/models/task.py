@@ -2,7 +2,7 @@ from sqlalchemy import (
     Column, Integer, String, Date, ForeignKey, CheckConstraint, Index
 )
 from sqlalchemy.orm import relationship
-from database.db_setup import Base
+from backend.src.database.db_setup import Base
 
 class Task(Base):
     __tablename__ = "tasks"

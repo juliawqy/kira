@@ -32,3 +32,32 @@
 ### Take note that the files in `.gitignore` are *NOT* to be pushed into git (venv, kira.db etc.)
 
 
+## Testing
+### Run all backend tests
+pytest
+
+### Run only backend unit tests
+pytest tests/backend/unit
+
+### Run only backend integration tests
+pytest tests/backend/integration
+
+### Run full-stack e2e tests
+pytest tests/e2e
+
+### Run all frontend tests
+cd frontend && npm test
+
+### Run only unit tests
+cd frontend && npm run test:unit
+
+### Run only integration tests
+cd frontend && npm run test:integration
+
+### Run frontend E2E tests (browser-based)
+cd frontend && npm run test:e2e
+
+### Check tests status on HTML page
+    windows: start htmlcov\index.html
+    mac: open htmlcov/index.html
+

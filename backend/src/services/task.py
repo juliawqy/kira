@@ -7,8 +7,8 @@ from typing import Optional, Iterable
 from sqlalchemy import nulls_last, select
 from sqlalchemy.orm import selectinload
 
-from database.db_setup import SessionLocal
-from database.models.task import Task
+from backend.src.database.db_setup import SessionLocal
+from backend.src.database.models.task import Task
 
 
 # ---- Status --------------------------------------------------------------
@@ -17,6 +17,7 @@ class TaskStatus(str, Enum):
     TODO = "To-do"
     IN_PROGRESS = "In-progress"
     COMPLETED = "Completed"
+    BLOCKED = "Blocked"
 
 ALLOWED_STATUSES = {s.value for s in TaskStatus}
 
@@ -47,6 +48,13 @@ def add_task(
     parent_id: Optional[int] = None,
 ) -> Task:
     """Create a task and return it."""
+    if not title or not title.strip():
+        raise ValueError("Title cannot be empty")
+    if not status or not status.strip():
+        raise ValueError("Status cannot be empty")
+    if not priority or not priority.strip():
+        raise ValueError("Priority cannot be empty")
+    
     collaborators_csv = _list_to_csv(_csv_to_list(collaborators))
     with SessionLocal.begin() as session:
         task = Task(
