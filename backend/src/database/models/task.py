@@ -1,48 +1,57 @@
 from sqlalchemy import (
-    Column, Integer, String, Date, ForeignKey, CheckConstraint, Index
+    Column, Integer, String, Date, ForeignKey, CheckConstraint, Index, Boolean, text
 )
 from sqlalchemy.orm import relationship
-from backend.src.database.db_setup import Base
+from sqlalchemy.ext.associationproxy import association_proxy
+
+from database.db_setup import Base
+from database.models.parent_assignment import ParentAssignment  
+
+STATUS_VALUES   = ("To-do", "In-progress", "Completed", "Blocked")  
+PRIORITY_VALUES = ("Low", "Medium", "High")
 
 class Task(Base):
-    __tablename__ = "tasks"
+    __tablename__ = "task"  
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(String)
-    start_date = Column(Date)
-    deadline = Column(Date)
-    notes = Column(String)
-    collaborators = Column(String)
+    id          = Column(Integer, primary_key=True)
+    title       = Column(String(128), nullable=False)
+    description = Column(String(256))
+    start_date  = Column(Date)
+    deadline    = Column(Date)
 
-    status = Column(String(20), nullable=False, default="To-do")
-    priority = Column(String(20), nullable=False, default="Medium")
+    status      = Column(String(20), nullable=False, default="To-do")
+    priority    = Column(String(10), nullable=False, default="Medium")
 
-    # Keep children; set parent_id -> NULL when parent is deleted
-    parent_id = Column(
-        Integer,
-        ForeignKey("tasks.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
+    #Link FK to Project table later: ForeignKey("project.id", ondelete="SET NULL")
+    project_id  = Column(Integer, nullable=True, index=True)
+    active      = Column(Boolean, nullable=False, server_default=text("1"))  # SQLite 'true' equivalent
 
-    parent = relationship(
-        "Task",
-        remote_side=lambda: Task.id,
-        back_populates="subtasks",
-        foreign_keys=lambda: [Task.parent_id],
-    )
-    subtasks = relationship(
-        "Task",
+    # --- Association-object relationships ---
+    # One parent -> many link rows (each link points to a subtask)
+    subtask_links = relationship(
+        ParentAssignment,
+        foreign_keys=[ParentAssignment.parent_id],
         back_populates="parent",
-        foreign_keys=lambda: [Task.parent_id],
-        # NO delete-orphan/cascade delete; let DB handle ON DELETE SET NULL
+        cascade="all, delete-orphan",
         passive_deletes=True,
     )
 
-    comments = Column(String)
+    # Each subtask has at most one parent link (unique on subtask_id)
+    parent_link = relationship(
+        ParentAssignment,
+        foreign_keys=[ParentAssignment.subtask_id],
+        back_populates="subtask",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    # --- Friendly proxies (so your app can keep using task.subtasks / task.parent) 
+    subtasks = association_proxy("subtask_links", "subtask")  # list-like: append Task objects
+    parent   = association_proxy("parent_link",   "parent")   # single Task or None
 
     __table_args__ = (
-        CheckConstraint("status in ('To-do','In-progress','Completed')", name="ck_tasks_status"),
-        CheckConstraint("priority in ('Low','Medium','High')", name="ck_tasks_priority"),
+        CheckConstraint(f"status IN {STATUS_VALUES}",     name="ck_task_status"),
+        CheckConstraint(f"priority IN {PRIORITY_VALUES}", name="ck_task_priority"),
+        Index("ix_task_project_active_deadline", "project_id", "active", "deadline"),
     )

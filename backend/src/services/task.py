@@ -1,92 +1,97 @@
+# backend/src/services/task.py
 from __future__ import annotations
 
 from datetime import date
 from enum import Enum
-from typing import Optional, Iterable
+from typing import Optional, Any
 
-from sqlalchemy import nulls_last, select
+from sqlalchemy import select, exists
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
+from database.models.parent_assignment import ParentAssignment
 from backend.src.enums.task_priority import TaskPriority
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 
-# ---- Status --------------------------------------------------------------
+# ---- Helpers ----------------------------------------------------------------
+def _assert_no_cycle(session, parent_id: int, child_id: int) -> None:
+    """
+    Prevent cycles: parent must not be a descendant of child.
+    Lightweight BFS over the association table.
+    """
+    to_visit = [child_id]
+    seen = set()
+    while to_visit:
+        cur = to_visit.pop()
+        if cur in seen:
+            continue
+        seen.add(cur)
+        rows = session.execute(
+            select(ParentAssignment.subtask_id).where(ParentAssignment.parent_id == cur)
+        ).scalars().all()
+        if parent_id in rows:
+            raise ValueError("Cycle detected: the chosen parent is a descendant of the subtask.")
+        to_visit.extend(rows)
 
 
-def _normalize_members(members: Optional[Iterable[str]]) -> list[str]:
-    """Strip, dedupe, sort collaborator names."""
-    if not members:
-        return []
-    cleaned = {m.strip() for m in members if m and m.strip()}
-    return sorted(cleaned)
-
-def _csv_to_list(csv: Optional[str]) -> list[str]:
-    return _normalize_members(csv.split(",")) if csv else []
-
-def _list_to_csv(members: Iterable[str]) -> str:
-    return ",".join(_normalize_members(members))
-
+# ---- CRUD -------------------------------------------------------------------
 
 def add_task(
     title: str,
     description: Optional[str],
     start_date: Optional[date],
     deadline: Optional[date],
+    *,
     priority: str = TaskPriority.MEDIUM.value,
-    status: str = TaskStatus.TODO.value,
-    collaborators: Optional[str] = None,
-    notes: Optional[str] = None,
+    status: str = TaskStatus.TO_DO.value,
+    project_id: Optional[int] = None,
+    active: bool = True,
     parent_id: Optional[int] = None,
-) -> Task:
-    """Create a task and return it."""
-    if not title or not title.strip():
-        raise ValueError("Title cannot be empty")
-    if not status or not status.strip():
-        raise ValueError("Status cannot be empty")
-    if not priority or not priority.strip():
-        raise ValueError("Priority cannot be empty")
-    
-    collaborators_csv = _list_to_csv(_csv_to_list(collaborators))
+) -> int:
+    """
+    Create a task. If parent_id is provided, link this new task as a subtask of that parent.
+    Returns the new task created.
+    """
+    if priority not in ALLOWED_PRIORITIES:
+        raise ValueError(f"Invalid priority '{priority}'")
+    if status not in ALLOWED_STATUSES:
+        raise ValueError(f"Invalid status '{status}'")
+
     with SessionLocal.begin() as session:
         task = Task(
             title=title,
             description=description,
             start_date=start_date,
             deadline=deadline,
-            priority=priority,
             status=status,
-            collaborators=collaborators_csv,
-            notes=notes,
-            parent_id=parent_id,
+            priority=priority,
+            project_id=project_id,
+            active=active,
         )
         session.add(task)
-        session.flush()
-        session.refresh(task)
+        session.flush()  
+
+        if parent_id is not None:
+            if parent_id == task.id:
+                raise ValueError("A task cannot be its own parent.")
+            parent = session.get(Task, parent_id)
+            if not parent:
+                raise ValueError(f"Parent task {parent_id} not found.")
+            _assert_no_cycle(session, parent_id=parent_id, child_id=task.id)
+
+            # enforce single-parent rule (unique on subtask_id will also protect)
+            existing = session.execute(
+                select(ParentAssignment).where(ParentAssignment.subtask_id == task.id)
+            ).scalar_one_or_none()
+            if existing:
+                raise ValueError(f"Task {task.id} already has a parent.")
+
+            session.add(ParentAssignment(parent_id=parent_id, subtask_id=task.id))
+
         return task
-
-
-def get_task_with_subtasks(task_id: int):
-    with SessionLocal() as session:
-        stmt = (
-            select(Task)
-            .where(Task.id == task_id)
-            .options(selectinload(Task.subtasks))
-        )
-        return session.execute(stmt).scalar_one_or_none()
-
-def list_parent_tasks():
-    with SessionLocal() as session:
-        stmt = (
-            select(Task)
-            .where(Task.parent_id.is_(None))
-            .options(selectinload(Task.subtasks))
-            .order_by(nulls_last(Task.deadline.asc()), Task.id.asc())
-        )
-        return session.execute(stmt).scalars().all()
-
 
 def update_task(
     task_id: int,
@@ -96,137 +101,161 @@ def update_task(
     start_date: Optional[date] = None,
     deadline: Optional[date] = None,
     priority: Optional[str] = None,
-    # status intentionally excluded
-    collaborators: Optional[str] = None,
-    notes: Optional[str] = None,
-    parent_id: Optional[int] = None,
+    project_id: Optional[int] = None,
+    active: Optional[bool] = None,
 ) -> Optional[Task]:
-    """Update non-status fields; return updated task or None."""
-    with SessionLocal.begin() as session:
-        task = session.get(Task, task_id)
-        if task is None:
-            return None
+    """
+    Update details of a task.
 
-        if title is not None:
-            task.title = title
-        if description is not None:
-            task.description = description
-        if start_date is not None:
-            task.start_date = start_date
-        if deadline is not None:
-            task.deadline = deadline
-        if priority is not None:
-            task.priority = priority
-        if collaborators is not None:
-            task.collaborators = _list_to_csv(_csv_to_list(collaborators))
-        if notes is not None:
-            task.notes = notes
-        if parent_id is not None:
-            task.parent_id = parent_id
+    Return the updated task.
 
-        session.add(task)
-        session.flush()
-        session.refresh(task)
-        return task
+    Use start_task/complete_task/block_task for status transitions.
 
-
-def update_task_status(task_id: int, new_status: str) -> Task:
-    """Set status and return updated task."""
-    if new_status not in ALLOWED_STATUSES:
-        raise ValueError(f"Invalid status '{new_status}'. Allowed: {sorted(ALLOWED_STATUSES)}")
-
+    """
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
         if not task:
-            raise ValueError(f"Task id {task_id} not found")
+            return None
+
+        if title is not None:       task.title = title
+        if description is not None: task.description = description
+        if start_date is not None:  task.start_date = start_date
+        if deadline is not None:    task.deadline = deadline
+        if priority is not None:
+            if priority not in ALLOWED_PRIORITIES:
+                raise ValueError(f"Invalid priority '{priority}'")
+            task.priority = priority
+        if project_id is not None:  task.project_id = project_id
+        if active is not None:      task.active = active
+
+        session.add(task)
+        session.flush()
+        return task
+
+
+# ---- Status transitions -----------------------------------------------------
+
+def _set_status(task_id: int, new_status: str) -> Task:
+    if new_status not in ALLOWED_STATUSES:
+        raise ValueError(f"Invalid status '{new_status}'")
+    with SessionLocal.begin() as session:
+        task = session.get(Task, task_id)
+        if not task:
+            raise ValueError("Task not found")
         task.status = new_status
         session.add(task)
         session.flush()
-        session.refresh(task)
         return task
-
 
 def start_task(task_id: int) -> Task:
-    """Mark task as In progress."""
-    return update_task_status(task_id, TaskStatus.IN_PROGRESS.value)
-
+    """Set status -> In-progress."""
+    return _set_status(task_id, TaskStatus.IN_PROGRESS.value)
 
 def complete_task(task_id: int) -> Task:
-    """Mark task as Completed (single task)."""
-    return update_task_status(task_id, TaskStatus.COMPLETED.value)
+    """Set status -> Completed (single task)."""
+    return _set_status(task_id, TaskStatus.COMPLETED.value)
+
+def block_task(task_id: int) -> Task:
+    """Set status -> Blocked."""
+    return _set_status(task_id, TaskStatus.BLOCKED.value)
+
+# In case, we need this in the future
+def complete_task_with_cascade(task_id: int) -> Task:
+    """
+    Set the task to Completed; if it has subtasks, complete all of them
+    in the same transaction.
+    """
+    with SessionLocal.begin() as session:
+        task = session.get(Task, task_id)
+        if not task:
+            raise ValueError("Task not found")
+        task.status = TaskStatus.COMPLETED.value
+        # iterate over association-proxied list (loads lazily inside tx if needed)
+        for st in task.subtasks:
+            st.status = TaskStatus.COMPLETED.value
+            session.add(st)
+        session.add(task)
+        session.flush()
+        return task
+
+def get_task_with_subtasks(task_id: int) -> Optional[Task]:
+    """
+    Return a task with its subtasks
+    """
+    with SessionLocal() as session:
+        stmt = (
+            select(Task)
+            .where(Task.id == task_id)
+            .options(
+                # load link rows and their subtask Task objects
+                selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask)
+            )
+        )
+        return session.execute(stmt).scalar_one_or_none()
 
 
-def mark_blocked(task_id: int) -> Task:
-    """Mark task as Blocked."""
-    return update_task_status(task_id, TaskStatus.BLOCKED.value)
+def list_parent_tasks(*, active_only: bool = True, project_id: Optional[int] = None) -> list[Task]:
+    """
+    Return all top-level tasks (tasks that are not referenced as a subtask),
+    with their subtasks eagerly loaded. Ordered by deadline (nulls last), then id.
+    """
+    with SessionLocal() as session:
+        # correlated NOT EXISTS: task.id not present as a subtask_id in parent_assignment
+        not_a_subtask = ~exists(
+            select(ParentAssignment.subtask_id).where(ParentAssignment.subtask_id == Task.id)
+        )
+        stmt = (
+            select(Task)
+            .where(not_a_subtask)
+            .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
+            .order_by(Task.deadline.is_(None), Task.deadline.asc(), Task.id.asc())
+        )
+        if active_only:
+            stmt = stmt.where(Task.active.is_(True))
+        if project_id is not None:
+            stmt = stmt.where(Task.project_id == project_id)
+        return session.execute(stmt).scalars().all()
 
 
-def assign_task(task_id: int, new_members: list[str]) -> Task:
-    """Assign collaborators and return updated task."""
+# ---- Soft-Deletion ---------------------------------------------------------------
+def archive_task(task_id: int, *, detach_links: bool = True) -> Task:
+    """
+    Soft-delete a task by setting active=False.
+    By default, detach all links so archived tasks are not part of any hierarchy.
+
+    Returns the updated Task.
+    """
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
         if not task:
             raise ValueError("Task not found")
 
-        existing = _csv_to_list(task.collaborators)
-        updated = _normalize_members([*existing, *new_members])
-        task.collaborators = _list_to_csv(updated)
+        if detach_links:
+            # Remove links where this task is parent or subtask
+            session.query(ParentAssignment).filter(
+                ParentAssignment.parent_id == task_id
+            ).delete()
+            session.query(ParentAssignment).filter(
+                ParentAssignment.subtask_id == task_id
+            ).delete()
 
+        task.active = False
         session.add(task)
         session.flush()
-        session.refresh(task)
         return task
 
 
-def unassign_task(task_id: int, members_to_remove: list[str]) -> Task:
-    """Unassign collaborators and return updated task."""
+def restore_task(task_id: int) -> Task:
+    """
+    Restore a previously archived task by setting active=True.
+    Note: does not reattach any previous parent/subtask links.
+    Use attach_subtask(...) if you need to re-parent after restoring.
+    """
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
         if not task:
             raise ValueError("Task not found")
-
-        existing = set(_csv_to_list(task.collaborators))
-        updated = sorted(existing - set(_normalize_members(members_to_remove)))
-        task.collaborators = _list_to_csv(updated) if updated else None
-
+        task.active = True
         session.add(task)
         session.flush()
-        session.refresh(task)
         return task
-
-
-# ---- Deletes --------------------------------------------------------------
-
-def delete_subtask(subtask_id: int) -> bool:
-    """Delete a subtask; return True if deleted, False if not found."""
-    with SessionLocal.begin() as session:
-        sub = session.get(Task, subtask_id)
-        if sub is None:
-            return False
-        if sub.parent_id is None:
-            raise ValueError(f"Task {subtask_id} is not a subtask (no parent). Use delete_task().")
-        session.delete(sub)
-        return True
-
-
-def delete_task(task_id: int) -> dict:
-    """Delete a task and detach its subtasks; return {'deleted': id, 'subtasks_detached': n}."""
-    with SessionLocal.begin() as session:
-        task = session.get(Task, task_id)
-        if task is None:
-            raise ValueError(f"Task id {task_id} not found")
-
-        detached = 0
-        if hasattr(task, "subtasks"):
-            for st in list(task.subtasks):
-                st.parent_id = None
-                detached += 1
-        else:
-            subs = session.execute(select(Task).where(Task.parent_id == task_id)).scalars().all()
-            for st in subs:
-                st.parent_id = None
-                detached += 1
-
-        session.flush()
-        session.delete(task)
-        return {"deleted": task_id, "subtasks_detached": detached}
