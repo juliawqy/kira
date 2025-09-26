@@ -1,7 +1,7 @@
 # tests/unit/services/test_update_user.py
 import pytest
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_UPDATE_NAME, VALID_UPDATE_EMAIL, VALID_USER_EMP
+from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_UPDATE_NAME, VALID_UPDATE_EMAIL, VALID_USER
 
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_success_name_and_email(mock_session_local):
@@ -54,9 +54,9 @@ def test_update_user_email_conflict_raises(mock_session_local):
     # simulate another user with the desired email exists
     execute_result = MagicMock()
     other_user = MagicMock()
-    other_user.user_id = VALID_USER_EMP["user_id"]
+    other_user.user_id = VALID_USER["user_id"]
     execute_result.scalar_one_or_none.return_value = other_user
     mock_session.execute.return_value = execute_result
 
     with pytest.raises(ValueError):
-        user_service.update_user(user_obj.user_id, email=VALID_USER_EMP["email"])
+        user_service.update_user(user_obj.user_id, email=VALID_USER["email"])

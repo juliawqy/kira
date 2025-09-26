@@ -7,3 +7,4 @@ pytest-cov
 httpx           # for async API testing for FastAPI
 pytest-asyncio  # for async tests in FastAPI
 bcrypt
+passlib
