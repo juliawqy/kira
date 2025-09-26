@@ -21,6 +21,11 @@ def test_create_user_success(mock_hash, mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
+    # **Mock query to check existing email**
+    mock_execute_result = MagicMock()
+    mock_execute_result.scalar_one_or_none.return_value = None  # <-- User does not exist
+    mock_session.execute.return_value = mock_execute_result
+
     # Let User constructor run normally, don't patch it entirely
     result = user_service.create_user(**VALID_CREATE_PAYLOAD_ADMIN)
 
@@ -29,6 +34,7 @@ def test_create_user_success(mock_hash, mock_session_local):
     mock_session.add.assert_called()
     mock_session.flush.assert_called()
     mock_session.refresh.assert_called_with(result)
+
 
 
 # --------------------------
