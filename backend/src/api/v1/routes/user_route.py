@@ -4,8 +4,8 @@ from typing import List
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from schemas.user import UserCreate, UserUpdate, UserRead, UserPasswordChange
-import services.user as user_service  
+from backend.src.schemas.user import UserCreate, UserUpdate, UserRead, UserPasswordChange
+import backend.src.services.user as user_service  
 
 router = APIRouter(prefix="/user", tags=["user"])
 
