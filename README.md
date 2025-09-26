@@ -15,7 +15,6 @@
     `python -m database.db_setup_tables`
 
 5. run project 
-    `uvicorn main:app --app-dir backend/src --reload`
     `uvicorn backend.src.main:app --reload`
     Access swagger docs: http://localhost:8000/docs
 
