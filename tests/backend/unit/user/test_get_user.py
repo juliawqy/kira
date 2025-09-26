@@ -1,0 +1,50 @@
+# tests/unit/services/test_get_user.py
+from unittest.mock import patch, MagicMock
+from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_USER_EMP
+
+@patch("backend.src.services.user.SessionLocal")
+def test_get_user_by_id_found(mock_session_local):
+    from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.return_value = mock_session
+
+    # simulate session.get returning an ORM-like object (MagicMock with attributes)
+    orm_user = MagicMock()
+    orm_user.email = VALID_USER_ADMIN["email"]
+    mock_session.get.return_value = orm_user
+
+    res = user_service.get_user(VALID_USER_ADMIN["user_id"])
+    assert res is orm_user
+    assert getattr(res, "email") == VALID_USER_ADMIN["email"]
+
+@patch("backend.src.services.user.SessionLocal")
+def test_get_user_by_identifier_found(mock_session_local):
+    from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.return_value = mock_session
+
+    execute_result = MagicMock()
+    orm_user = MagicMock()
+    orm_user.name = VALID_USER_EMP["name"]
+    execute_result.scalar_one_or_none.return_value = orm_user
+    mock_session.execute.return_value = execute_result
+
+    res = user_service.get_user(VALID_USER_EMP["email"])
+    assert res is orm_user
+    assert getattr(res, "name") == VALID_USER_EMP["name"]
+
+@patch("backend.src.services.user.SessionLocal")
+def test_get_user_not_found(mock_session_local):
+    from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.return_value = mock_session
+
+    execute_result = MagicMock()
+    execute_result.scalar_one_or_none.return_value = None
+    mock_session.execute.return_value = execute_result
+
+    res = user_service.get_user("nonexistent@example.com")
+    assert res is None
