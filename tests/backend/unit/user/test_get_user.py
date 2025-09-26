@@ -1,6 +1,6 @@
 # tests/unit/services/test_get_user.py
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_USER_EMP
+from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_USER
 
 @patch("backend.src.services.user.SessionLocal")
 def test_get_user_by_id_found(mock_session_local):
@@ -27,13 +27,13 @@ def test_get_user_by_identifier_found(mock_session_local):
 
     execute_result = MagicMock()
     orm_user = MagicMock()
-    orm_user.name = VALID_USER_EMP["name"]
+    orm_user.name = VALID_USER["name"]
     execute_result.scalar_one_or_none.return_value = orm_user
     mock_session.execute.return_value = execute_result
 
-    res = user_service.get_user(VALID_USER_EMP["email"])
+    res = user_service.get_user(VALID_USER["email"])
     assert res is orm_user
-    assert getattr(res, "name") == VALID_USER_EMP["name"]
+    assert getattr(res, "name") == VALID_USER["name"]
 
 @patch("backend.src.services.user.SessionLocal")
 def test_get_user_not_found(mock_session_local):

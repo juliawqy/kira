@@ -1,6 +1,6 @@
 # tests/unit/services/test_list_users.py
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_USER_EMP
+from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_USER
 
 @patch("backend.src.services.user.SessionLocal")
 def test_list_users_empty(mock_session_local):
@@ -28,7 +28,7 @@ def test_list_users_nonempty(mock_session_local):
     orm1 = MagicMock()
     orm1.email = VALID_USER_ADMIN["email"]
     orm2 = MagicMock()
-    orm2.email = VALID_USER_EMP["email"]
+    orm2.email = VALID_USER["email"]
 
     execute_result = MagicMock()
     execute_result.scalars.return_value.all.return_value = [orm1, orm2]
@@ -37,4 +37,4 @@ def test_list_users_nonempty(mock_session_local):
     res = user_service.list_users()
     assert len(res) == 2
     assert res[0].email == VALID_USER_ADMIN["email"]
-    assert res[1].email == VALID_USER_EMP["email"]
+    assert res[1].email == VALID_USER["email"]
