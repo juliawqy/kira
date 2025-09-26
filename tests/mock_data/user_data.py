@@ -6,7 +6,6 @@ VALID_USER_ADMIN = {
     "role": "admin",
     "department_id": 10,
     "admin": True,
-    # plain-text password for input payloads; tests will mock hashing/verification
     "password": "Adm!nPass123",
 }
 
@@ -20,22 +19,22 @@ VALID_USER = {
     "password": "Empl@yee123",
 }
 
-# Create payloads (what you'd send to create_user)
+# Create payloads (independent of above user dicts)
 VALID_CREATE_PAYLOAD_ADMIN = {
-    "name": VALID_USER_ADMIN["name"],
-    "email": VALID_USER_ADMIN["email"],
-    "role": VALID_USER_ADMIN["role"],
-    "password": VALID_USER_ADMIN["password"],
-    "department_id": VALID_USER_ADMIN["department_id"],
+    "name": "Alice Admin",
+    "email": "alice.admin@example.com",
+    "role": "admin",
+    "password": "Adm!nPass123",
+    "department_id": 10,
     "admin": True,
 }
 
 VALID_CREATE_PAYLOAD_USER = {
-    "name": VALID_USER["name"],
-    "email": VALID_USER["email"],
-    "role": VALID_USER["role"],
-    "password": VALID_USER["password"],
-    "department_id": VALID_USER["department_id"],
+    "name": "Bob Employee",
+    "email": "bob.employee@example.com",
+    "role": "employee",
+    "password": "Empl@yee123",
+    "department_id": 20,
     "admin": False,
 }
 
@@ -63,6 +62,8 @@ INVALID_CREATE_BAD_EMAIL = {
     "email": "not-an-email",
     "role": "employee",
     "password": "Valid!Pass1",
+    "department_id": None,
+    "admin": False,
 }
 
 # Update payloads
@@ -72,11 +73,11 @@ VALID_UPDATE_ADMIN_TOGGLE = {"admin": False}
 
 # Password change payloads
 VALID_PASSWORD_CHANGE = {
-    "current_password": VALID_USER_ADMIN["password"],
+    "current_password": "Adm!nPass123",
     "new_password": "NewP@ssword123"
 }
 INVALID_PASSWORD_CHANGE_WEAK = {
-    "current_password": VALID_USER_ADMIN["password"],
+    "current_password": "Adm!nPass123",
     "new_password": "weak"
 }
 INVALID_PASSWORD_CHANGE_WRONG_CURRENT = {
@@ -87,3 +88,4 @@ INVALID_PASSWORD_CHANGE_WRONG_CURRENT = {
 # Edge cases
 LARGE_NAME = {"name": "A" * 1024}
 LONG_EMAIL = {"email": "user+" + "a"*200 + "@example.com"}
+INVALID_USER_ID = 9999
