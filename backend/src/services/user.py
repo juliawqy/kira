@@ -7,8 +7,8 @@ from typing import Optional
 from sqlalchemy import select
 from passlib.context import CryptContext
 
-from database.db_setup import SessionLocal
-from database.models.user import User
+from backend.src.database.db_setup import SessionLocal
+from backend.src.database.models.user import User
 
 
 # ---- Roles ---------------------------------------------------------------
