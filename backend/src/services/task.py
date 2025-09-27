@@ -3,13 +3,12 @@ from __future__ import annotations
 
 from datetime import date
 from enum import Enum
-from optparse import Option
+from operator import and_
 from token import OP
-from typing import Optional, Any
+from typing import Iterable, Optional
 
 from sqlalchemy import select, exists
 from sqlalchemy.orm import selectinload
-from sqlalchemy.exc import IntegrityError
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
@@ -145,6 +144,101 @@ def update_task(
         session.add(task)
         session.flush()
         return task
+
+def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
+    """
+    Attach one or more subtasks to a parent in a single transaction (all-or-nothing).
+    - Parent must exist and be active.
+    - Each subtask must exist and be active.
+    - Enforces single-parent rule; idempotent if a subtask is already linked to the same parent.
+    - Guards against cycles.
+    Returns the parent Task with subtasks eagerly loaded.
+    """
+    # Normalize & dedupe ids
+    ids = sorted({int(sid) for sid in subtask_ids or []})
+    with SessionLocal.begin() as session:
+        # Validate parent
+        parent = session.get(Task, parent_id)
+        if not parent:
+            raise ValueError(f"Parent task {parent_id} not found")
+        if not parent.active:
+            raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks")
+
+        if not ids:
+            # Nothing to do; return hydrated parent
+            return session.execute(
+                select(Task)
+                .where(Task.id == parent_id)
+                .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
+            ).scalar_one()
+
+        if parent_id in ids:
+            raise ValueError("A task cannot be its own parent")
+
+        # Fetch subtask rows
+        sub_rows = session.execute(
+            select(Task).where(Task.id.in_(ids))
+        ).scalars().all()
+        found = {t.id for t in sub_rows}
+        missing = [sid for sid in ids if sid not in found]
+        if missing:
+            raise ValueError(f"Subtask(s) not found: {missing}")
+
+        inactive = [t.id for t in sub_rows if not t.active]
+        if inactive:
+            raise ValueError(f"Subtask(s) inactive: {inactive}")
+
+        # Check existing links for these subtasks
+        existing_links = session.execute(
+            select(ParentAssignment).where(ParentAssignment.subtask_id.in_(ids))
+        ).scalars().all()
+
+        # Conflicts: already owned by a different parent
+        conflicts = [lnk.subtask_id for lnk in existing_links if lnk.parent_id != parent_id]
+        if conflicts:
+            raise ValueError(f"Task(s) already have a parent: {conflicts}")
+
+        # Cycle guard for each subtask
+        for st in sub_rows:
+            _assert_no_cycle(session, parent_id=parent_id, child_id=st.id)
+
+        # Create links for those not already linked to this parent (idempotent)
+        already = {lnk.subtask_id for lnk in existing_links if lnk.parent_id == parent_id}
+        to_link = [sid for sid in ids if sid not in already]
+        for sid in to_link:
+            session.add(ParentAssignment(parent_id=parent_id, subtask_id=sid))
+
+        session.flush()
+
+        # Return hydrated parent with subtasks loaded (avoid lazy-load after commit)
+        parent = session.execute(
+            select(Task)
+            .where(Task.id == parent_id)
+            .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
+        ).scalar_one()
+        return parent
+
+
+def detach_subtask(parent_id: int, subtask_id: int) -> bool:
+    """
+    Detach a single subtask from a parent.
+    - Raises ValueError if the link does not exist.
+    Returns True when detached.
+    """
+    with SessionLocal.begin() as session:
+        link = session.execute(
+            select(ParentAssignment).where(
+                and_(
+                    ParentAssignment.parent_id == parent_id,
+                    ParentAssignment.subtask_id == subtask_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if not link:
+            raise ValueError(f"Link not found for parent={parent_id}, subtask={subtask_id}")
+
+        session.delete(link)
+        return True
 
 
 # ---- Status transitions -----------------------------------------------------
