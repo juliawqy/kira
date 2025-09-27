@@ -117,3 +117,18 @@ def test_detach_subtask_missing_link():
     c = svc.add_task("C", None, None, None)
     with pytest.raises(ValueError, match="Link not found"):
         svc.detach_subtask(p.id, c.id)
+
+
+
+def test_attach_subtasks_cycle_detection_long_chain():
+    """A->B, B->C; attaching C->A must be rejected (deep traversal).”
+    """
+    a = svc.add_task("A", None, None, None)
+    b = svc.add_task("B", None, None, None)
+    c = svc.add_task("C", None, None, None)
+
+    svc.attach_subtasks(a.id, [b.id])
+    svc.attach_subtasks(b.id, [c.id])
+
+    with pytest.raises(ValueError, match="Cycle"):
+        svc.attach_subtasks(c.id, [a.id])

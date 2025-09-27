@@ -48,3 +48,9 @@ def test_transitions_on_missing_task_raise_value_error():
         svc.block_task(999_999)
     with pytest.raises(ValueError):
         svc.complete_task(999_999)
+
+def test_set_status_invalid_status_raises_valueerror():
+    """Direct _set_status with a bad value raises ValueError."""
+    t = svc.add_task("S", None, None, None)
+    with pytest.raises(ValueError, match="Invalid status"):
+        svc._set_status(t.id, "NotAStatus")  # calling the internal is fine for unit tests

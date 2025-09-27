@@ -17,10 +17,7 @@ class SubtaskIds(BaseModel):
 def create_task(payload: TaskCreate):
     """Create a task; return the task created."""
     try:
-        task = task_service.add_task(**payload.model_dump())
-        if not task:
-            raise HTTPException(500, "Task created but not found")
-        return task
+        return task_service.add_task(**payload.model_dump())
     except ValueError as e:
         msg = str(e).lower()
         # Treat "not found" as 404; everything else remains 400

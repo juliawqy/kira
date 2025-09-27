@@ -381,3 +381,40 @@ def test_detach_subtask_happy_and_missing(client, task_base_path):
     # missing link now -> 404
     d2 = client.delete(f"{task_base_path}/{p['id']}/subtasks/{c['id']}")
     assert d2.status_code == 404
+
+
+def test_update_task_not_found(client, task_base_path):
+    """PATCH /task/{id} -> 404 when task does not exist."""
+    r = client.patch(f"{task_base_path}/999999", json={"title": "x"})
+    assert r.status_code == 404
+
+
+def test_start_complete_block_not_found(client, task_base_path):
+    """POST start/complete/block -> 404 when task does not exist."""
+    assert client.post(f"{task_base_path}/999999/start").status_code == 404
+    assert client.post(f"{task_base_path}/999999/complete").status_code == 404
+    assert client.post(f"{task_base_path}/999999/block").status_code == 404
+
+
+def test_archive_restore_not_found(client, task_base_path):
+    """POST archive/restore -> 404 when task does not exist."""
+    assert client.post(f"{task_base_path}/999999/archive").status_code == 404
+    assert client.post(f"{task_base_path}/999999/restore").status_code == 404
+
+
+def test_list_subtasks_parent_not_found(client, task_base_path):
+    """GET /task/{id}/subtasks -> 404 when parent does not exist."""
+    r = client.get(f"{task_base_path}/999999/subtasks")
+    assert r.status_code == 404
+
+def test_detach_subtask_generic_valueerror_returns_400(client, task_base_path, monkeypatch):
+    """DELETE returns 400 when service raises a non-'not found' ValueError."""
+    # Patch at the route module reference so the router uses it
+    from backend.src.api.v1.routes import task_route
+
+    def boom(parent_id: int, subtask_id: int) -> bool:
+        raise ValueError("some other error")
+
+    monkeypatch.setattr(task_route.task_service, "detach_subtask", boom)
+    r = client.delete(f"{task_base_path}/1/subtasks/2")
+    assert r.status_code == 400, r.text

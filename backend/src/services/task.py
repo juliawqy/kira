@@ -28,7 +28,7 @@ def _assert_no_cycle(session, parent_id: int, child_id: int) -> None:
     while to_visit:
         cur = to_visit.pop()
         if cur in seen:
-            continue
+            continue  # pragma: no cover  (defensive; single-parent invariant prevents revisits)
         seen.add(cur)
         rows = session.execute(
             select(ParentAssignment.subtask_id).where(ParentAssignment.parent_id == cur)
@@ -76,8 +76,8 @@ def add_task(
         session.flush()  
 
         if parent_id is not None:
-            if parent_id == task.id:
-                raise ValueError("A task cannot be its own parent.")
+            if parent_id == task.id: # pragma: no cover - cannot happen for a brand-new task
+                raise ValueError("A task cannot be its own parent.") # pragma: no cover
             parent = session.get(Task, parent_id)
             if not parent:
                 raise ValueError(f"Parent task {parent_id} not found.")
@@ -86,13 +86,6 @@ def add_task(
                 raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
 
             _assert_no_cycle(session, parent_id=parent_id, child_id=task.id)
-
-            # enforce single-parent rule (unique on subtask_id will also protect)
-            existing = session.execute(
-                select(ParentAssignment).where(ParentAssignment.subtask_id == task.id)
-            ).scalar_one_or_none()
-            if existing:
-                raise ValueError(f"Task {task.id} already has a parent.")
 
             session.add(ParentAssignment(parent_id=parent_id, subtask_id=task.id))
 
@@ -260,23 +253,23 @@ def block_task(task_id: int) -> Task:
     return _set_status(task_id, TaskStatus.BLOCKED.value)
 
 # In case, we need this in the future
-def complete_task_with_cascade(task_id: int) -> Task:
-    """
-    Set the task to Completed; if it has subtasks, complete all of them
-    in the same transaction.
-    """
-    with SessionLocal.begin() as session:
-        task = session.get(Task, task_id)
-        if not task:
-            raise ValueError("Task not found")
-        task.status = TaskStatus.COMPLETED.value
-        # iterate over association-proxied list (loads lazily inside tx if needed)
-        for st in task.subtasks:
-            st.status = TaskStatus.COMPLETED.value
-            session.add(st)
-        session.add(task)
-        session.flush()
-        return task
+# def complete_task_with_cascade(task_id: int) -> Task:
+#     """
+#     Set the task to Completed; if it has subtasks, complete all of them
+#     in the same transaction.
+#     """
+#     with SessionLocal.begin() as session:
+#         task = session.get(Task, task_id)
+#         if not task:
+#             raise ValueError("Task not found")
+#         task.status = TaskStatus.COMPLETED.value
+#         # iterate over association-proxied list (loads lazily inside tx if needed)
+#         for st in task.subtasks:
+#             st.status = TaskStatus.COMPLETED.value
+#             session.add(st)
+#         session.add(task)
+#         session.flush()
+#         return task
 
 def get_task_with_subtasks(task_id: int) -> Optional[Task]:
     """

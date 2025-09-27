@@ -57,6 +57,12 @@ def test_add_task_with_parent_links_child_to_parent():
     # Verify link via parent’s subtasks (avoid lazy-loading child.parent)
     assert any(st.id == child.id for st in got_parent.subtasks)
 
+def test_add_task_with_inactive_parent_raises_value_error():
+    p = svc.add_task("P", None, None, None)
+    svc.archive_task(p.id)  # active -> False
+    with pytest.raises(ValueError, match="inactive"):
+        svc.add_task("C", None, None, None, parent_id=p.id)
+
 
 def test_add_multiple_children_under_same_parent():
     """Attach multiple children at creation; all links persist."""
