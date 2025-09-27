@@ -3,15 +3,17 @@ from __future__ import annotations
 
 from datetime import date
 from enum import Enum
+from optparse import Option
+from token import OP
 from typing import Optional, Any
 
 from sqlalchemy import select, exists
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 
-from database.db_setup import SessionLocal
-from database.models.task import Task
-from database.models.parent_assignment import ParentAssignment
+from backend.src.database.db_setup import SessionLocal
+from backend.src.database.models.task import Task
+from backend.src.database.models.parent_assignment import ParentAssignment
 
 
 class TaskStatus(str, Enum):
@@ -58,7 +60,7 @@ def add_task(
     project_id: Optional[int] = None,
     active: bool = True,
     parent_id: Optional[int] = None,
-) -> int:
+) -> Optional[Task]:
     """
     Create a task. If parent_id is provided, link this new task as a subtask of that parent.
     Returns the new task created.
@@ -88,6 +90,10 @@ def add_task(
             parent = session.get(Task, parent_id)
             if not parent:
                 raise ValueError(f"Parent task {parent_id} not found.")
+            
+            if not parent.active:
+                raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
+
             _assert_no_cycle(session, parent_id=parent_id, child_id=task.id)
 
             # enforce single-parent rule (unique on subtask_id will also protect)

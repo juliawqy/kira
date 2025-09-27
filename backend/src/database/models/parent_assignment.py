@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint, CheckConstraint, Index
 from sqlalchemy.orm import relationship
-from database.db_setup import Base
+from backend.src.database.db_setup import Base
 
 class ParentAssignment(Base):
     __tablename__ = "parent_assignment" 
