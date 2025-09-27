@@ -2,11 +2,16 @@ from __future__ import annotations
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from backend.src.schemas.task import TaskCreate, TaskUpdate, TaskRead, TaskWithSubTasks
 import backend.src.services.task as task_service
 
 router = APIRouter(prefix="/task", tags=["task"])
+
+# ---------- payload model ----------
+class SubtaskIds(BaseModel):
+    subtask_ids: List[int] = []  # allow empty list -> idempotent no-op
 
 @router.post("/", response_model=TaskRead, status_code=201, name="create_task")
 def create_task(payload: TaskCreate):
@@ -96,6 +101,44 @@ def restore_task(task_id: int):
         return task_service.restore_task(task_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/{task_id}/subtasks", response_model=List[TaskRead], name="list_subtasks")
+def list_subtasks(task_id: int):
+    """Return direct subtasks of the given task."""
+    t = task_service.get_task_with_subtasks(task_id)
+    if not t:
+        raise HTTPException(404, "Task not found")
+    return t.subtasks
+
+
+@router.post("/{parent_id}/subtasks", response_model=TaskWithSubTasks, name="attach_subtasks")
+def attach_subtasks(parent_id: int, payload: SubtaskIds):
+    """
+    Attach one or more subtasks to a parent (atomic).
+    Returns the parent with its subtasks.
+    """
+    try:
+        return task_service.attach_subtasks(parent_id, payload.subtask_ids)
+    except ValueError as e:
+        msg = str(e).lower()
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail=str(e))
+        if "already have a parent" in msg or "cycle" in msg:
+            raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{parent_id}/subtasks/{subtask_id}", status_code=204, name="detach_subtask")
+def detach_subtask(parent_id: int, subtask_id: int):
+    """Detach a single subtask from the parent."""
+    try:
+        task_service.detach_subtask(parent_id, subtask_id)
+        return
+    except ValueError as e:
+        msg = str(e).lower()
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 

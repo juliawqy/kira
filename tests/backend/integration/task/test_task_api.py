@@ -240,3 +240,144 @@ def test_create_child_with_missing_or_inactive_parent_errors(client, task_base_p
     })
     # service raises "inactive and cannot accept subtasks" -> mapped to 400 by route
     assert r_inactive.status_code == 400
+
+def _subs(payload: dict):
+    return payload.get("subtasks") or payload.get("subTasks") or []
+
+
+def test_attach_subtasks_happy_and_idempotent(client, task_base_path):
+    """POST /{parent}/subtasks attaches; second call idempotent."""
+    p = client.post(f"{task_base_path}/", json={
+        "title": "P", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+    c1 = client.post(f"{task_base_path}/", json={
+        "title": "C1", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+
+    r1 = client.post(f"{task_base_path}/{p['id']}/subtasks", json={"subtask_ids": [c1["id"]]})
+    assert r1.status_code == 200, r1.text
+    assert [t["title"] for t in _subs(r1.json())] == ["C1"]
+
+    r2 = client.post(f"{task_base_path}/{p['id']}/subtasks", json={"subtask_ids": [c1["id"]]})
+    assert r2.status_code == 200, r2.text
+    assert [t["title"] for t in _subs(r2.json())] == ["C1"]  
+
+
+def test_attach_subtasks_missing_parent_and_child(client, task_base_path):
+    """Missing parent/child -> 404."""
+    r = client.post(f"{task_base_path}/999999/subtasks", json={"subtask_ids": []})
+    assert r.status_code == 404
+
+    p = client.post(f"{task_base_path}/", json={
+        "title": "P", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+    r2 = client.post(f"{task_base_path}/{p['id']}/subtasks", json={"subtask_ids": [999999]})
+    assert r2.status_code == 404
+
+
+def test_attach_subtasks_inactive_parent_and_child(client, task_base_path):
+    """Inactive parent or child -> 400."""
+    p = client.post(f"{task_base_path}/", json={
+        "title": "P", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+    c = client.post(f"{task_base_path}/", json={
+        "title": "C", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+
+    # archive parent
+    ap = client.post(f"{task_base_path}/{p['id']}/archive")
+    assert ap.status_code == 200
+    r = client.post(f"{task_base_path}/{p['id']}/subtasks", json={"subtask_ids": [c["id"]]})
+    assert r.status_code == 400
+
+    # archive child
+    p2 = client.post(f"{task_base_path}/", json={
+        "title": "P2", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+    client.post(f"{task_base_path}/{c['id']}/archive")
+    r2 = client.post(f"{task_base_path}/{p2['id']}/subtasks", json={"subtask_ids": [c["id"]]})
+    assert r2.status_code == 400
+
+
+def test_attach_subtasks_conflict_and_cycle_and_selflink(client, task_base_path):
+    """409 for conflict/cycle; 400 for self-link."""
+    p1 = client.post(f"{task_base_path}/", json={
+        "title": "P1", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+    p2 = client.post(f"{task_base_path}/", json={
+        "title": "P2", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+    c = client.post(f"{task_base_path}/", json={
+        "title": "C", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+
+    # conflict: child already owned by p1
+    client.post(f"{task_base_path}/{p1['id']}/subtasks", json={"subtask_ids": [c["id"]]})
+    r_conf = client.post(f"{task_base_path}/{p2['id']}/subtasks", json={"subtask_ids": [c["id"]]})
+    assert r_conf.status_code == 409
+
+    # cycle: create p1->p2 then try p2->p1
+    client.post(f"{task_base_path}/{p1['id']}/subtasks", json={"subtask_ids": [p2["id"]]})
+    r_cycle = client.post(f"{task_base_path}/{p2['id']}/subtasks", json={"subtask_ids": [p1["id"]]})
+    assert r_cycle.status_code == 409
+
+    # self-link
+    r_self = client.post(f"{task_base_path}/{p1['id']}/subtasks", json={"subtask_ids": [p1["id"]]})
+    assert r_self.status_code == 400
+
+
+def test_attach_subtasks_empty_list_is_ok(client, task_base_path):
+    """Empty list is a no-op; returns parent with current subtasks."""
+    p = client.post(f"{task_base_path}/", json={
+        "title": "P", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+    r = client.post(f"{task_base_path}/{p['id']}/subtasks", json={"subtask_ids": []})
+    assert r.status_code == 200, r.text
+    assert _subs(r.json()) == []
+
+
+def test_detach_subtask_happy_and_missing(client, task_base_path):
+    """DELETE link -> 204; deleting a non-existent link -> 404."""
+    p = client.post(f"{task_base_path}/", json={
+        "title": "P", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+    c = client.post(f"{task_base_path}/", json={
+        "title": "C", "description": None, "start_date": None, "deadline": None,
+        "priority": "Medium", "status": TaskStatus.TO_DO.value,
+        "project_id": None, "active": True, "parent_id": None
+    }).json()
+    client.post(f"{task_base_path}/{p['id']}/subtasks", json={"subtask_ids": [c["id"]]})
+
+    d = client.delete(f"{task_base_path}/{p['id']}/subtasks/{c['id']}")
+    assert d.status_code == 204, d.text
+
+    # no longer listed
+    r = client.get(f"{task_base_path}/{p['id']}/subtasks")
+    assert r.status_code == 200
+    assert r.json() == []
+
+    # missing link now -> 404
+    d2 = client.delete(f"{task_base_path}/{p['id']}/subtasks/{c['id']}")
+    assert d2.status_code == 404
