@@ -4,8 +4,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.associationproxy import association_proxy
 
-from database.db_setup import Base
-from database.models.parent_assignment import ParentAssignment  
+from backend.src.database.db_setup import Base
+from backend.src.database.models.parent_assignment import ParentAssignment  
 
 STATUS_VALUES   = ("To-do", "In-progress", "Completed", "Blocked")  
 PRIORITY_VALUES = ("Low", "Medium", "High")

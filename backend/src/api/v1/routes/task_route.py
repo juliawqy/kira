@@ -17,7 +17,12 @@ def create_task(payload: TaskCreate):
             raise HTTPException(500, "Task created but not found")
         return task
     except ValueError as e:
+        msg = str(e).lower()
+        # Treat "not found" as 404; everything else remains 400
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail=str(e))
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.patch("/{task_id}", response_model=TaskRead, name="update_task")
 def update_task(task_id: int, payload: TaskUpdate):
