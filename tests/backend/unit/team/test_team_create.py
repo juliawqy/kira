@@ -15,8 +15,8 @@ def test_create_team_success(mock_session_local):
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     user = type("User", (), MANAGER_USER)
     team = team_service.create_team(VALID_TEAM_CREATE["team_name"], user)
-    assert team.team_name == VALID_TEAM_CREATE["team_name"]
-    assert team.manager_id == MANAGER_USER["user_id"]
+    assert team["team_name"] == VALID_TEAM_CREATE["team_name"]
+    assert team["manager_id"] == MANAGER_USER["user_id"]
 
 @patch("backend.src.services.team.SessionLocal")
 def test_create_team_non_manager(mock_session_local):

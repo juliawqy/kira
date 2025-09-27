@@ -18,7 +18,7 @@ def test_update_team_name_success(mock_session_local):
     user = make_user(MANAGER_USER)
     new_name = "New Team Name"
     result = team_service.update_team_name(1, new_name, user)
-    assert result.team_name == new_name
+    assert result["team_name"] == new_name
     mock_session.add.assert_called_once_with(mock_team)
 
 @patch("backend.src.services.team.SessionLocal")
