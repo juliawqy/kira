@@ -1,48 +1,115 @@
+from __future__ import annotations
+
 import pytest
-from unittest.mock import patch, MagicMock
-from tests.mock_data.task_data import VALID_TASK_1, VALID_TASK_ID, INVALID_TASK_ID
+import backend.src.services.task as svc
 
-# KIRA-001/001 (test case id corresponding to test case sheets)
-@patch("backend.src.services.task.SessionLocal")
-def test_delete_task_success(mock_session_local, mock_session):
-    from backend.src.services import task as task_service
+pytestmark = pytest.mark.unit
 
-    mock_task = MagicMock(**VALID_TASK_1, subtasks=[])
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = mock_task
 
-    result = task_service.delete_task(VALID_TASK_ID)
-    assert result["deleted"] == 1
+def test_archive_parent_detaches_children_by_default():
+    """Archiving a parent detaches links; children become top-level parents."""
+    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
+    c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
 
-# KIRA-001/001 (test case id corresponding to test case sheets)
-@patch("backend.src.services.task.SessionLocal")
-def test_delete_task_failure(mock_session_local, mock_session):
-    from backend.src.services import task as task_service
+    updated = svc.archive_task(p.id)  # detach_links=True by default
+    assert updated.active is False
 
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = None
+    # Parent now has no children; child floats to top level
+    got_p = svc.get_task_with_subtasks(p.id)
+    assert got_p.subtasks == []
 
+    titles = {t.title for t in svc.list_parent_tasks()}  # active_only=True default
+    assert "C" in titles and "P" not in titles  # P inactive, C is now parent
+
+
+def test_archive_child_detaches_from_parent():
+    """Archiving a child removes the link from the parent."""
+    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
+    c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
+
+    svc.archive_task(c.id)
+    got_p = svc.get_task_with_subtasks(p.id)
+    assert got_p.subtasks == []
+
+    # Archived child won't appear in parent list (active_only=True)
+    titles = {t.title for t in svc.list_parent_tasks()}
+    assert "C" not in titles and "P" in titles  # P still active
+
+
+def test_archive_parent_without_detach_keeps_links_and_hides_both_from_default_listing():
+    """If detach_links=False, parent stays linked to child; both are hidden by default list."""
+    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
+    _c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
+
+    svc.archive_task(p.id, detach_links=False)
+
+    # Default listing hides inactive parents; child is still linked -> not a parent
+    titles = {t.title for t in svc.list_parent_tasks()}  # active_only=True default
+    assert titles == set()  # neither P nor C shows up
+
+    # If we include inactive, parent appears and still has its subtask link
+    titles_all = {t.title for t in svc.list_parent_tasks(active_only=False)}
+    assert "P" in titles_all
+
+    got_p = svc.get_task_with_subtasks(p.id)
+    assert [st.title for st in got_p.subtasks] == ["C"]
+
+
+def test_restore_parent_after_default_archive_does_not_restore_links():
+    """Restoring a previously archived parent does not reattach children."""
+    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
+    c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
+
+    svc.archive_task(p.id)  # detaches by default
+    restored = svc.restore_task(p.id)
+    assert restored.active is True
+
+    got_p = svc.get_task_with_subtasks(p.id)
+    assert got_p.subtasks == []  # links not restored
+
+    # Child remains a top-level parent
+    titles = {t.title for t in svc.list_parent_tasks()}
+    assert "C" in titles and "P" in titles
+
+
+def test_restore_child_does_not_relink_to_parent():
+    """Restoring a child archived earlier does not reattach it."""
+    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
+    c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
+
+    svc.archive_task(c.id)
+    svc.restore_task(c.id)
+
+    got_p = svc.get_task_with_subtasks(p.id)
+    assert got_p.subtasks == []  # still detached
+
+    titles = {t.title for t in svc.list_parent_tasks()}
+    assert "C" in titles and "P" in titles  # both active parents now
+
+
+def test_archive_missing_task_raises_value_error():
+    """Archiving a non-existent id raises ValueError."""
     with pytest.raises(ValueError):
-        task_service.delete_task(INVALID_TASK_ID)
+        svc.archive_task(999_999)
 
-# KIRA-001/001 (test case id corresponding to test case sheets)
-@patch("backend.src.services.task.SessionLocal")
-def test_delete_subtask_not_found_returns_false(mock_session_local, mock_session):
-    from backend.src.services import task as task_service
 
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = None
+def test_restore_missing_task_raises_value_error():
+    """Restoring a non-existent id raises ValueError."""
+    with pytest.raises(ValueError):
+        svc.restore_task(999_999)
 
-    assert task_service.delete_subtask(INVALID_TASK_ID) is False
 
-# KIRA-001/001 (test case id corresponding to test case sheets)
-@patch("backend.src.services.task.SessionLocal")
-def test_delete_subtask_not_a_subtask_raises(mock_session_local, mock_session):
-    from backend.src.services import task as task_service
+def test_archive_is_idempotent():
+    """Archiving an already inactive task keeps it inactive and stable."""
+    t = svc.add_task(title="X", description=None, start_date=None, deadline=None)
+    svc.archive_task(t.id)
+    again = svc.archive_task(t.id)  # should not raise
+    assert again.active is False
 
-    mock_task = MagicMock(**VALID_TASK_1, parent_id=None)
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = mock_task
 
-    with pytest.raises(ValueError, match="is not a subtask"):
-        task_service.delete_subtask(mock_task.id)
+def test_restore_is_idempotent():
+    """Restoring an already active task remains active and stable."""
+    t = svc.add_task(title="X", description=None, start_date=None, deadline=None)
+    svc.restore_task(t.id)  # already active; should not raise
+    got = svc.get_task_with_subtasks(t.id)
+    assert got.active is True
