@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from backend.src.database.db_setup import Base
 
-
 class Team(Base):
     __tablename__ = "teams"
 
