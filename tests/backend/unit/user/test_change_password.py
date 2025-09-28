@@ -27,6 +27,7 @@ def test_change_password_success(mock_hash, mock_verify, mock_session_local):
     assert mock_user.hashed_pw == "new_hashed"
     mock_session.add.assert_called_with(mock_user)
 
+
 @patch("backend.src.services.user.SessionLocal")
 def test_change_password_user_not_found(mock_session_local):
     from backend.src.services import user as user_service
@@ -35,8 +36,10 @@ def test_change_password_user_not_found(mock_session_local):
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     mock_session.get.return_value = None
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc:
         user_service.change_password(9999, "x", "Y!longpass1")
+    assert "User not found" in str(exc.value)
+
 
 @patch("backend.src.services.user.SessionLocal")
 @patch("backend.src.services.user._verify_password", return_value=False)
@@ -50,11 +53,19 @@ def test_change_password_wrong_current(mock_verify, mock_session_local):
     mock_user.hashed_pw = "old"
     mock_session.get.return_value = mock_user
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc:
         user_service.change_password(mock_user.user_id, "incorrect", "New!Pass1")
+    assert "Current password is incorrect" in str(exc.value)
+
 
 def test_change_password_weak_new_password_raises():
     # Validation should raise before DB access
     from backend.src.services import user as user_service
-    with pytest.raises(ValueError):
-        user_service.change_password(1, VALID_USER_ADMIN["password"], INVALID_PASSWORD_CHANGE_WEAK["new_password"])
+
+    # Patch SessionLocal to detect whether it would be used
+    with patch("backend.src.services.user.SessionLocal") as mock_session_local:
+        with pytest.raises(ValueError):
+            user_service.change_password(1, VALID_USER_ADMIN["password"], INVALID_PASSWORD_CHANGE_WEAK["new_password"])
+        # ensure DB context manager *not* entered because validation happens first
+        # SessionLocal.begin should not have been called
+        assert not mock_session_local.begin.called

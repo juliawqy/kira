@@ -49,6 +49,25 @@ def test_create_user_failure_duplicate_email():
         assert "Email already exists" in response.json()["detail"]
 
 
+def test_create_user_invalid_payload_returns_422():
+    # missing required field `email` should cause pydantic validation error -> 422
+    invalid_payload = {
+        "name": "No Email",
+        # "email": missing
+        "role": "employee",
+        "password": "Some!Pass123",
+        "department_id": None,
+        "admin": False,
+    }
+    response = client.post(f"{BASE}/", json=invalid_payload)
+    assert response.status_code == 422
+    # minimal assertion that validation error refers to `email` or required fields
+    body = response.json()
+    assert "detail" in body
+    # ensure at least one error item (structure depends on FastAPI/pydantic)
+    assert isinstance(body["detail"], list) and len(body["detail"]) > 0
+
+
 # -----------------------------
 # Get User
 # -----------------------------
@@ -59,11 +78,35 @@ def test_get_user_by_id_success():
         assert response.json()["email"] == VALID_USER["email"]
 
 
+def test_get_user_by_non_digit_identifier_success():
+    # exercise the non-digit branch (identifier.isdigit() == False)
+    identifier = VALID_USER["email"]
+    with patch("backend.src.api.v1.routes.user_route.user_service.get_user", return_value=VALID_USER) as mock_get:
+        response = client.get(f"{BASE}/{identifier}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == VALID_USER["email"]
+        # ensure service was called with the string identifier (not int)
+        mock_get.assert_called_with(identifier)
+
+
 def test_get_user_not_found():
     with patch("backend.src.api.v1.routes.user_route.user_service.get_user", return_value=None):
         response = client.get(f"{BASE}/{INVALID_USER_ID}")
         assert response.status_code == 404
         assert response.json()["detail"] == "User not found"
+
+
+def test_list_users_success():
+    users = [VALID_USER, VALID_USER_ADMIN]
+    with patch("backend.src.api.v1.routes.user_route.user_service.list_users", return_value=users):
+        response = client.get(f"{BASE}/")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 2
+        emails = {u["email"] for u in data}
+        assert VALID_USER["email"] in emails and VALID_USER_ADMIN["email"] in emails
 
 
 # -----------------------------
@@ -83,6 +126,17 @@ def test_update_user_not_found():
         response = client.patch(f"{BASE}/{INVALID_USER_ID}", json=VALID_UPDATE_NAME)
         assert response.status_code == 404
         assert response.json()["detail"] == "User not found"
+
+
+def test_update_user_email_already_exists():
+    # exercise ValueError path in update_user
+    with patch(
+        "backend.src.api.v1.routes.user_route.user_service.update_user",
+        side_effect=ValueError("Email already exists")
+    ):
+        response = client.patch(f"{BASE}/{VALID_USER['user_id']}", json={"email": "someone@else.com"})
+        assert response.status_code == 400
+        assert "Email already exists" in response.json()["detail"]
 
 
 # -----------------------------
@@ -120,3 +174,14 @@ def test_change_password_wrong_current():
         response = client.post(f"{BASE}/{VALID_USER_ADMIN['user_id']}/password", json=VALID_PASSWORD_CHANGE)
         assert response.status_code == 403
         assert "Current password is incorrect" in response.json()["detail"]
+
+
+def test_change_password_user_not_found():
+    # other ValueError messages should map to 400 per route code
+    with patch(
+        "backend.src.api.v1.routes.user_route.user_service.change_password",
+        side_effect=ValueError("User not found")
+    ):
+        response = client.post(f"{BASE}/{VALID_USER_ADMIN['user_id']}/password", json=VALID_PASSWORD_CHANGE)
+        assert response.status_code == 400
+        assert "User not found" in response.json()["detail"]
