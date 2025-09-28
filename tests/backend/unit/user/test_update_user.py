@@ -29,6 +29,7 @@ def test_update_user_success_name_and_email(mock_session_local):
     updated2 = user_service.update_user(user_obj.user_id, **VALID_UPDATE_EMAIL)
     assert updated2.email == VALID_UPDATE_EMAIL["email"]
 
+
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_not_found(mock_session_local):
     from backend.src.services import user as user_service
@@ -38,6 +39,7 @@ def test_update_user_not_found(mock_session_local):
 
     res = user_service.update_user(9999, name="No One")
     assert res is None
+
 
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_email_conflict_raises(mock_session_local):
@@ -60,3 +62,43 @@ def test_update_user_email_conflict_raises(mock_session_local):
 
     with pytest.raises(ValueError):
         user_service.update_user(user_obj.user_id, email=VALID_USER["email"])
+
+@patch("backend.src.services.user.SessionLocal")
+def test_update_user_role_success(mock_session_local):
+    """
+    Ensure update_user updates the role when provided.
+    """
+    from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+
+    user_obj = MagicMock()
+    user_obj.user_id = VALID_USER_ADMIN["user_id"]
+    user_obj.role = "staff"
+    mock_session.get.return_value = user_obj
+    updated = user_service.update_user(user_obj.user_id, role="manager")
+    assert updated is not None
+    assert updated.role == "manager"
+
+
+@patch("backend.src.services.user.SessionLocal")
+def test_update_user_department_and_admin_success(mock_session_local):
+    """
+    Ensure update_user updates department_id and admin flag together.
+    """
+    from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+
+    user_obj = MagicMock()
+    user_obj.user_id = VALID_USER_ADMIN["user_id"]
+    user_obj.department_id = None
+    user_obj.admin = False
+    mock_session.get.return_value = user_obj
+
+    updated = user_service.update_user(user_obj.user_id, department_id=42, admin=True)
+    assert updated is not None
+    assert updated.department_id == 42
+    assert updated.admin is True

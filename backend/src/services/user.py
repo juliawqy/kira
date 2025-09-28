@@ -14,21 +14,28 @@ from backend.src.database.models.user import User
 # ---- Roles ---------------------------------------------------------------
 
 class UserRole(str, Enum):
-    ADMIN = "admin"
-    EMPLOYEE = "employee"
+    STAFF = "staff"
+    MANAGER = "manager"
+    DIRECTOR = "director"
+    HR = "hr"
 
 
 # ---- Password Hashing -----------------------------------------------------
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 PASSWORD_REGEX = re.compile(r".*[!@#$%^&*(),.?\":{}|<>].*")
 
 def _hash_password(password: str) -> str:
+    if not isinstance(password, str):
+        raise TypeError("password must be a string")
     return pwd_context.hash(password)
 
 def _verify_password(plain: str, hashed: str) -> bool:
+    if not isinstance(plain, str) or not isinstance(hashed, str):
+        return False
     return pwd_context.verify(plain, hashed)
+
 
 def _validate_password(password: str) -> None:
     if len(password) < 8 or not PASSWORD_REGEX.match(password):
