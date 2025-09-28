@@ -66,6 +66,4 @@ def test_change_password_weak_new_password_raises():
     with patch("backend.src.services.user.SessionLocal") as mock_session_local:
         with pytest.raises(ValueError):
             user_service.change_password(1, VALID_USER_ADMIN["password"], INVALID_PASSWORD_CHANGE_WEAK["new_password"])
-        # ensure DB context manager *not* entered because validation happens first
-        # SessionLocal.begin should not have been called
         assert not mock_session_local.begin.called

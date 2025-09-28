@@ -2,6 +2,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_UPDATE_NAME, VALID_UPDATE_EMAIL, VALID_USER
+from backend.src.enums.user_role import UserRole
 
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_success_name_and_email(mock_session_local):
@@ -42,7 +43,7 @@ def test_update_user_not_found(mock_session_local):
 
 
 @patch("backend.src.services.user.SessionLocal")
-def test_update_user_email_conflict_raises(mock_session_local):
+def test_update_user_email_conflict(mock_session_local):
     from backend.src.services import user as user_service
 
     mock_session = MagicMock()
@@ -75,11 +76,11 @@ def test_update_user_role_success(mock_session_local):
 
     user_obj = MagicMock()
     user_obj.user_id = VALID_USER_ADMIN["user_id"]
-    user_obj.role = "staff"
+    user_obj.role = VALID_USER_ADMIN["role"]
     mock_session.get.return_value = user_obj
-    updated = user_service.update_user(user_obj.user_id, role="manager")
+    updated = user_service.update_user(user_obj.user_id, role=UserRole.MANAGER)
     assert updated is not None
-    assert updated.role == "manager"
+    assert updated.role == UserRole.MANAGER.value
 
 
 @patch("backend.src.services.user.SessionLocal")
@@ -102,3 +103,14 @@ def test_update_user_department_and_admin_success(mock_session_local):
     assert updated is not None
     assert updated.department_id == 42
     assert updated.admin is True
+
+@patch("backend.src.services.user.SessionLocal")
+def test_update_user_invalid_role_type(mock_session_local):
+    from backend.src.services import user as user_service
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    mock_session.get.return_value = MagicMock(user_id=1, role=UserRole.STAFF.value)
+
+    with pytest.raises(ValueError) as exc:
+        user_service.update_user(1, role="manager")  # invalid string
+    assert "role must be a valid UserRole" in str(exc.value)

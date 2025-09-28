@@ -9,9 +9,7 @@ from tests.mock_data.user_data import (
     INVALID_CREATE_NO_SPECIAL,
 )
 
-# --------------------------
 # Success case
-# --------------------------
 @patch("backend.src.services.user.SessionLocal")
 @patch("backend.src.services.user._hash_password", return_value="hashed_pw")
 def test_create_user_success(mock_hash, mock_session_local):
@@ -35,13 +33,8 @@ def test_create_user_success(mock_hash, mock_session_local):
     mock_session.flush.assert_called()
     mock_session.refresh.assert_called_with(result)
 
-
-
-# --------------------------
-# Duplicate email raises ValueError
-# --------------------------
 @patch("backend.src.services.user.SessionLocal")
-def test_create_user_duplicate_email_raises(mock_session_local):
+def test_create_user_duplicate_emai(mock_session_local):
     from backend.src.services import user as user_service
 
     mock_session = MagicMock()
@@ -56,14 +49,24 @@ def test_create_user_duplicate_email_raises(mock_session_local):
         user_service.create_user(**VALID_CREATE_PAYLOAD_USER)
     assert "already exists" in str(exc.value)
 
-
-# --------------------------
-# Password validation fails locally (before DB)
-# --------------------------
-def test_create_user_password_validation_fail_local():
+def test_create_user_password_validation_fail():
     from backend.src.services import user as user_service
 
     with pytest.raises(ValueError):
         user_service.create_user(**INVALID_CREATE_SHORT_PASSWORD)
     with pytest.raises(ValueError):
         user_service.create_user(**INVALID_CREATE_NO_SPECIAL)
+
+def test_create_user_invalid_role_type():
+    from backend.src.enums.user_role import UserRole
+    from backend.src.services import user as user_service
+    import pytest
+
+    with pytest.raises(ValueError) as exc:
+        user_service.create_user(
+            name="Test",
+            email="test@example.com",
+            role="admin",  # invalid type, string instead of UserRole
+            password="Valid!Pass1",
+        )
+    assert "role must be a valid UserRole" in str(exc.value)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from enum import Enum
 from typing import Optional
 
 from sqlalchemy import select
@@ -9,27 +8,19 @@ from passlib.context import CryptContext
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.user import User
-
-
-# ---- Roles ---------------------------------------------------------------
-
-class UserRole(str, Enum):
-    STAFF = "staff"
-    MANAGER = "manager"
-    DIRECTOR = "director"
-    HR = "hr"
-
+from backend.src.enums.user_role import UserRole
 
 # ---- Password Hashing -----------------------------------------------------
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
-
 PASSWORD_REGEX = re.compile(r".*[!@#$%^&*(),.?\":{}|<>].*")
+
 
 def _hash_password(password: str) -> str:
     if not isinstance(password, str):
         raise TypeError("password must be a string")
     return pwd_context.hash(password)
+
 
 def _verify_password(plain: str, hashed: str) -> bool:
     if not isinstance(plain, str) or not isinstance(hashed, str):
@@ -39,7 +30,9 @@ def _verify_password(plain: str, hashed: str) -> bool:
 
 def _validate_password(password: str) -> None:
     if len(password) < 8 or not PASSWORD_REGEX.match(password):
-        raise ValueError("Password must be at least 8 characters and contain 1 special character")
+        raise ValueError(
+            "Password must be at least 8 characters and contain 1 special character"
+        )
 
 
 # ---- Services -------------------------------------------------------------
@@ -47,13 +40,16 @@ def _validate_password(password: str) -> None:
 def create_user(
     name: str,
     email: str,
-    role: str,
+    role: UserRole,
     password: str,
     department_id: Optional[int] = None,
     admin: bool = False,
 ) -> User:
-    """Create a new user."""
+    """Create a new user with enforced UserRole."""
     _validate_password(password)
+    if not isinstance(role, UserRole):
+        raise ValueError(f"role must be a valid UserRole enum, got {role}")
+
     with SessionLocal.begin() as session:
         existing = session.execute(select(User).where(User.email == email)).scalar_one_or_none()
         if existing:
@@ -62,7 +58,7 @@ def create_user(
         user = User(
             name=name,
             email=email,
-            role=role,
+            role=role.value,  # store string representation
             admin=admin,
             hashed_pw=_hash_password(password),
             department_id=department_id,
@@ -85,7 +81,7 @@ def get_user(identifier: str | int) -> Optional[User]:
 
 
 def list_users() -> list[User]:
-    """List all users."""
+    """List all users ordered by user_id."""
     with SessionLocal() as session:
         stmt = select(User).order_by(User.user_id.asc())
         return session.execute(stmt).scalars().all()
@@ -96,11 +92,14 @@ def update_user(
     *,
     name: Optional[str] = None,
     email: Optional[str] = None,
-    role: Optional[str] = None,
+    role: Optional[UserRole] = None,
     department_id: Optional[int] = None,
     admin: Optional[bool] = None,
 ) -> Optional[User]:
     """Update a user's details."""
+    if role is not None and not isinstance(role, UserRole):
+        raise ValueError(f"role must be a valid UserRole enum, received: {role}, which is invalid")
+
     with SessionLocal.begin() as session:
         user = session.get(User, user_id)
         if not user:
@@ -113,7 +112,7 @@ def update_user(
         if name is not None:
             user.name = name
         if role is not None:
-            user.role = role
+            user.role = role.value
         if department_id is not None:
             user.department_id = department_id
         if admin is not None:

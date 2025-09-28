@@ -1,9 +1,11 @@
+from backend.src.enums.user_role import UserRole
+
 # DB-like records represented as plain dicts (no helper classes)
 VALID_USER_ADMIN = {
     "user_id": 1,
     "name": "Alice Admin",
     "email": "alice.admin@example.com",
-    "role": "admin",
+    "role": UserRole.MANAGER.value,
     "department_id": 10,
     "admin": True,
     "password": "Adm!nPass123",
@@ -13,7 +15,7 @@ VALID_USER = {
     "user_id": 2,
     "name": "Bob Employee",
     "email": "bob.employee@example.com",
-    "role": "employee",
+    "role": UserRole.STAFF.value,
     "department_id": 20,
     "admin": False,
     "password": "Empl@yee123",
@@ -23,7 +25,7 @@ VALID_USER = {
 VALID_CREATE_PAYLOAD_ADMIN = {
     "name": "Alice Admin",
     "email": "alice.admin@example.com",
-    "role": "admin",
+    "role": UserRole.MANAGER,
     "password": "Adm!nPass123",
     "department_id": 10,
     "admin": True,
@@ -32,7 +34,7 @@ VALID_CREATE_PAYLOAD_ADMIN = {
 VALID_CREATE_PAYLOAD_USER = {
     "name": "Bob Employee",
     "email": "bob.employee@example.com",
-    "role": "employee",
+    "role": UserRole.STAFF,
     "password": "Empl@yee123",
     "department_id": 20,
     "admin": False,
@@ -42,7 +44,7 @@ VALID_CREATE_PAYLOAD_USER = {
 INVALID_CREATE_SHORT_PASSWORD = {
     "name": "Short Pass",
     "email": "short.pass@example.com",
-    "role": "employee",
+    "role": UserRole.STAFF,
     "password": "short",
     "department_id": None,
     "admin": False,
@@ -51,7 +53,7 @@ INVALID_CREATE_SHORT_PASSWORD = {
 INVALID_CREATE_NO_SPECIAL = {
     "name": "No Special",
     "email": "nospecial@example.com",
-    "role": "employee",
+    "role": UserRole.STAFF,
     "password": "LongButNoSpecial1",
     "department_id": None,
     "admin": False,
@@ -60,7 +62,7 @@ INVALID_CREATE_NO_SPECIAL = {
 INVALID_CREATE_BAD_EMAIL = {
     "name": "Bad Email",
     "email": "not-an-email",
-    "role": "employee",
+    "role": UserRole.STAFF,
     "password": "Valid!Pass1",
     "department_id": None,
     "admin": False,
