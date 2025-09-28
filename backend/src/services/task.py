@@ -9,17 +9,11 @@ from sqlalchemy.orm import selectinload
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
+from backend.src.enums.task_priority import TaskPriority
+from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 
 # ---- Status --------------------------------------------------------------
-
-class TaskStatus(str, Enum):
-    TODO = "To-do"
-    IN_PROGRESS = "In-progress"
-    COMPLETED = "Completed"
-    BLOCKED = "Blocked"
-
-ALLOWED_STATUSES = {s.value for s in TaskStatus}
 
 
 def _normalize_members(members: Optional[Iterable[str]]) -> list[str]:
@@ -41,7 +35,7 @@ def add_task(
     description: Optional[str],
     start_date: Optional[date],
     deadline: Optional[date],
-    priority: str = "Medium",
+    priority: str = TaskPriority.MEDIUM.value,
     status: str = TaskStatus.TODO.value,
     collaborators: Optional[str] = None,
     notes: Optional[str] = None,
