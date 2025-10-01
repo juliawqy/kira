@@ -1,0 +1,26 @@
+name: Notify on PR CI Result
+
+on:
+  workflow_run:
+    workflows: ["CI"]   # replace "CI" with the actual name of your test workflow
+    types: [completed]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram notification
+        run: |
+          PR_NUMBER=$(jq -r '.workflow_run.pull_requests[0].number' <<< "${{ toJson(github.event) }}")
+          PR_TITLE=$(jq -r '.workflow_run.display_title' <<< "${{ toJson(github.event) }}")
+          STATUS=${{ github.event.workflow_run.conclusion }}
+
+          if [ "$PR_NUMBER" != "null" ]; then
+            MESSAGE="✅ CI finished for PR #$PR_NUMBER: \"$PR_TITLE\" → Status: $STATUS"
+          else
+            MESSAGE="✅ CI finished for workflow '${{ github.event.workflow_run.name }}' → Status: $STATUS"
+          fi
+
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.token }}/sendMessage \
+            -d chat_id=${{ secrets.chat }} \
+            -d text="$MESSAGE"

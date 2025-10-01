@@ -1,0 +1,15 @@
+name: Notify Telegram on PR
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, closed, review_requested, edited]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram message
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.token }}/sendMessage \
+            -d chat_id=${{ secrets.chat }} \
+            -d text="🔔 PR ${{ github.event.action }}: #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }} by ${{ github.event.pull_request.user.login }}"
