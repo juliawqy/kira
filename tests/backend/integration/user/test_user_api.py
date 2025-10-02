@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch
 
 from backend.src.main import app
-from tests.mock_data.user_data import (
+from tests.mock_data.user.unit_data import (
     VALID_USER_ADMIN,
     VALID_USER,
     VALID_CREATE_PAYLOAD_ADMIN,

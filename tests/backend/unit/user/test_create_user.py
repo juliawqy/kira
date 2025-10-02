@@ -1,7 +1,7 @@
 # tests/backend/unit/user/test_create_user.py
 import pytest
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user_data import (
+from tests.mock_data.user.unit_data import (
     VALID_CREATE_PAYLOAD_ADMIN,
     VALID_CREATE_PAYLOAD_USER,
     VALID_USER_ADMIN,
