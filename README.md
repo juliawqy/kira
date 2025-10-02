@@ -11,15 +11,11 @@
 3. install dependencies 
     `pip install -r requirements.txt`
 
-4. put backend on the import part
-    windows: `set PYTHONPATH=C:\wamp64\www\kira\backend\src`
-    mac: `export PYTHONPATH=backend/src`
-
-5. Create database and setup tables (SQLite)
+4. Create database and setup tables (SQLite)
     `python -m database.db_setup_tables`
 
 5. run project 
-    `uvicorn main:app --app-dir backend/src --reload`
+    `uvicorn backend.src.main:app --reload`
     Access swagger docs: http://localhost:8000/docs
 
 6. if you modify table structure (like `Task`), 

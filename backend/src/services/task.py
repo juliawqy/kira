@@ -13,6 +13,9 @@ from sqlalchemy.orm import selectinload
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
+# from backend.src.enums.task_priority import TaskPriority
+# from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
+
 
 
 class TaskStatus(str, Enum):
@@ -45,15 +48,11 @@ def _assert_no_cycle(session, parent_id: int, child_id: int) -> None:
             raise ValueError("Cycle detected: the chosen parent is a descendant of the subtask.")
         to_visit.extend(rows)
 
-
-# ---- CRUD -------------------------------------------------------------------
-
 def add_task(
     title: str,
     description: Optional[str],
     start_date: Optional[date],
     deadline: Optional[date],
-    *,
     priority: str = "Medium",
     status: str = TaskStatus.TO_DO.value,
     project_id: Optional[int] = None,
