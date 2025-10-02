@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from backend.src.schemas.user import UserCreate, UserUpdate, UserRead, UserPasswordChange
+from backend.src.enums.user_role import UserRole
 import backend.src.services.user as user_service  
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -18,10 +19,19 @@ def create_user(payload: UserCreate):
     Create a new user.
     """
     try:
+        # Convert string role to UserRole enum
+        try:
+            role_enum = UserRole(payload.role)
+        except ValueError as ve:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid role '{payload.role}'. Valid roles are: {[r.value for r in UserRole]}"
+            )
+            
         u = user_service.create_user(
             name=payload.name,
             email=str(payload.email),
-            role=payload.role,
+            role=role_enum,
             password=payload.password,
             department_id=payload.department_id,
             admin=bool(payload.admin),
@@ -66,9 +76,22 @@ def update_user(user_id: int, payload: UserUpdate):
     Update a user's details (name, email, role, department_id, admin).
     """
     try:
+        # Convert payload to dict and handle role conversion
+        update_data = payload.model_dump(exclude_unset=True)
+        
+        # Convert string role to UserRole enum if role is provided
+        if 'role' in update_data and update_data['role'] is not None:
+            try:
+                update_data['role'] = UserRole(update_data['role'])
+            except ValueError as ve:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Invalid role '{update_data['role']}'. Valid roles are: {[r.value for r in UserRole]}"
+                )
+        
         updated = user_service.update_user(
             user_id,
-            **payload.model_dump(exclude_unset=True),
+            **update_data,
         )
         if not updated:
             raise HTTPException(status_code=404, detail="User not found")

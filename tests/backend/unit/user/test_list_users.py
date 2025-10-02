@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_USER
+from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_USER
 
 # --------------------------
 # List users empty
