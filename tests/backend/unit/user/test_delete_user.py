@@ -1,6 +1,6 @@
 # tests/unit/services/test_delete_user.py
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user_data import VALID_USER_ADMIN
+from tests.mock_data.user.unit_data import VALID_USER_ADMIN
 
 @patch("backend.src.services.user.SessionLocal")
 def test_delete_user_success(mock_session_local):

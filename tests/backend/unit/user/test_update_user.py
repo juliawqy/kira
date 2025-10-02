@@ -1,7 +1,7 @@
 # tests/unit/services/test_update_user.py
 import pytest
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_UPDATE_NAME, VALID_UPDATE_EMAIL, VALID_USER
+from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_UPDATE_NAME, VALID_UPDATE_EMAIL, VALID_USER
 from backend.src.enums.user_role import UserRole
 
 @patch("backend.src.services.user.SessionLocal")

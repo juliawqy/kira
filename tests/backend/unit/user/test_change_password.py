@@ -1,7 +1,7 @@
 # tests/unit/services/test_change_password.py
 import pytest
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user_data import VALID_USER_ADMIN, VALID_PASSWORD_CHANGE, INVALID_PASSWORD_CHANGE_WEAK
+from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_PASSWORD_CHANGE, INVALID_PASSWORD_CHANGE_WEAK
 
 @patch("backend.src.services.user.SessionLocal")
 @patch("backend.src.services.user._verify_password", return_value=True)
