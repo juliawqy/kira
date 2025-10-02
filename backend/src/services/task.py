@@ -13,19 +13,10 @@ from sqlalchemy.orm import selectinload
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
-from backend.src.enums.task_priority import TaskPriority
+from backend.src.enums.task_priority import TaskPriority, ALLOWED_PRIORITIES
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 
-
-class TaskStatus(str, Enum):
-    TO_DO = "To-do"
-    IN_PROGRESS = "In-progress"  
-    COMPLETED = "Completed"
-    BLOCKED = "Blocked"
-
-ALLOWED_STATUSES = {s.value for s in TaskStatus}
-ALLOWED_PRIORITIES = {"Low", "Medium", "High"}
 
 
 # ---- Helpers ----------------------------------------------------------------
