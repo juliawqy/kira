@@ -13,8 +13,8 @@ from sqlalchemy.orm import selectinload
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
-# from backend.src.enums.task_priority import TaskPriority
-# from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
+from backend.src.enums.task_priority import TaskPriority
+from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 
 
@@ -53,7 +53,8 @@ def add_task(
     description: Optional[str],
     start_date: Optional[date],
     deadline: Optional[date],
-    priority: str = "Medium",
+    *,
+    priority: str = TaskPriority.MEDIUM.value,
     status: str = TaskStatus.TO_DO.value,
     project_id: Optional[int] = None,
     active: bool = True,
