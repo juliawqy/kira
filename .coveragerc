@@ -11,8 +11,6 @@ omit =
     backend/src/api/v1/routes/__init__.py
     backend/src/services/__init__.py
     
-    backend/src/services/task.py
-
 [report]
 show_missing = True
 skip_covered = False
