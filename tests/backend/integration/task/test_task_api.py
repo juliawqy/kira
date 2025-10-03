@@ -1,18 +1,18 @@
-import pytest
-from httpx import AsyncClient, ASGITransport
-from backend.src.main import app
-from tests.mock_data.task_data import (
-    VALID_ADD,
-    INVALID_TASK_NO_TITLE,
-    INVALID_TASK_NO_STATUS,
-    INVALID_TASK_NO_PRIORITY,
-)
+# import pytest
+# from httpx import AsyncClient, ASGITransport
+# from backend.src.main import app
+# from tests.mock_data.task_data import (
+#     VALID_ADD,
+#     INVALID_TASK_NO_TITLE,
+#     INVALID_TASK_NO_STATUS,
+#     INVALID_TASK_NO_PRIORITY,
+# )
 
-def get_client():
-    return AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test"
-    )
+# def get_client():
+#     return AsyncClient(
+#         transport=ASGITransport(app=app),
+#         base_url="http://test"
+#     )
 
 # #KIRA-001/001 (test case id corresponding to test case sheets)
 # @pytest.mark.asyncio
