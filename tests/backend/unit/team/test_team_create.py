@@ -34,3 +34,5 @@ def test_create_team_invalid_name(mock_session_local, invalid_team):
     user = type("User", (), MANAGER_USER)
     with pytest.raises(ValueError):
         team_service.create_team(invalid_team["team_name"], user)
+
+
