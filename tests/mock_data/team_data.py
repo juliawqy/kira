@@ -6,7 +6,11 @@ MEMBER_USER = {
 }
 
 VALID_TEAM_CREATE = {
+    "team_id": 1,
     "team_name": "Cong is the baddie",
+    "manager_id": 42,
+    "department_id": 10,
+    "team_number": 5,
 }
 
 INVALID_TEAM_EMPTY = {
@@ -23,4 +27,7 @@ MANAGER_USER = {
     "email": "manager@example.com",
     "role": "manager",
 }
+
+# Id used in tests to represent a missing resource
+NOT_FOUND_ID = 9999
 
