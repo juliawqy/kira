@@ -29,7 +29,7 @@ def recreate_db(tmp_path):
 def test_create_and_get_team():
     class Manager:
         user_id = 1
-        role = "manager"
+        role = "Manager"
 
     manager = Manager()
     team = team_service.create_team(
@@ -60,7 +60,7 @@ def test_create_team_integration_non_manager_raises():
 def test_create_team_integration_empty_name_raises():
     class Manager:
         user_id = 1
-        role = "manager"
+        role = "Manager"
 
     manager = Manager()
     with pytest.raises(ValueError):

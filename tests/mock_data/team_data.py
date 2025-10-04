@@ -2,7 +2,7 @@ MEMBER_USER = {
     "user_id": 2,
     "name": "Zoom Zoom",
     "email": "zoomzoom@smu.edu.sg",
-    "role": "member",
+    "role": "Staff",
 }
 
 VALID_TEAM_CREATE = {
@@ -25,7 +25,7 @@ MANAGER_USER = {
     "user_id": 1,
     "name": "Manager User",
     "email": "manager@example.com",
-    "role": "manager",
+    "role": "Manager",
 }
 
 # Id used in tests to represent a missing resource

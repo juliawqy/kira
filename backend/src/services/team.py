@@ -1,12 +1,15 @@
 from typing import Optional
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.team import Team
+from backend.src.enums.user_role import UserRole
 
 
 def create_team(team_name: str, user, department_id: Optional[int] = None, team_number: Optional[int] = None) -> dict:
     """Create a team and return it. Only managers can create a team.
     """
-    if not hasattr(user, 'role') or user.role != 'manager':
+    # normalize and check against UserRole enum
+    user_role = getattr(user, "role", None)
+    if not user_role or str(user_role).lower() != UserRole.MANAGER.value.lower():
         raise ValueError("Only managers can create a team.")
     if not team_name or not team_name.strip():
         raise ValueError("Team name cannot be empty or whitespace.")
