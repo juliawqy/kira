@@ -2,7 +2,13 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 pydantic
+pydantic[email]
 pytest
 pytest-cov
 httpx           # for async API testing for FastAPI
 pytest-asyncio  # for async tests in FastAPI
+passlib[argon2]
+email-validator
+selenium>=4.0.0
+webdriver-manager
+pytest-selenium
