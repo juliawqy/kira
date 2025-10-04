@@ -1,4 +1,4 @@
-MEMBER_USER = {
+STAFF_USER = {
     "user_id": 2,
     "name": "Zoom Zoom",
     "email": "zoomzoom@smu.edu.sg",

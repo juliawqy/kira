@@ -4,7 +4,7 @@ from backend.src.services import team as team_service
 from tests.mock_data.team_data import (
     VALID_TEAM_CREATE,
     MANAGER_USER,
-    MEMBER_USER,
+    STAFF_USER,
     INVALID_TEAM_EMPTY,
     INVALID_TEAM_WHITESPACE,
 )
@@ -30,7 +30,7 @@ def test_create_team_success(mock_session_local):
 def test_create_team_non_manager(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    user = type("User", (), MEMBER_USER)
+    user = type("User", (), STAFF_USER)
     with pytest.raises(ValueError):
         team_service.create_team(VALID_TEAM_CREATE["team_name"], user)
 

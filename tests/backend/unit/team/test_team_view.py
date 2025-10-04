@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from backend.src.services import team as team_service
-from tests.mock_data.team_data import VALID_TEAM_CREATE, MANAGER_USER, MEMBER_USER, NOT_FOUND_ID
+from tests.mock_data.team_data import VALID_TEAM_CREATE, MANAGER_USER, STAFF_USER, NOT_FOUND_ID
 
 def make_user(user_dict):
     return type("User", (), user_dict)

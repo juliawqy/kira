@@ -3,7 +3,7 @@ import importlib
 from backend.src.database import db_setup_tables
 from backend.src.database.db_setup import DB_PATH, engine
 from backend.src.services import team as team_service
-from tests.mock_data.team_data import VALID_TEAM_CREATE, MEMBER_USER, NOT_FOUND_ID
+from tests.mock_data.team_data import VALID_TEAM_CREATE, STAFF_USER, MANAGER_USER, NOT_FOUND_ID
 from pathlib import Path
 
 
@@ -27,11 +27,8 @@ def recreate_db(tmp_path):
 
 
 def test_create_and_get_team():
-    class Manager:
-        user_id = 1
-        role = "Manager"
-
-    manager = Manager()
+    # use mock manager data
+    manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
     team = team_service.create_team(
         VALID_TEAM_CREATE["team_name"], manager, department_id=VALID_TEAM_CREATE.get("department_id"), team_number=VALID_TEAM_CREATE.get("team_number")
     )
@@ -45,24 +42,16 @@ def test_create_and_get_team():
 
 
 def test_create_team_integration_non_manager_raises():
-    class Member:
-        user_id = MEMBER_USER["user_id"]
-        role = MEMBER_USER["role"]
-
-    member = Member()
+    # use mock staff data
+    staff = type("U", (), {"user_id": STAFF_USER["user_id"], "role": STAFF_USER["role"]})()
     # Non-manager should not be allowed to create a team
-    try:
-        team_service.create_team(VALID_TEAM_CREATE["team_name"], member)
-    except ValueError as e:
-        assert "Only managers" in str(e)
+    with pytest.raises(ValueError) as exc:
+        team_service.create_team(VALID_TEAM_CREATE["team_name"], staff)
+    assert "Only managers" in str(exc.value)
 
 
 def test_create_team_integration_empty_name_raises():
-    class Manager:
-        user_id = 1
-        role = "Manager"
-
-    manager = Manager()
+    manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
     with pytest.raises(ValueError):
         team_service.create_team("   ", manager)
 
