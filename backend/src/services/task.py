@@ -12,8 +12,8 @@ from sqlalchemy.orm import selectinload
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
-from database.models.parent_assignment import ParentAssignment
-from backend.src.enums.task_priority import TaskPriority
+from backend.src.database.models.parent_assignment import ParentAssignment
+from backend.src.enums.task_priority import TaskPriority, ALLOWED_PRIORITIES
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 

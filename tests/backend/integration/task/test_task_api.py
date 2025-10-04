@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 import pytest
 
-from backend.src.services.task import TaskStatus
+from backend.src.enums.task_status import TaskStatus
 
 pytestmark = pytest.mark.integration
 
