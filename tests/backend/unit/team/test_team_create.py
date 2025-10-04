@@ -69,3 +69,15 @@ def test_create_team_user_without_role_attribute(mock_session_local):
     assert "Only managers" in str(exc.value)
 
 
+@patch("backend.src.services.team.SessionLocal")
+def test_create_team_user_without_role_attribute(mock_session_local):
+    """A user object with no 'role' attribute should raise the manager-only ValueError."""
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    # construct a user-like object without a 'role' attribute
+    user = type("User", (), {"user_id": 7})
+    with pytest.raises(ValueError) as exc:
+        team_service.create_team(VALID_TEAM_CREATE["team_name"], user)
+    assert "Only managers" in str(exc.value)
+
+
