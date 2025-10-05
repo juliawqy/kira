@@ -23,7 +23,7 @@
         windows: `del backend/src/database/kira.db`
         mac: `rm backend/src/database/kira.db`
     b. rerun table creation 
-        `python -m database.db_setup_tables`
+        `python -m backend.src.database.db_setup_tables`
 
 ### Take note that the files in `.gitignore` are *NOT* to be pushed into git (venv, kira.db etc.)
 
