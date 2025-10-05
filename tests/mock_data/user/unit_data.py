@@ -1,6 +1,5 @@
 from backend.src.enums.user_role import UserRole
 
-# DB-like records represented as plain dicts (no helper classes)
 VALID_USER_ADMIN = {
     "user_id": 1,
     "name": "Alice Admin",
@@ -21,7 +20,6 @@ VALID_USER = {
     "password": "Empl@yee123",
 }
 
-# Create payloads (independent of above user dicts)
 VALID_CREATE_PAYLOAD_ADMIN = {
     "name": "Alice Admin",
     "email": "alice.admin@example.com",
