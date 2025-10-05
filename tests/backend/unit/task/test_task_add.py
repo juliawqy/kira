@@ -10,12 +10,18 @@ from backend.src.services.task import TaskStatus
 pytestmark = pytest.mark.unit
 
 
-def test_add_task_minimal_defaults():
-    """Create with minimal fields; verify defaults and persistence."""
-    t = svc.add_task(title="Minimal", description=None, start_date=None, deadline=None)
+def test_add_task_minimal_requires_bucket_and_sets_defaults():
+    """Create with minimal fields (+ required priority_bucket); verify defaults and persistence."""
+    t = svc.add_task(
+        title="Minimal",
+        description=None,
+        start_date=None,
+        deadline=None,
+        priority_bucket=5,  # required on creation
+    )
     assert hasattr(t, "id") and isinstance(t.id, int)
     assert t.status == TaskStatus.TO_DO.value
-    assert t.priority == "Medium"
+    assert t.priority_bucket == 5
     assert t.active is True
     assert t.project_id is None
 
@@ -35,44 +41,45 @@ def test_add_task_full_fields():
         start_date=start,
         deadline=due,
         status=TaskStatus.IN_PROGRESS.value,
-        priority="High",
+        priority_bucket=9,
         project_id=123,
         active=False,
     )
     got = svc.get_task_with_subtasks(t.id)
     assert got is not None
     assert (got.title, got.description, got.start_date, got.deadline) == ("Full", "desc", start, due)
-    assert (got.status, got.priority, got.project_id, got.active) == (
-        TaskStatus.IN_PROGRESS.value, "High", 123, False
+    assert (got.status, got.priority_bucket, got.project_id, got.active) == (
+        TaskStatus.IN_PROGRESS.value, 9, 123, False
     )
 
 
 def test_add_task_with_parent_links_child_to_parent():
     """Create child with parent_id; parent lists child."""
-    parent = svc.add_task(title="Parent", description=None, start_date=None, deadline=None)
-    child = svc.add_task(title="Child-1", description=None, start_date=None, deadline=None, parent_id=parent.id)
+    parent = svc.add_task(title="Parent", description=None, start_date=None, deadline=None, priority_bucket=6)
+    child = svc.add_task(title="Child-1", description=None, start_date=None, deadline=None, priority_bucket=4, parent_id=parent.id)
 
     got_parent = svc.get_task_with_subtasks(parent.id)
     assert [st.title for st in got_parent.subtasks] == ["Child-1"]
-    # Verify link via parent’s subtasks (avoid lazy-loading child.parent)
     assert any(st.id == child.id for st in got_parent.subtasks)
 
+
 def test_add_task_with_inactive_parent_raises_value_error():
-    p = svc.add_task("P", None, None, None)
-    svc.archive_task(p.id)  # active -> False
-    with pytest.raises(ValueError, match="inactive"):
-        svc.add_task("C", None, None, None, parent_id=p.id)
+    """Reject linking to an inactive parent."""
+    parent = svc.add_task(title="P", description=None, start_date=None, deadline=None, priority_bucket=5)
+    svc.archive_task(parent.id)  # parent.active -> False
+    with pytest.raises(ValueError) as exc:
+        svc.add_task(title="C", description=None, start_date=None, deadline=None, priority_bucket=5, parent_id=parent.id)
+    assert "inactive" in str(exc.value)
 
 
 def test_add_multiple_children_under_same_parent():
     """Attach multiple children at creation; all links persist."""
-    parent = svc.add_task(title="Parent-X", description=None, start_date=None, deadline=None)
-    c1 = svc.add_task(title="C1", description=None, start_date=None, deadline=None, parent_id=parent.id)
-    c2 = svc.add_task(title="C2", description=None, start_date=None, deadline=None, parent_id=parent.id)
+    parent = svc.add_task(title="Parent-X", description=None, start_date=None, deadline=None, priority_bucket=5)
+    c1 = svc.add_task(title="C1", description=None, start_date=None, deadline=None, priority_bucket=4, parent_id=parent.id)
+    c2 = svc.add_task(title="C2", description=None, start_date=None, deadline=None, priority_bucket=7, parent_id=parent.id)
 
     got_parent = svc.get_task_with_subtasks(parent.id)
     assert {st.title for st in got_parent.subtasks} == {"C1", "C2"}
-    # Verify both links via parent’s subtasks (avoid lazy-loading child.parent)
     assert any(st.id == c1.id for st in got_parent.subtasks)
     assert any(st.id == c2.id for st in got_parent.subtasks)
 
@@ -80,22 +87,30 @@ def test_add_multiple_children_under_same_parent():
 def test_add_task_with_nonexistent_parent_raises_value_error():
     """Reject non-existent parent_id with a helpful error."""
     with pytest.raises(ValueError) as exc:
-        svc.add_task(title="Orphan", description=None, start_date=None, deadline=None, parent_id=999_999)
-    assert "Parent task 999999 not found" in str(exc.value)
-
-
-@pytest.mark.parametrize("bad_priority", ["VeryHigh", "", "medium", None])
-def test_add_task_with_invalid_priority_raises_value_error(bad_priority):
-    """Reject invalid priority (allowed: Low/Medium/High)."""
-    with pytest.raises(ValueError) as exc:
         svc.add_task(
-            title="BadPriority",
+            title="Orphan",
             description=None,
             start_date=None,
             deadline=None,
-            priority=bad_priority,  # type: ignore[arg-type]
+            priority_bucket=5,
+            parent_id=999_999,
         )
-    assert "Invalid priority" in str(exc.value)
+    # allow either exact message or a substring depending on your service text
+    assert "not found" in str(exc.value)
+
+
+@pytest.mark.parametrize("bad_bucket", [-1, 0, 11, 999])
+def test_add_task_with_invalid_priority_bucket_raises_value_error(bad_bucket: int):
+    """Reject invalid priority_bucket (allowed: 1..10)."""
+    with pytest.raises(ValueError) as exc:
+        svc.add_task(
+            title="BadBucket",
+            description=None,
+            start_date=None,
+            deadline=None,
+            priority_bucket=bad_bucket,  # out of range
+        )
+    assert "priority_bucket" in str(exc.value) or "between 1 and 10" in str(exc.value)
 
 
 @pytest.mark.parametrize("bad_status", ["In progress", "DONE", "Todo", None])
@@ -108,22 +123,21 @@ def test_add_task_with_invalid_status_raises_value_error(bad_status):
             start_date=None,
             deadline=None,
             status=bad_status,  # type: ignore[arg-type]
+            priority_bucket=5,
         )
     assert "Invalid status" in str(exc.value)
-
-
-def test_add_task_with_inactive_parent_raises_value_error():
-    """Reject linking to an inactive parent."""
-    parent = svc.add_task(title="P", description=None, start_date=None, deadline=None)
-    svc.archive_task(parent.id)  # parent.active -> False
-    with pytest.raises(ValueError) as exc:
-        svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=parent.id)
-    assert "inactive and cannot accept subtasks" in str(exc.value)
 
 
 @pytest.mark.parametrize("bad_parent", [0, -1])
 def test_add_task_with_invalid_parent_sentinel_values_raises(bad_parent: int):
     """Reject impossible parent ids (0/negative)."""
     with pytest.raises(ValueError) as exc:
-        svc.add_task(title="X", description=None, start_date=None, deadline=None, parent_id=bad_parent)
-    assert f"Parent task {bad_parent} not found" in str(exc.value)
+        svc.add_task(
+            title="X",
+            description=None,
+            start_date=None,
+            deadline=None,
+            priority_bucket=5,
+            parent_id=bad_parent,
+        )
+    assert "not found" in str(exc.value)

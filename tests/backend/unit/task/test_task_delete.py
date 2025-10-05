@@ -1,3 +1,4 @@
+# tests/backend/unit/task/test_task_delete.py
 from __future__ import annotations
 
 import pytest
@@ -6,10 +7,22 @@ import backend.src.services.task as svc
 pytestmark = pytest.mark.unit
 
 
+def _mk(title: str, *, priority_bucket: int = 5, parent_id: int | None = None):
+    """Helper to create a task with required priority_bucket."""
+    return svc.add_task(
+        title=title,
+        description=None,
+        start_date=None,
+        deadline=None,
+        priority_bucket=priority_bucket,
+        parent_id=parent_id,
+    )
+
+
 def test_archive_parent_detaches_children_by_default():
     """Archiving a parent detaches links; children become top-level parents."""
-    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
-    c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
+    p = _mk("P")
+    c = _mk("C", parent_id=p.id)
 
     updated = svc.archive_task(p.id)  # detach_links=True by default
     assert updated.active is False
@@ -24,8 +37,8 @@ def test_archive_parent_detaches_children_by_default():
 
 def test_archive_child_detaches_from_parent():
     """Archiving a child removes the link from the parent."""
-    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
-    c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
+    p = _mk("P")
+    c = _mk("C", parent_id=p.id)
 
     svc.archive_task(c.id)
     got_p = svc.get_task_with_subtasks(p.id)
@@ -38,8 +51,8 @@ def test_archive_child_detaches_from_parent():
 
 def test_archive_parent_without_detach_keeps_links_and_hides_both_from_default_listing():
     """If detach_links=False, parent stays linked to child; both are hidden by default list."""
-    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
-    _c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
+    p = _mk("P")
+    _c = _mk("C", parent_id=p.id)
 
     svc.archive_task(p.id, detach_links=False)
 
@@ -57,8 +70,8 @@ def test_archive_parent_without_detach_keeps_links_and_hides_both_from_default_l
 
 def test_restore_parent_after_default_archive_does_not_restore_links():
     """Restoring a previously archived parent does not reattach children."""
-    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
-    c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
+    p = _mk("P")
+    c = _mk("C", parent_id=p.id)
 
     svc.archive_task(p.id)  # detaches by default
     restored = svc.restore_task(p.id)
@@ -74,8 +87,8 @@ def test_restore_parent_after_default_archive_does_not_restore_links():
 
 def test_restore_child_does_not_relink_to_parent():
     """Restoring a child archived earlier does not reattach it."""
-    p = svc.add_task(title="P", description=None, start_date=None, deadline=None)
-    c = svc.add_task(title="C", description=None, start_date=None, deadline=None, parent_id=p.id)
+    p = _mk("P")
+    c = _mk("C", parent_id=p.id)
 
     svc.archive_task(c.id)
     svc.restore_task(c.id)
@@ -101,7 +114,7 @@ def test_restore_missing_task_raises_value_error():
 
 def test_archive_is_idempotent():
     """Archiving an already inactive task keeps it inactive and stable."""
-    t = svc.add_task(title="X", description=None, start_date=None, deadline=None)
+    t = _mk("X")
     svc.archive_task(t.id)
     again = svc.archive_task(t.id)  # should not raise
     assert again.active is False
@@ -109,7 +122,7 @@ def test_archive_is_idempotent():
 
 def test_restore_is_idempotent():
     """Restoring an already active task remains active and stable."""
-    t = svc.add_task(title="X", description=None, start_date=None, deadline=None)
+    t = _mk("X")
     svc.restore_task(t.id)  # already active; should not raise
     got = svc.get_task_with_subtasks(t.id)
     assert got.active is True

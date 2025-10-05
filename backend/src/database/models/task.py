@@ -8,7 +8,6 @@ from backend.src.database.db_setup import Base
 from backend.src.database.models.parent_assignment import ParentAssignment  
 
 STATUS_VALUES   = ("To-do", "In-progress", "Completed", "Blocked")  
-PRIORITY_VALUES = ("Low", "Medium", "High")
 
 class Task(Base):
     __tablename__ = "task"  
@@ -20,7 +19,7 @@ class Task(Base):
     deadline    = Column(Date)
 
     status      = Column(String(20), nullable=False, default="To-do")
-    priority    = Column(String(10), nullable=False, default="Medium")
+    priority_bucket = Column(Integer, nullable=False)
 
     #Link FK to Project table later: ForeignKey("project.id", ondelete="SET NULL")
     project_id  = Column(Integer, nullable=True, index=True)
@@ -52,6 +51,5 @@ class Task(Base):
 
     __table_args__ = (
         CheckConstraint(f"status IN {STATUS_VALUES}",     name="ck_task_status"),
-        CheckConstraint(f"priority IN {PRIORITY_VALUES}", name="ck_task_priority"),
         Index("ix_task_project_active_deadline", "project_id", "active", "deadline"),
     )

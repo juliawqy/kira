@@ -13,7 +13,6 @@ from sqlalchemy.orm import selectinload
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
-from backend.src.enums.task_priority import TaskPriority, ALLOWED_PRIORITIES
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 
@@ -37,6 +36,9 @@ def _assert_no_cycle(session, parent_id: int, child_id: int) -> None:
             raise ValueError("Cycle detected: the chosen parent is a descendant of the subtask.")
         to_visit.extend(rows)
 
+def _validate_bucket(n: int) -> None:
+    if not (1 <= n <= 10):
+        raise ValueError("priority_bucket must be between 1 and 10")
 
 # ---- CRUD -------------------------------------------------------------------
 
@@ -46,7 +48,7 @@ def add_task(
     start_date: Optional[date],
     deadline: Optional[date],
     *,
-    priority: str = TaskPriority.MEDIUM.value,
+    priority_bucket: int,
     status: str = TaskStatus.TO_DO.value,
     project_id: Optional[int] = None,
     active: bool = True,
@@ -56,8 +58,9 @@ def add_task(
     Create a task. If parent_id is provided, link this new task as a subtask of that parent.
     Returns the new task created.
     """
-    if priority not in ALLOWED_PRIORITIES:
-        raise ValueError(f"Invalid priority '{priority}'")
+
+    _validate_bucket(priority_bucket)
+
     if status not in ALLOWED_STATUSES:
         raise ValueError(f"Invalid status '{status}'")
 
@@ -68,7 +71,7 @@ def add_task(
             start_date=start_date,
             deadline=deadline,
             status=status,
-            priority=priority,
+            priority_bucket=priority_bucket,
             project_id=project_id,
             active=active,
         )
@@ -98,7 +101,7 @@ def update_task(
     description: Optional[str] = None,
     start_date: Optional[date] = None,
     deadline: Optional[date] = None,
-    priority: Optional[str] = None,
+    priority_bucket: Optional[int] = None,
     project_id: Optional[int] = None,
     active: Optional[bool] = None,
 ) -> Optional[Task]:
@@ -119,10 +122,9 @@ def update_task(
         if description is not None: task.description = description
         if start_date is not None:  task.start_date = start_date
         if deadline is not None:    task.deadline = deadline
-        if priority is not None:
-            if priority not in ALLOWED_PRIORITIES:
-                raise ValueError(f"Invalid priority '{priority}'")
-            task.priority = priority
+        if priority_bucket is not None:
+            _validate_bucket(priority_bucket)
+            task.priority_bucket = priority_bucket
         if project_id is not None:  task.project_id = project_id
         if active is not None:      task.active = active
 
