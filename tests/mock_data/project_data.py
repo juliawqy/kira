@@ -14,3 +14,13 @@ STAFF_USER = {
 
 NOT_FOUND_ID = 9999
 
+# Additional users for assignment tests
+ASSIGNABLE_USER = {
+    "user_id": 3,
+    "role": UserRole.STAFF.value
+}
+
+DUPLICATE_USER = {
+    "user_id": 4,
+    "role": UserRole.STAFF.value
+}

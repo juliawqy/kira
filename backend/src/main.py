@@ -3,7 +3,7 @@ from backend.src.database.db_setup import Base, engine
 from backend.src.database.models.task import Task  
 from backend.src.api.v1.router import router as v1_router
 from fastapi.middleware.cors import CORSMiddleware
-from backend.src.database.models.project import Project  
+from backend.src.database.models.project import Project, ProjectAssignment  
 
 Base.metadata.create_all(bind=engine)
 
