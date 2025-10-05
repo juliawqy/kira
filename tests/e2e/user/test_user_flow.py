@@ -60,7 +60,7 @@ def test_user_data():
     """
     return E2E_USER_WORKFLOW
 
-# E2E-57/01
+# E2E-57/001
 def test_complete_user_crud_workflow_ui_only(driver, isolated_database, test_user_data):
     """
     Complete user CRUD workflow with proper database isolation.
