@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_UPDATE_NAME, VALID_UPDATE_EMAIL, VALID_USER
 from backend.src.enums.user_role import UserRole
 
+# UNI-53/01
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_success_name_and_email(mock_session_local):
     from backend.src.services import user as user_service
@@ -11,14 +12,12 @@ def test_update_user_success_name_and_email(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
-    # existing user returned by session.get
     user_obj = MagicMock()
     user_obj.user_id = VALID_USER_ADMIN["user_id"]
     user_obj.name = VALID_USER_ADMIN["name"]
     user_obj.email = VALID_USER_ADMIN["email"]
     mock_session.get.return_value = user_obj
 
-    # no conflict when checking new email
     execute_result = MagicMock()
     execute_result.scalar_one_or_none.return_value = None
     mock_session.execute.return_value = execute_result
@@ -26,11 +25,10 @@ def test_update_user_success_name_and_email(mock_session_local):
     updated = user_service.update_user(user_obj.user_id, **VALID_UPDATE_NAME)
     assert updated.name == VALID_UPDATE_NAME["name"]
 
-    # change email
     updated2 = user_service.update_user(user_obj.user_id, **VALID_UPDATE_EMAIL)
     assert updated2.email == VALID_UPDATE_EMAIL["email"]
 
-
+# UNI-53/02
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_not_found(mock_session_local):
     from backend.src.services import user as user_service
@@ -41,7 +39,7 @@ def test_update_user_not_found(mock_session_local):
     res = user_service.update_user(9999, name="No One")
     assert res is None
 
-
+# UNI-53/03
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_email_conflict(mock_session_local):
     from backend.src.services import user as user_service
@@ -49,12 +47,10 @@ def test_update_user_email_conflict(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
-    # existing user to update
     user_obj = MagicMock()
     user_obj.user_id = VALID_USER_ADMIN["user_id"]
     mock_session.get.return_value = user_obj
 
-    # simulate another user with the desired email exists
     execute_result = MagicMock()
     other_user = MagicMock()
     other_user.user_id = VALID_USER["user_id"]
@@ -64,6 +60,7 @@ def test_update_user_email_conflict(mock_session_local):
     with pytest.raises(ValueError):
         user_service.update_user(user_obj.user_id, email=VALID_USER["email"])
 
+# UNI-53/04
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_role_success(mock_session_local):
     """
@@ -82,7 +79,7 @@ def test_update_user_role_success(mock_session_local):
     assert updated is not None
     assert updated.role == UserRole.MANAGER.value
 
-
+# UNI-53/05
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_department_and_admin_success(mock_session_local):
     """
@@ -104,6 +101,7 @@ def test_update_user_department_and_admin_success(mock_session_local):
     assert updated.department_id == 42
     assert updated.admin is True
 
+# UNI-53/06
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_invalid_role_type(mock_session_local):
     from backend.src.services import user as user_service

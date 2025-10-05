@@ -3,6 +3,7 @@ import pytest
 
 from backend.src.services import user as user_service
 
+#UNI-52/05
 def test_hash_and_verify_normal_password():
     """
     Sanity check: hash a normal password and verify it.
@@ -14,7 +15,7 @@ def test_hash_and_verify_normal_password():
     assert user_service._verify_password(password, hashed) is True
     assert user_service._verify_password("wrongpass", hashed) is False
 
-
+#UNI-52/06
 def test_verify_with_invalid_inputs():
     """
     _verify_password should safely return False for invalid types.
@@ -25,7 +26,7 @@ def test_verify_with_invalid_inputs():
     assert user_service._verify_password("Normal1!", None) is False
     assert user_service._verify_password(None, None) is False
 
-
+#UNI-52/07
 def test_hash_password_type_error():
     """
     _hash_password should raise TypeError for non-string input.
