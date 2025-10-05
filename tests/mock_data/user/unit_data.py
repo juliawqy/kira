@@ -84,6 +84,7 @@ INVALID_PASSWORD_CHANGE_WRONG_CURRENT = {
     "current_password": "wrongcurrent",
     "new_password": "Another!Pass1"
 }
+INVALID_PASSWORD_TYPE = 12345
 
 # Edge cases
 LARGE_NAME = {"name": "A" * 1024}
