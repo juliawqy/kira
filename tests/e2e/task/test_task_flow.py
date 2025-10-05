@@ -110,7 +110,7 @@ def click_status_and_wait(drv, task_id: int, button_label: str, expected_status:
 
 
 def click_archive_and_wait(drv, task_id: int, detach=False, timeout=8):
-    """Click 'Archive' (or the detach variant) and wait for 'Active: false'."""
+    """Click 'Archive' (or 'Archive+Detach' if present) and wait for 'Active: false'."""
     card = find_card_by_id(drv, task_id, timeout=timeout)
     label = "Archive" if not detach else "Archive+Detach"
     btn = card.find_element(By.XPATH, f".//button[contains(normalize-space(), '{label}')]")
@@ -137,7 +137,7 @@ def click_restore_and_wait(drv, task_id: int, timeout=8):
 
 
 # ---------- UI flows (create / edit / attach / detach) ----------
-def create_task_via_form(drv, *, title, parent_id=None, priority="Medium", status="To-do"):
+def create_task_via_form(drv, *, title, parent_id=None, priority_bucket: int = 5, status="To-do"):
     drv.find_element(By.ID, "c_title").clear()
     drv.find_element(By.ID, "c_title").send_keys(title)
 
@@ -147,9 +147,11 @@ def create_task_via_form(drv, *, title, parent_id=None, priority="Medium", statu
     if parent_id is not None:
         c_parent.send_keys(str(parent_id))
 
-    # Priority
-    drv.find_element(By.ID, "c_priority").click()
-    drv.find_element(By.XPATH, f"//select[@id='c_priority']/option[normalize-space()='{priority}']").click()
+    # Priority bucket (1–10)
+    pb = max(1, min(10, int(priority_bucket)))
+    c_pb = drv.find_element(By.ID, "c_priority_bucket")
+    c_pb.clear()
+    c_pb.send_keys(str(pb))
 
     # Status
     drv.find_element(By.ID, "c_status").click()
@@ -164,7 +166,17 @@ def open_edit_dialog_for_card(card_el):
     card_el.find_element(By.XPATH, ".//button[normalize-space()='Edit']").click()
 
 
-def save_edit_dialog(drv, *, title=None, description=None, priority=None, start=None, due=None, project=None, active=None):
+def save_edit_dialog(
+    drv,
+    *,
+    title=None,
+    description=None,
+    priority_bucket: int | None = None,
+    start=None,
+    due=None,
+    project=None,
+    active=None,
+):
     # Fill whichever fields are provided
     if title is not None:
         e = wait_present(drv, By.ID, "e_title")
@@ -172,9 +184,9 @@ def save_edit_dialog(drv, *, title=None, description=None, priority=None, start=
     if description is not None:
         e = wait_present(drv, By.ID, "e_desc")
         e.clear(); e.send_keys(description)
-    if priority is not None:
-        drv.find_element(By.ID, "e_priority").click()
-        drv.find_element(By.XPATH, f"//select[@id='e_priority']/option[normalize-space()='{priority}']").click()
+    if priority_bucket is not None:
+        e = wait_present(drv, By.ID, "e_priority_bucket")
+        e.clear(); e.send_keys(str(max(1, min(10, int(priority_bucket)))))
     if start is not None:
         e = drv.find_element(By.ID, "e_start"); e.clear(); e.send_keys(start)
     if due is not None:
@@ -245,12 +257,11 @@ def test_task_e2e_full_flow(driver, frontend_url, api_base):
     child_title = f"Child {uuid.uuid4().hex[:6]}"
 
     # 2) Create parent
-    create_task_via_form(driver, title=parent_title)
+    create_task_via_form(driver, title=parent_title, priority_bucket=5)
     driver.find_element(By.ID, "btnLoad").click()
     wait_parents_loaded(driver)
 
     # Find our parent card by scanning for title
-    # (don’t assume the list is empty initially)
     parent_card = None
     for c in parents_cards(driver):
         if card_text_contains(c, parent_title):
@@ -261,7 +272,7 @@ def test_task_e2e_full_flow(driver, frontend_url, api_base):
     assert parent_id is not None
 
     # 3) Create child (linked on creation)
-    create_task_via_form(driver, title=child_title, parent_id=parent_id)
+    create_task_via_form(driver, title=child_title, parent_id=parent_id, priority_bucket=6)
     driver.find_element(By.ID, "btnLoad").click()
     wait_parents_loaded(driver)
     parent_card = find_card_by_id(driver, parent_id)
@@ -270,7 +281,7 @@ def test_task_e2e_full_flow(driver, frontend_url, api_base):
     # 4) Edit parent title
     open_edit_dialog_for_card(parent_card)
     edited_title = f"{parent_title} (edited)"
-    save_edit_dialog(driver, title=edited_title)
+    save_edit_dialog(driver, title=edited_title, priority_bucket=7)
     driver.find_element(By.ID, "btnLoad").click()
     wait_parents_loaded(driver)
     parent_card = find_card_by_id(driver, parent_id)
@@ -282,13 +293,8 @@ def test_task_e2e_full_flow(driver, frontend_url, api_base):
     parent_card = click_status_and_wait(driver, parent_id, "Complete", "Completed")
 
     # 6) Detach child
-    # (ensure the child row is there, then detach and verify removal)
     assert child_title in parent_card.text
-    # Find child id by reading card text (we also could GET via API, but stay UI-only)
-    # Since we created the child ourselves, we can find the "#<id>" string near its title
-    # or simply look at the last number present – but safer to reattach via input helpers.
-    # We'll use the attach/detach helpers that accept ids:
-    # Get the child id from the text pattern "#<id> • <title>"
+    # Parse child id from the subtask row line that contains the child title
     child_id = None
     for line in parent_card.text.splitlines():
         if child_title in line and "#" in line:
@@ -305,7 +311,7 @@ def test_task_e2e_full_flow(driver, frontend_url, api_base):
     parent_card = attach_child_via_card_and_wait(driver, parent_id, child_id)
     assert child_title in parent_card.text
 
-    # 8) Archive then Restore (card remains present because page refreshes the single card)
+    # 8) Archive then Restore
     parent_card = click_archive_and_wait(driver, parent_id, detach=False)
     assert "Active: false" in parent_card.text or "Active: False" in parent_card.text
     parent_card = click_restore_and_wait(driver, parent_id)
