@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Optional, Any, Union
 from backend.src.database.db_setup import SessionLocal
-from backend.src.database.models.team import Team
+from backend.src.database.models.team import Team, TeamAssignment
 from backend.src.enums.user_role import UserRole
 
 

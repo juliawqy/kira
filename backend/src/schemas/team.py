@@ -18,3 +18,7 @@ class TeamRead(BaseModel):
 
     class Config:
         orm_mode = True
+
+class TeamAssignmentCreate(BaseModel):
+    team_id: int
+    user_id: int
