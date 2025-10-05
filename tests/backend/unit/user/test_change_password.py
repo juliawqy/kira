@@ -1,7 +1,12 @@
 # tests/unit/services/test_change_password.py
 import pytest
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_PASSWORD_CHANGE, INVALID_PASSWORD_CHANGE_WEAK, INVALID_USER_ID, INVALID_PASSWORD_CHANGE_WRONG_CURRENT
+from tests.mock_data.user.unit_data import (
+    VALID_USER_ADMIN, 
+    VALID_PASSWORD_CHANGE, 
+    INVALID_PASSWORD_CHANGE_WEAK, 
+    INVALID_USER_ID, INVALID_PASSWORD_CHANGE_WRONG_CURRENT
+)
 
 OLD_HASHED = "old_hashed"
 NEW_HASHED = "new_hashed"
