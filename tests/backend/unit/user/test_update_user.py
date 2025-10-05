@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_UPDATE_NAME, VALID_UPDATE_EMAIL, VALID_USER
 from backend.src.enums.user_role import UserRole
 
-# UNI-53/01
+# UNI-53/001
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_success_name_and_email(mock_session_local):
     from backend.src.services import user as user_service
@@ -28,7 +28,7 @@ def test_update_user_success_name_and_email(mock_session_local):
     updated2 = user_service.update_user(user_obj.user_id, **VALID_UPDATE_EMAIL)
     assert updated2.email == VALID_UPDATE_EMAIL["email"]
 
-# UNI-53/02
+# UNI-53/002
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_not_found(mock_session_local):
     from backend.src.services import user as user_service
@@ -39,7 +39,7 @@ def test_update_user_not_found(mock_session_local):
     res = user_service.update_user(9999, name="No One")
     assert res is None
 
-# UNI-53/03
+# UNI-53/003
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_email_conflict(mock_session_local):
     from backend.src.services import user as user_service
@@ -60,7 +60,7 @@ def test_update_user_email_conflict(mock_session_local):
     with pytest.raises(ValueError):
         user_service.update_user(user_obj.user_id, email=VALID_USER["email"])
 
-# UNI-53/04
+# UNI-53/004
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_role_success(mock_session_local):
     """
@@ -79,7 +79,7 @@ def test_update_user_role_success(mock_session_local):
     assert updated is not None
     assert updated.role == UserRole.MANAGER.value
 
-# UNI-53/05
+# UNI-53/005
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_department_and_admin_success(mock_session_local):
     """
@@ -101,7 +101,7 @@ def test_update_user_department_and_admin_success(mock_session_local):
     assert updated.department_id == 42
     assert updated.admin is True
 
-# UNI-53/06
+# UNI-53/006
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_invalid_role_type(mock_session_local):
     from backend.src.services import user as user_service
