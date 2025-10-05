@@ -1,32 +1,46 @@
 import pytest
-import importlib
-from backend.src.database import db_setup_tables
-from backend.src.database.db_setup import DB_PATH, engine
+import tempfile
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from backend.src.database.db_setup import Base
 from backend.src.services import team as team_service
 from tests.mock_data.team_data import VALID_TEAM_CREATE, STAFF_USER, MANAGER_USER, NOT_FOUND_ID
-from pathlib import Path
+from unittest.mock import patch
 
 
 @pytest.fixture(autouse=True)
-def recreate_db(tmp_path):
+def isolated_test_db():
+    """
+    Create an isolated test database for each test.
+    Uses a temporary database file that's automatically cleaned up.
+    """
+    # Create a temporary database file
+    db_fd, db_path = tempfile.mkstemp(suffix='.db')
+    os.close(db_fd)
+    
+    # Create test engine
+    test_engine = create_engine(f"sqlite:///{db_path}", echo=False)
+    
+    # Create all tables
+    Base.metadata.create_all(bind=test_engine)
+    
+    # Create session factory
+    TestSessionLocal = sessionmaker(bind=test_engine)
+    
+    # Patch the service layer to use our test database
+    with patch('backend.src.services.team.SessionLocal', TestSessionLocal):
+        yield test_engine
+    
+    # Cleanup: Close engine and remove temp file
+    test_engine.dispose()
+    try:
+        os.unlink(db_path)
+    except (OSError, PermissionError):
+        pass  # File might already be cleaned up
 
-    if DB_PATH.exists():
-        try:
-            engine.dispose()
-        except Exception:
-            pass
-        DB_PATH.unlink()
-    importlib.reload(db_setup_tables)
-    yield
-    if DB_PATH.exists():
-        try:
-            engine.dispose()
-        except Exception:
-            pass
-        DB_PATH.unlink()
 
-
-def test_create_and_get_team():
+def test_create_and_get_team(isolated_test_db):
     # use mock manager data
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
     team = team_service.create_team(
@@ -41,7 +55,7 @@ def test_create_and_get_team():
     assert fetched["team_name"] == team["team_name"]
 
 
-def test_create_team_integration_non_manager_raises():
+def test_create_team_integration_non_manager_raises(isolated_test_db):
     # use mock staff data
     staff = type("U", (), {"user_id": STAFF_USER["user_id"], "role": STAFF_USER["role"]})()
     # Non-manager should not be allowed to create a team
@@ -50,14 +64,14 @@ def test_create_team_integration_non_manager_raises():
     assert "Only managers" in str(exc.value)
 
 
-def test_create_team_integration_empty_name_raises():
+def test_create_team_integration_empty_name_raises(isolated_test_db):
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
     with pytest.raises(ValueError):
         team_service.create_team("   ", manager)
 
 
-def test_get_team_integration_not_found():
+def test_get_team_integration_not_found(isolated_test_db):
     # Ensure get_team_by_id raises when id is absent
     with pytest.raises(ValueError):
         team_service.get_team_by_id(NOT_FOUND_ID)
-    
+        
