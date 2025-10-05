@@ -1,13 +1,12 @@
 # tests/e2e/task/test_task_flow.py
 import os
-import time
 import uuid
 import pytest
-
+from sqlalchemy import create_engine, text
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+from selenium.common.exceptions import StaleElementReferenceException
 
 pytestmark = pytest.mark.e2e
 
@@ -28,7 +27,6 @@ def api_base():
     """
     return os.environ.get("TASK_API_BASE", "http://localhost:8000/kira/app/api/v1/task")
 
-
 # ---------- Small Selenium helpers ----------
 def wait_present(drv, by, value, timeout=8):
     return WebDriverWait(drv, timeout).until(EC.presence_of_element_located((by, value)))
@@ -47,38 +45,58 @@ def parents_cards(drv):
 
 
 def card_text_contains(card_el, needle: str) -> bool:
-    return needle in card_el.text
+    try:
+        return needle in card_el.text
+    except StaleElementReferenceException:
+        return False
 
 
 def parse_task_id_from_card(card_el):
-    # First <strong>#ID</strong> appears in the header
-    strongs = card_el.find_elements(By.CSS_SELECTOR, "strong")
-    for s in strongs:
-        txt = s.text.strip()
-        if txt.startswith("#"):
-            try:
-                return int(txt[1:])
-            except ValueError:
-                pass
-    return None
+    """Robust way: read the <div class='task' data-id='123'> attribute."""
+    try:
+        raw = card_el.get_attribute("data-id")
+        return int(raw) if raw and raw.isdigit() else None
+    except StaleElementReferenceException:
+        return None
 
 
 def find_card_by_id(drv, task_id, timeout=8):
-    """Re-scan the list until a card with the given #id is found."""
-    def _scan(_):
-        for el in parents_cards(drv):
-            tid = parse_task_id_from_card(el)
-            if tid == task_id:
-                return el
-        return False
-    return WebDriverWait(drv, timeout, poll_frequency=0.15).until(_scan)
+    """Re-locate a fresh card element by data-id (avoids staleness)."""
+    locator = (By.CSS_SELECTOR, f"div.task[data-id='{task_id}']")
+    return WebDriverWait(drv, timeout).until(EC.presence_of_element_located(locator))
+
+
+def _xpath_literal(s: str) -> str:
+    """Make an XPath-safe string literal for arbitrary text."""
+    if "'" not in s:
+        return f"'{s}'"
+    if '"' not in s:
+        return f'"{s}"'
+    parts = s.split("'")
+    return "concat(" + ", \"'\", ".join([f"'{p}'" for p in parts]) + ")"
+
+
+def find_card_by_title(drv, title: str, timeout=8):
+    """
+    Find a <div class='task'> that contains the given title text anywhere inside it.
+    Returns a fresh element (avoids staleness).
+    """
+    lit = _xpath_literal(title)
+    locator = (By.XPATH, f"//div[contains(@class,'task')][.//*[contains(normalize-space(), {lit})]]")
+    return WebDriverWait(drv, timeout).until(EC.presence_of_element_located(locator))
 
 
 def wait_parents_loaded(drv, timeout=8):
     """After pressing 'Load Parents', wait until 'Loading…' disappears."""
     par = parents_container(drv)
+
     def _done(_):
-        return "Loading…" not in par.text
+        try:
+            return "Loading…" not in par.text
+        except StaleElementReferenceException:
+            # If container re-rendered, just re-locate and retry on next poll
+            return False
+
     WebDriverWait(drv, timeout, poll_frequency=0.15).until(_done)
 
 
@@ -88,7 +106,8 @@ def set_base_url(drv, base_url):
     # Use JS to set value and dispatch a 'change' (page listens for change)
     drv.execute_script(
         "arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('change', {bubbles:true}));",
-        base, base_url
+        base,
+        base_url,
     )
     wait_clickable(drv, By.ID, "btnLoad").click()
     wait_parents_loaded(drv)
@@ -103,9 +122,7 @@ def click_status_and_wait(drv, task_id: int, button_label: str, expected_status:
     # The card is replaced via refreshCard -> wait for staleness then re-find
     WebDriverWait(drv, timeout).until(EC.staleness_of(card))
     new_card = find_card_by_id(drv, task_id, timeout=timeout)
-    WebDriverWait(drv, timeout, poll_frequency=0.15).until(lambda _:
-        expected_status in new_card.text
-    )
+    WebDriverWait(drv, timeout, poll_frequency=0.15).until(lambda _: expected_status in new_card.text)
     return new_card
 
 
@@ -117,8 +134,8 @@ def click_archive_and_wait(drv, task_id: int, detach=False, timeout=8):
     btn.click()
     WebDriverWait(drv, timeout).until(EC.staleness_of(card))
     new_card = find_card_by_id(drv, task_id, timeout=timeout)
-    WebDriverWait(drv, timeout, poll_frequency=0.15).until(lambda _:
-        "Active: false" in new_card.text or "Active: False" in new_card.text
+    WebDriverWait(drv, timeout, poll_frequency=0.15).until(
+        lambda _: "Active: false" in new_card.text or "Active: False" in new_card.text
     )
     return new_card
 
@@ -130,8 +147,8 @@ def click_restore_and_wait(drv, task_id: int, timeout=8):
     btn.click()
     WebDriverWait(drv, timeout).until(EC.staleness_of(card))
     new_card = find_card_by_id(drv, task_id, timeout=timeout)
-    WebDriverWait(drv, timeout, poll_frequency=0.15).until(lambda _:
-        "Active: true" in new_card.text or "Active: True" in new_card.text
+    WebDriverWait(drv, timeout, poll_frequency=0.15).until(
+        lambda _: "Active: true" in new_card.text or "Active: True" in new_card.text
     )
     return new_card
 
@@ -180,19 +197,28 @@ def save_edit_dialog(
     # Fill whichever fields are provided
     if title is not None:
         e = wait_present(drv, By.ID, "e_title")
-        e.clear(); e.send_keys(title)
+        e.clear()
+        e.send_keys(title)
     if description is not None:
         e = wait_present(drv, By.ID, "e_desc")
-        e.clear(); e.send_keys(description)
+        e.clear()
+        e.send_keys(description)
     if priority_bucket is not None:
         e = wait_present(drv, By.ID, "e_priority_bucket")
-        e.clear(); e.send_keys(str(max(1, min(10, int(priority_bucket)))))
+        e.clear()
+        e.send_keys(str(max(1, min(10, int(priority_bucket)))))
     if start is not None:
-        e = drv.find_element(By.ID, "e_start"); e.clear(); e.send_keys(start)
+        e = drv.find_element(By.ID, "e_start")
+        e.clear()
+        e.send_keys(start)
     if due is not None:
-        e = drv.find_element(By.ID, "e_due"); e.clear(); e.send_keys(due)
+        e = drv.find_element(By.ID, "e_due")
+        e.clear()
+        e.send_keys(due)
     if project is not None:
-        e = drv.find_element(By.ID, "e_project"); e.clear(); e.send_keys(str(project))
+        e = drv.find_element(By.ID, "e_project")
+        e.clear()
+        e.send_keys(str(project))
     if active is not None:
         drv.find_element(By.ID, "e_active").click()
         want = "true" if active else "false"
@@ -213,9 +239,7 @@ def attach_child_via_card_and_wait(drv, parent_id: int, child_id: int, timeout=8
     attach_btn.click()
     WebDriverWait(drv, timeout).until(EC.staleness_of(card))
     fresh = find_card_by_id(drv, parent_id, timeout=timeout)
-    WebDriverWait(drv, timeout, poll_frequency=0.15).until(lambda _:
-        f"#{child_id}" in fresh.text
-    )
+    WebDriverWait(drv, timeout, poll_frequency=0.15).until(lambda _: f"#{child_id}" in fresh.text)
     return fresh
 
 
@@ -224,18 +248,16 @@ def detach_child_via_card_and_wait(drv, parent_id: int, child_id: int, timeout=8
     # Find the subtask row by child id, then its Detach button
     detach_btn = card.find_element(
         By.XPATH,
-        f".//*[contains(normalize-space(), '#{child_id}')]//following::button[normalize-space()='Detach'][1]"
+        f".//*[contains(normalize-space(), '#{child_id}')]//following::button[normalize-space()='Detach'][1]",
     )
     detach_btn.click()
     WebDriverWait(drv, timeout).until(EC.staleness_of(card))
     fresh = find_card_by_id(drv, parent_id, timeout=timeout)
-    WebDriverWait(drv, timeout, poll_frequency=0.15).until(lambda _:
-        f"#{child_id}" not in fresh.text
-    )
+    WebDriverWait(drv, timeout, poll_frequency=0.15).until(lambda _: f"#{child_id}" not in fresh.text)
     return fresh
 
 
-# ---------- The E2E test ----------
+# E2E-048/001
 def test_task_e2e_full_flow(driver, frontend_url, api_base):
     """
     End-to-end happy path using the vanilla HTML page:
@@ -248,28 +270,23 @@ def test_task_e2e_full_flow(driver, frontend_url, api_base):
       7) Detach child
       8) Archive then Restore
     """
-    # 1) Open the local HTML and wire up API base
     driver.get(frontend_url)
     set_base_url(driver, api_base)
 
-    # Use unique titles so we don't depend on DB cleanliness
+    # Unique titles so we don't depend on DB cleanliness
     parent_title = f"Parent {uuid.uuid4().hex[:6]}"
     child_title = f"Child {uuid.uuid4().hex[:6]}"
 
     # 2) Create parent
     create_task_via_form(driver, title=parent_title, priority_bucket=5)
+    # list auto-reloads; if you want, you can trigger explicit reload too:
     driver.find_element(By.ID, "btnLoad").click()
     wait_parents_loaded(driver)
 
-    # Find our parent card by scanning for title
-    parent_card = None
-    for c in parents_cards(driver):
-        if card_text_contains(c, parent_title):
-            parent_card = c
-            break
-    assert parent_card is not None, "Created parent not visible in the list"
+    # Find our parent (fresh element)
+    parent_card = find_card_by_title(driver, parent_title)
     parent_id = parse_task_id_from_card(parent_card)
-    assert parent_id is not None
+    assert parent_id is not None, "Could not read data-id from the parent card"
 
     # 3) Create child (linked on creation)
     create_task_via_form(driver, title=child_title, parent_id=parent_id, priority_bucket=6)

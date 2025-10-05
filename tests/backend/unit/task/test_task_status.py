@@ -18,7 +18,7 @@ def _mk(title: str = "T", priority_bucket: int = 5):
         priority_bucket=priority_bucket,
     )
 
-
+# UNI-048/041
 def test_start_task_sets_in_progress():
     """start_task sets status to In-progress."""
     t = _mk()
@@ -26,7 +26,7 @@ def test_start_task_sets_in_progress():
     got = svc.get_task_with_subtasks(t.id)
     assert got.status == TaskStatus.IN_PROGRESS.value
 
-
+# UNI-048/042
 def test_block_task_sets_blocked():
     """block_task sets status to Blocked."""
     t = _mk()
@@ -34,7 +34,7 @@ def test_block_task_sets_blocked():
     got = svc.get_task_with_subtasks(t.id)
     assert got.status == TaskStatus.BLOCKED.value
 
-
+# UNI-048/043
 def test_complete_task_sets_completed():
     """complete_task sets status to Completed."""
     t = _mk()
@@ -42,7 +42,7 @@ def test_complete_task_sets_completed():
     got = svc.get_task_with_subtasks(t.id)
     assert got.status == TaskStatus.COMPLETED.value
 
-
+# UNI-048/044
 def test_repeating_same_transition_is_stable():
     """Calling the same transition repeatedly leaves status unchanged."""
     t = _mk()
@@ -51,7 +51,7 @@ def test_repeating_same_transition_is_stable():
     got = svc.get_task_with_subtasks(t.id)
     assert got.status == TaskStatus.IN_PROGRESS.value
 
-
+# UNI-048/045
 def test_transitions_on_missing_task_raise_value_error():
     """Transitions on a non-existent id raise ValueError."""
     with pytest.raises(ValueError):
@@ -61,7 +61,7 @@ def test_transitions_on_missing_task_raise_value_error():
     with pytest.raises(ValueError):
         svc.complete_task(999_999)
 
-
+# UNI-048/046
 def test_set_status_invalid_status_raises_valueerror():
     """Direct _set_status with a bad value raises ValueError."""
     t = _mk("S")

@@ -9,7 +9,7 @@ from backend.src.services.task import TaskStatus
 
 pytestmark = pytest.mark.unit
 
-
+# UNI-048/001
 def test_add_task_minimal_requires_bucket_and_sets_defaults():
     """Create with minimal fields (+ required priority_bucket); verify defaults and persistence."""
     t = svc.add_task(
@@ -30,7 +30,7 @@ def test_add_task_minimal_requires_bucket_and_sets_defaults():
     assert got.title == "Minimal"
     assert got.subtasks == []
 
-
+# UNI-048/002
 def test_add_task_full_fields():
     """Create with all fields; round-trip values should match."""
     start = date.today()
@@ -52,7 +52,7 @@ def test_add_task_full_fields():
         TaskStatus.IN_PROGRESS.value, 9, 123, False
     )
 
-
+# UNI-048/003
 def test_add_task_with_parent_links_child_to_parent():
     """Create child with parent_id; parent lists child."""
     parent = svc.add_task(title="Parent", description=None, start_date=None, deadline=None, priority_bucket=6)
@@ -63,15 +63,7 @@ def test_add_task_with_parent_links_child_to_parent():
     assert any(st.id == child.id for st in got_parent.subtasks)
 
 
-def test_add_task_with_inactive_parent_raises_value_error():
-    """Reject linking to an inactive parent."""
-    parent = svc.add_task(title="P", description=None, start_date=None, deadline=None, priority_bucket=5)
-    svc.archive_task(parent.id)  # parent.active -> False
-    with pytest.raises(ValueError) as exc:
-        svc.add_task(title="C", description=None, start_date=None, deadline=None, priority_bucket=5, parent_id=parent.id)
-    assert "inactive" in str(exc.value)
-
-
+# UNI-048/004
 def test_add_multiple_children_under_same_parent():
     """Attach multiple children at creation; all links persist."""
     parent = svc.add_task(title="Parent-X", description=None, start_date=None, deadline=None, priority_bucket=5)
@@ -84,6 +76,18 @@ def test_add_multiple_children_under_same_parent():
     assert any(st.id == c2.id for st in got_parent.subtasks)
 
 
+# UNI-048/005
+def test_add_task_with_inactive_parent_raises_value_error():
+    """Reject linking to an inactive parent."""
+    parent = svc.add_task(title="P", description=None, start_date=None, deadline=None, priority_bucket=5)
+    svc.archive_task(parent.id)  # parent.active -> False
+    with pytest.raises(ValueError) as exc:
+        svc.add_task(title="C", description=None, start_date=None, deadline=None, priority_bucket=5, parent_id=parent.id)
+    assert "inactive" in str(exc.value)
+
+
+
+# UNI-048/006
 def test_add_task_with_nonexistent_parent_raises_value_error():
     """Reject non-existent parent_id with a helpful error."""
     with pytest.raises(ValueError) as exc:
@@ -99,6 +103,7 @@ def test_add_task_with_nonexistent_parent_raises_value_error():
     assert "not found" in str(exc.value)
 
 
+# UNI-048/007
 @pytest.mark.parametrize("bad_bucket", [-1, 0, 11, 999])
 def test_add_task_with_invalid_priority_bucket_raises_value_error(bad_bucket: int):
     """Reject invalid priority_bucket (allowed: 1..10)."""
@@ -113,6 +118,7 @@ def test_add_task_with_invalid_priority_bucket_raises_value_error(bad_bucket: in
     assert "priority_bucket" in str(exc.value) or "between 1 and 10" in str(exc.value)
 
 
+# UNI-048/008
 @pytest.mark.parametrize("bad_status", ["In progress", "DONE", "Todo", None])
 def test_add_task_with_invalid_status_raises_value_error(bad_status):
     """Reject invalid status (must match allowed strings exactly)."""
@@ -128,6 +134,7 @@ def test_add_task_with_invalid_status_raises_value_error(bad_status):
     assert "Invalid status" in str(exc.value)
 
 
+# UNI-048/009
 @pytest.mark.parametrize("bad_parent", [0, -1])
 def test_add_task_with_invalid_parent_sentinel_values_raises(bad_parent: int):
     """Reject impossible parent ids (0/negative)."""

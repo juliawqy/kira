@@ -6,7 +6,6 @@ import backend.src.services.task as svc
 
 pytestmark = pytest.mark.unit
 
-
 def _mk(title: str, priority_bucket: int = 5, active: bool = True):
     """Helper to create a task with required priority_bucket quickly."""
     t = svc.add_task(
@@ -20,6 +19,7 @@ def _mk(title: str, priority_bucket: int = 5, active: bool = True):
     return t
 
 
+# UNI-048/010
 def test_attach_subtasks_happy_path():
     """Attach two children; parent returns both."""
     p = _mk("P")
@@ -31,6 +31,7 @@ def test_attach_subtasks_happy_path():
     assert titles == {"C1", "C2"}
 
 
+# UNI-048/011
 def test_attach_subtasks_idempotent():
     """Re-attaching same child is a no-op (no duplicates)."""
     p = _mk("P")
@@ -43,6 +44,7 @@ def test_attach_subtasks_idempotent():
     assert len(titles) == 1
 
 
+# UNI-048/012
 def test_attach_subtasks_parent_not_found():
     """Missing parent -> ValueError."""
     c1 = _mk("C1")
@@ -50,6 +52,7 @@ def test_attach_subtasks_parent_not_found():
         svc.attach_subtasks(999_999, [c1.id])
 
 
+# UNI-048/013
 def test_attach_subtasks_inactive_parent():
     """Inactive parent cannot accept subtasks."""
     p = _mk("P")
@@ -59,6 +62,7 @@ def test_attach_subtasks_inactive_parent():
         svc.attach_subtasks(p.id, [c.id])
 
 
+# UNI-048/014
 def test_attach_subtasks_missing_child():
     """Unknown child id -> ValueError."""
     p = _mk("P")
@@ -66,6 +70,7 @@ def test_attach_subtasks_missing_child():
         svc.attach_subtasks(p.id, [123_456])
 
 
+# UNI-048/015
 def test_attach_subtasks_inactive_child():
     """Inactive child cannot be attached."""
     p = _mk("P")
@@ -75,6 +80,7 @@ def test_attach_subtasks_inactive_child():
         svc.attach_subtasks(p.id, [c.id])
 
 
+# UNI-048/016
 def test_attach_subtasks_self_link():
     """Parent cannot be its own child."""
     p = _mk("P")
@@ -82,6 +88,7 @@ def test_attach_subtasks_self_link():
         svc.attach_subtasks(p.id, [p.id])
 
 
+# UNI-048/017
 def test_attach_subtasks_conflict_existing_parent():
     """Child already linked to another parent -> conflict."""
     p1 = _mk("P1")
@@ -92,6 +99,7 @@ def test_attach_subtasks_conflict_existing_parent():
         svc.attach_subtasks(p2.id, [c.id])
 
 
+# UNI-048/018
 def test_attach_subtasks_cycle_detection():
     """Prevent cycles: A->B exists; attaching B->A should fail."""
     a = _mk("A")
@@ -101,6 +109,7 @@ def test_attach_subtasks_cycle_detection():
         svc.attach_subtasks(b.id, [a.id])
 
 
+# UNI-048/019
 def test_attach_subtasks_all_or_nothing():
     """If one id is invalid, none are attached."""
     p = _mk("P")
@@ -112,6 +121,7 @@ def test_attach_subtasks_all_or_nothing():
     assert got.subtasks == []
 
 
+# UNI-048/020
 def test_detach_subtask_happy():
     """Detach existing link -> True and link removed."""
     p = _mk("P")
@@ -124,6 +134,7 @@ def test_detach_subtask_happy():
     assert got.subtasks == []
 
 
+# UNI-048/021
 def test_detach_subtask_missing_link():
     """Missing link -> ValueError."""
     p = _mk("P")
@@ -131,7 +142,7 @@ def test_detach_subtask_missing_link():
     with pytest.raises(ValueError, match=r"Link not found|not found"):
         svc.detach_subtask(p.id, c.id)
 
-
+# UNI-048/022
 def test_attach_subtasks_cycle_detection_long_chain():
     """A->B, B->C; attaching C->A must be rejected (deep traversal)."""
     a = _mk("A")

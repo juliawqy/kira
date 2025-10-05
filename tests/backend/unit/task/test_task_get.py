@@ -31,12 +31,12 @@ def _mk(
         parent_id=parent_id,
     )
 
-
+# UNI-048/032
 def test_get_task_with_subtasks_nonexistent_returns_none():
     """get_task_with_subtasks returns None for unknown id."""
     assert svc.get_task_with_subtasks(999_999) is None
 
-
+# UNI-048/033
 def test_get_task_with_subtasks_no_children_returns_empty_list():
     """A leaf task returns an empty subtasks list."""
     t = _mk("Leaf")
@@ -45,7 +45,7 @@ def test_get_task_with_subtasks_no_children_returns_empty_list():
     assert got.title == "Leaf"
     assert got.subtasks == []
 
-
+# UNI-048/034
 def test_get_task_with_subtasks_direct_children_only():
     """A’s subtasks include only B (direct), not grandchild C."""
     a = _mk("A")
@@ -60,7 +60,7 @@ def test_get_task_with_subtasks_direct_children_only():
     assert [st.title for st in got_b.subtasks] == ["C"]
     assert got_c.subtasks == []
 
-
+# UNI-048/035
 def test_list_parent_tasks_excludes_children():
     """Children never appear in list_parent_tasks (only top-level parents)."""
     p1 = _mk("P1")
@@ -71,7 +71,7 @@ def test_list_parent_tasks_excludes_children():
     titles = {t.title for t in parents}
     assert "P1" in titles and "P2" in titles and "C2-1" not in titles
 
-
+# UNI-048/036
 def test_list_parent_tasks_active_only_default():
     """Inactive parents are excluded by default (active_only=True)."""
     active_p = _mk("ActiveP")
@@ -81,7 +81,7 @@ def test_list_parent_tasks_active_only_default():
     titles = {t.title for t in svc.list_parent_tasks()}
     assert "ActiveP" in titles and "InactiveP" not in titles
 
-
+# UNI-048/037
 def test_list_parent_tasks_including_inactive_when_requested():
     """active_only=False includes inactive parents."""
     p1 = _mk("A1")
@@ -91,7 +91,7 @@ def test_list_parent_tasks_including_inactive_when_requested():
     titles = {t.title for t in svc.list_parent_tasks(active_only=False)}
     assert {"A1", "A2"} <= titles
 
-
+# UNI-048/038
 def test_list_parent_tasks_project_filter():
     """Filter by project_id returns only matching parents."""
     p10 = _mk("P10", project_id=10)
@@ -101,7 +101,7 @@ def test_list_parent_tasks_project_filter():
     titles = [t.title for t in svc.list_parent_tasks(project_id=10)]
     assert titles == ["P10"]
 
-
+# UNI-048/039
 def test_list_parent_tasks_ordering_deadline_then_id():
     """
     Order by deadline (earliest first, NULLs last), then id ascending for ties.
@@ -127,7 +127,7 @@ def test_list_parent_tasks_ordering_deadline_then_id():
     # Last is the NULL deadline
     assert ordered_titles[-1] == "P4"
 
-
+# UNI-048/040
 def test_get_task_with_subtasks_after_archiving_parent_detaches_children():
     """Archiving a parent with default detach removes links; children become parents."""
     parent = _mk("P")

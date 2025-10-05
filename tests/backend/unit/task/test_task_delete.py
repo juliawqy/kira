@@ -18,7 +18,7 @@ def _mk(title: str, *, priority_bucket: int = 5, parent_id: int | None = None):
         parent_id=parent_id,
     )
 
-
+# UNI-048/023
 def test_archive_parent_detaches_children_by_default():
     """Archiving a parent detaches links; children become top-level parents."""
     p = _mk("P")
@@ -34,7 +34,7 @@ def test_archive_parent_detaches_children_by_default():
     titles = {t.title for t in svc.list_parent_tasks()}  # active_only=True default
     assert "C" in titles and "P" not in titles  # P inactive, C is now parent
 
-
+# UNI-048/024
 def test_archive_child_detaches_from_parent():
     """Archiving a child removes the link from the parent."""
     p = _mk("P")
@@ -48,7 +48,7 @@ def test_archive_child_detaches_from_parent():
     titles = {t.title for t in svc.list_parent_tasks()}
     assert "C" not in titles and "P" in titles  # P still active
 
-
+# UNI-048/025
 def test_archive_parent_without_detach_keeps_links_and_hides_both_from_default_listing():
     """If detach_links=False, parent stays linked to child; both are hidden by default list."""
     p = _mk("P")
@@ -67,7 +67,7 @@ def test_archive_parent_without_detach_keeps_links_and_hides_both_from_default_l
     got_p = svc.get_task_with_subtasks(p.id)
     assert [st.title for st in got_p.subtasks] == ["C"]
 
-
+# UNI-048/026
 def test_restore_parent_after_default_archive_does_not_restore_links():
     """Restoring a previously archived parent does not reattach children."""
     p = _mk("P")
@@ -84,7 +84,7 @@ def test_restore_parent_after_default_archive_does_not_restore_links():
     titles = {t.title for t in svc.list_parent_tasks()}
     assert "C" in titles and "P" in titles
 
-
+# UNI-048/027
 def test_restore_child_does_not_relink_to_parent():
     """Restoring a child archived earlier does not reattach it."""
     p = _mk("P")
@@ -99,19 +99,19 @@ def test_restore_child_does_not_relink_to_parent():
     titles = {t.title for t in svc.list_parent_tasks()}
     assert "C" in titles and "P" in titles  # both active parents now
 
-
+# UNI-048/028
 def test_archive_missing_task_raises_value_error():
     """Archiving a non-existent id raises ValueError."""
     with pytest.raises(ValueError):
         svc.archive_task(999_999)
 
-
+# UNI-048/029
 def test_restore_missing_task_raises_value_error():
     """Restoring a non-existent id raises ValueError."""
     with pytest.raises(ValueError):
         svc.restore_task(999_999)
 
-
+# UNI-048/030
 def test_archive_is_idempotent():
     """Archiving an already inactive task keeps it inactive and stable."""
     t = _mk("X")
@@ -119,7 +119,7 @@ def test_archive_is_idempotent():
     again = svc.archive_task(t.id)  # should not raise
     assert again.active is False
 
-
+# UNI-048/031
 def test_restore_is_idempotent():
     """Restoring an already active task remains active and stable."""
     t = _mk("X")

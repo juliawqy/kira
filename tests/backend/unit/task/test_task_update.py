@@ -9,7 +9,7 @@ from backend.src.services.task import TaskStatus
 
 pytestmark = pytest.mark.unit
 
-
+# UNI-048/047
 def test_update_task_changes_multiple_fields():
     """Update several fields; values should persist after re-fetch."""
     start = date.today()
@@ -48,7 +48,7 @@ def test_update_task_changes_multiple_fields():
     assert got.project_id == 42
     assert got.active is False
 
-
+# UNI-048/048
 @pytest.mark.parametrize("bad_bucket", [0, 11, -3, 999])
 def test_update_task_invalid_priority_bucket_raises_value_error(bad_bucket: int):
     """Reject invalid priority_bucket updates (must be within 1..10)."""
@@ -56,12 +56,12 @@ def test_update_task_invalid_priority_bucket_raises_value_error(bad_bucket: int)
     with pytest.raises(ValueError):
         svc.update_task(t.id, priority_bucket=bad_bucket)
 
-
+# UNI-048/049
 def test_update_task_nonexistent_returns_none():
     """Return None when the target task id does not exist."""
     assert svc.update_task(999_999, title="X") is None
 
-
+# UNI-048/050
 def test_update_task_no_fields_is_noop():
     """No kwargs -> no change; returns current Task as-is."""
     t = svc.add_task(title="T", description="d", start_date=None, deadline=None, priority_bucket=6)
@@ -79,7 +79,7 @@ def test_update_task_no_fields_is_noop():
     assert got.start_date == before.start_date
     assert got.deadline == before.deadline
 
-
+# UNI-048/051
 def test_update_task_does_not_change_status():
     """Status transitions are not handled by update_task (use start/block/complete)."""
     t = svc.add_task(
@@ -96,7 +96,7 @@ def test_update_task_does_not_change_status():
     assert got.title == "T2"
     assert got.project_id == 7
 
-
+# UNI-048/052
 def test_update_task_partial_fields_ok():
     """Update a subset of fields; only those should change."""
     t = svc.add_task(
@@ -117,7 +117,7 @@ def test_update_task_partial_fields_ok():
     assert got.description == "keep"
     assert got.project_id == 1
 
-
+# UNI-048/053
 def test_update_task_ignore_none_parameters():
     """Explicit None values are ignored by guards and do not clear fields."""
     t = svc.add_task(
