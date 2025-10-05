@@ -10,7 +10,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     name = Column(String(255), nullable=False)
     role = Column(String(50), nullable=False)
-    admin = Column(Boolean, default=False)
+    admin = Column(Boolean, default=False, nullable=False)
     hashed_pw = Column(String(255), nullable=False)
     department_id = Column(Integer, nullable=True)  # no ForeignKey for now
 
