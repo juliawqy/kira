@@ -6,6 +6,3 @@ router = APIRouter(prefix="/kira/app/api/v1")
 
 # router.include_router(task_router)
 router.include_router(user_router)
-
-
-
