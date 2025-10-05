@@ -2,7 +2,7 @@
 from unittest.mock import patch, MagicMock
 from tests.mock_data.user.unit_data import VALID_USER_ADMIN
 
-# UNI-55/001
+# UNI-055/001
 @patch("backend.src.services.user.SessionLocal")
 def test_delete_user_success(mock_session_local):
     from backend.src.services import user as user_service
@@ -18,7 +18,7 @@ def test_delete_user_success(mock_session_local):
     assert ok is True
     mock_session.delete.assert_called_with(mock_user)
 
-# UNI-55/002
+# UNI-055/002
 @patch("backend.src.services.user.SessionLocal")
 def test_delete_user_not_found(mock_session_local):
     from backend.src.services import user as user_service

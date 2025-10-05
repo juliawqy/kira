@@ -1,7 +1,7 @@
 from unittest.mock import patch, MagicMock
 from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_USER
 
-# UNI-54/004
+# UNI-054/004
 @patch("backend.src.services.user.SessionLocal")
 def test_list_users_empty(mock_session_local):
     from backend.src.services import user as user_service
@@ -20,7 +20,7 @@ def test_list_users_empty(mock_session_local):
     mock_session.execute.assert_called()
 
 
-# UNI-54/005
+# UNI-054/005
 @patch("backend.src.services.user.SessionLocal")
 def test_list_users_nonempty(mock_session_local):
     from backend.src.services import user as user_service
