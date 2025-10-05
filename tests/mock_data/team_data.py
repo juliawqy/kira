@@ -5,6 +5,19 @@ STAFF_USER = {
     "role": "Staff",
 }
 
+DIRECTOR_USER = {
+    "user_id": 3,
+    "name": "Director User",
+    "email": "boss@example.com",
+    "role": "Director",
+}
+
+NO_ROLE_USER = {
+    "user_id": 60,
+    "name": "No Role User",
+    "email": "norole@example.com",
+}
+
 VALID_TEAM_CREATE = {
     "team_id": 1,
     "team_name": "Cong is the baddie",
