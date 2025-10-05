@@ -70,6 +70,7 @@ INVALID_CREATE_BAD_EMAIL = {
 VALID_UPDATE_NAME = {"name": "Alice A."}
 VALID_UPDATE_EMAIL = {"email": "alice.a@example.com"}
 VALID_UPDATE_ADMIN_TOGGLE = {"admin": False}
+VALID_UPDATE_DEPARTMENT = {"department_id": 30}
 
 # Password change payloads
 VALID_PASSWORD_CHANGE = {
@@ -85,6 +86,8 @@ INVALID_PASSWORD_CHANGE_WRONG_CURRENT = {
     "new_password": "Another!Pass1"
 }
 INVALID_PASSWORD_TYPE = 12345
+INVALID_ADMIN_TYPE = "yes"
+INVALID_EMAIL_DOESNT_EXIST = "notfound@example.com"
 
 # Edge cases
 LARGE_NAME = {"name": "A" * 1024}

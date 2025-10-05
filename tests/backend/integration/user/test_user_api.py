@@ -37,7 +37,7 @@ def _payload(p: dict) -> dict:
     """JSON-safe copy; convert UserRole enums to string values if present."""
     d = deepcopy(p)
     if "role" in d and hasattr(d["role"], "value"):
-        d["role"] = d["role"].value  # e.g., "manager" / "staff"
+        d["role"] = d["role"].value 
     return d
 
 def _with_unique_email(p: dict, tag: str = "") -> dict:
@@ -166,7 +166,7 @@ def test_get_user_by_email_success(client):
 
 # INT-054/003
 def test_get_user_by_numeric_id_branch_and_404(client):
-    res = client.get(f"{API_BASE}/999999")
+    res = client.get(f"{API_BASE}/{INVALID_USER_ID}")
     assert res.status_code == 404, res.text
     assert res.json()["detail"] == "User not found"
 
@@ -246,7 +246,7 @@ def test_update_user_email_conflict_returns_400(client):
 
 # INT-053/006
 def test_update_user_not_found_returns_404(client):
-    res = client.patch(f"{API_BASE}/42424242", json={"name": "Ghost"})
+    res = client.patch(f"{API_BASE}/{INVALID_USER_ID}", json=VALID_UPDATE_NAME)
     assert res.status_code == 404, res.text
     assert res.json()["detail"] == "User not found"
 
@@ -258,7 +258,7 @@ def test_update_user_not_found_after_delete_covers_101(client):
     res_del = client.delete(f"{API_BASE}/{uid}")
     assert res_del.status_code == 200 and res_del.json() is True, res_del.text
 
-    res_patch = client.patch(f"{API_BASE}/{uid}", json={"name": "Should Not Exist"})
+    res_patch = client.patch(f"{API_BASE}/{uid}", json=VALID_UPDATE_NAME)
     assert res_patch.status_code == 404, res_patch.text
     assert res_patch.json()["detail"] == "User not found"
 
@@ -288,7 +288,7 @@ def test_delete_user_success(client):
 
 # INT-055/002
 def test_delete_user_not_found_returns_404(client):
-    res = client.delete(f"{API_BASE}/77777777")
+    res = client.delete(f"{API_BASE}/{INVALID_USER_ID}")
     assert res.status_code == 404, res.text
     assert res.json()["detail"] == "User not found"
 
@@ -316,8 +316,8 @@ def test_change_password_wrong_current_returns_403(client):
 
 # INT-052/009
 def test_change_password_user_not_found_returns_400(client):
-    body = {"current_password": "Anything!1", "new_password": VALID_PASSWORD_CHANGE["new_password"]}
-    res = client.post(f"{API_BASE}/999999/password", json=body)
+    body = {"current_password": VALID_PASSWORD_CHANGE["current_password"], "new_password": VALID_PASSWORD_CHANGE["new_password"]}
+    res = client.post(f"{API_BASE}/{INVALID_USER_ID}/password", json=body)
     assert res.status_code == 400, res.text
     assert "User not found" in res.json()["detail"]
 
