@@ -54,6 +54,12 @@ def create_user(
         existing = session.execute(select(User).where(User.email == email)).scalar_one_or_none()
         if existing:
             raise ValueError("User with this email already exists")
+        
+        if not name:
+            raise TypeError("name is required and cannot be None or empty")
+        
+        if not email:
+            raise TypeError("email is required and cannot be None or empty")
 
         user = User(
             name=name,
