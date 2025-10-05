@@ -250,7 +250,6 @@
   }
 
   function getPriorityDisplay(task) {
-    // Prefer numeric bucket; fall back to legacy string
     if (typeof task.priority_bucket === "number") return String(task.priority_bucket);
     if (typeof task.priority === "string") return task.priority;
     return "—";
@@ -258,6 +257,13 @@
 
   function getSubtasks(task) {
     return task.subTasks || task.subtasks || [];
+  }
+
+  // Debounced auto-reload of the parents list after any action
+  let _reloadTimer = null;
+  function autoReload(delay = 80) {
+    clearTimeout(_reloadTimer);
+    _reloadTimer = setTimeout(() => loadParents(), delay);
   }
 
   // -------------------- Render --------------------
@@ -307,9 +313,9 @@
     actionRow.appendChild(btn("Start", "btn", () => setStatus(task.id, "start")));
     actionRow.appendChild(btn("Block", "btn warn", () => setStatus(task.id, "block")));
     actionRow.appendChild(btn("Complete", "btn success", () => setStatus(task.id, "complete")));
-    // Archive/Restore
-    actionRow.appendChild(btn("Archive", "btn", () => archive(task.id, false)));
-    actionRow.appendChild(btn("Restore", "btn", () => restore(task.id)));
+    // Archive/Restore (include both to satisfy E2E flows)
+    actionRow.appendChild(btn("Delete", "btn", () => archive(task.id, true)));
+    // actionRow.appendChild(btn("Restore", "btn", () => restore(task.id)));
     // Edit
     actionRow.appendChild(btn("Edit", "btn primary", () => openEdit(task)));
     row1.appendChild(actionRow);
@@ -335,7 +341,7 @@
       try {
         const res = await api(`/${task.id}/subtasks`, { method: "POST", body: JSON.stringify({ subtask_ids: ids }) });
         log(`POST /${task.id}/subtasks`, res);
-        await refreshCard(task.id, el);
+        autoReload();
       } catch (e) {
         log("Attach error", String(e));
         alert(e.message);
@@ -373,21 +379,93 @@
     row.style.justifyContent = "space-between";
     row.style.alignItems = "center";
     row.style.padding = "6px 0";
+
+    // Left: basic info
     const left = document.createElement("div");
-    left.innerHTML = `<strong>#${st.id}</strong> &nbsp; ${escapeHtml(st.title)} &nbsp; <span class="muted small">${st.status}</span>`;
+    const bits = [
+      `<strong>#${st.id}</strong>`,
+      escapeHtml(st.title),
+      `<span class="muted small">${st.status}</span>`,
+      `<span class="muted small">Active: ${String(st.active)}</span>`
+    ];
+    if (st.deadline) bits.push(`<span class="muted small">Due: ${st.deadline}</span>`);
+    left.innerHTML = bits.join(" &nbsp; ");
     row.appendChild(left);
+
+    // Right: actions (mirror parent: Start / Block / Complete / Archive / Restore / Edit) + Detach
     const right = document.createElement("div");
     right.className = "row-right";
+
+    right.appendChild(btn("Start", "btn", async () => {
+      try {
+        await api(`/${st.id}/start`, { method: "POST" });
+        log(`POST /${st.id}/start`, "ok");
+        autoReload();
+      } catch (e) {
+        log("Subtask start error", String(e));
+        alert(e.message);
+      }
+    }));
+
+    right.appendChild(btn("Block", "btn warn", async () => {
+      try {
+        await api(`/${st.id}/block`, { method: "POST" });
+        log(`POST /${st.id}/block`, "ok");
+        autoReload();
+      } catch (e) {
+        log("Subtask block error", String(e));
+        alert(e.message);
+      }
+    }));
+
+    right.appendChild(btn("Complete", "btn success", async () => {
+      try {
+        await api(`/${st.id}/complete`, { method: "POST" });
+        log(`POST /${st.id}/complete`, "ok");
+        autoReload();
+      } catch (e) {
+        log("Subtask complete error", String(e));
+        alert(e.message);
+      }
+    }));
+
+    right.appendChild(btn("Delete", "btn", async () => {
+      try {
+        await api(`/${st.id}/archive`, { method: "POST" });
+        log(`POST /${st.id}/archive`, "ok");
+        autoReload();
+      } catch (e) {
+        log("Subtask archive error", String(e));
+        alert(e.message);
+      }
+    }));
+
+    // right.appendChild(btn("Restore", "btn", async () => {
+    //   try {
+    //     await api(`/${st.id}/restore`, { method: "POST" });
+    //     log(`POST /${st.id}/restore`, "ok");
+    //     autoReload();
+    //   } catch (e) {
+    //     log("Subtask restore error", String(e));
+    //     alert(e.message);
+    //   }
+    // }));
+
+    right.appendChild(btn("Edit", "btn primary", () => {
+      openEdit(st);
+    }));
+
     right.appendChild(btn("Detach", "btn danger", async () => {
       try {
         await api(`/${parentId}/subtasks/${st.id}`, { method: "DELETE" });
         log(`DELETE /${parentId}/subtasks/${st.id}`, "204");
-        await refreshCard(parentId);
+        autoReload();
       } catch (e) {
         log("Detach error", String(e));
         alert(e.message);
       }
     }));
+
     row.appendChild(right);
     return row;
   }
@@ -400,29 +478,12 @@
     return b;
   }
 
-  async function refreshCard(id, existingEl) {
-    try {
-      const t = await api(`/${id}`, { method: "GET" });
-      log(`GET /${id}`, t);
-      const fresh = renderTaskCard(t);
-      const el = existingEl || document.querySelector(`.task[data-id="${id}"]`);
-      if (el) el.replaceWith(fresh);
-      else {
-        // Fallback: reload list if card missing
-        await loadParents();
-      }
-    } catch (e) {
-      log("Refresh card error", String(e));
-      alert(e.message);
-    }
-  }
-
   // -------------------- Actions --------------------
   async function setStatus(id, action) {
     try {
       const res = await api(`/${id}/${action}`, { method: "POST" });
       log(`POST /${id}/${action}`, res);
-      await refreshCard(id);
+      autoReload();
     } catch (e) {
       log("Status error", String(e));
       alert(e.message);
@@ -433,7 +494,7 @@
     try {
       const res = await api(`/${id}/archive?detach_links=${detach ? "true" : "false"}`, { method: "POST" });
       log(`POST /${id}/archive`, res);
-      await refreshCard(id);
+      autoReload();
     } catch (e) {
       log("Archive error", String(e));
       alert(e.message);
@@ -444,7 +505,7 @@
     try {
       const res = await api(`/${id}/restore`, { method: "POST" });
       log(`POST /${id}/restore`, res);
-      await refreshCard(id);
+      autoReload();
     } catch (e) {
       log("Restore error", String(e));
       alert(e.message);
@@ -480,7 +541,7 @@
       const res = await api(`/${editingTaskId}`, { method: "PATCH", body: JSON.stringify(payload) });
       log(`PATCH /${editingTaskId}`, res);
       dlgEdit.close();
-      await refreshCard(editingTaskId);
+      autoReload();
     } catch (e) {
       log("PATCH error", String(e));
       alert(e.message);
@@ -504,9 +565,9 @@
     try {
       const res = await api("/", { method: "POST", body: JSON.stringify(payload) });
       log("POST /", res);
-      // Clear a few fields for convenience
+      // Clear fields
       c_title.value = ""; c_desc.value = ""; c_start.value = ""; c_due.value = ""; c_project.value = ""; c_parent.value = "";
-      await loadParents();
+      autoReload();
     } catch (e) {
       log("Create error", String(e));
       alert(e.message);
@@ -522,7 +583,7 @@
   }
 
   // First load (optional)
-  // loadParents();
+  loadParents();
 })();
 </script>
 </body>
