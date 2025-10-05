@@ -1,9 +1,7 @@
 from unittest.mock import patch, MagicMock
 from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_USER
 
-# --------------------------
-# List users empty
-# --------------------------
+# UNI-54/04
 @patch("backend.src.services.user.SessionLocal")
 def test_list_users_empty(mock_session_local):
     from backend.src.services import user as user_service
@@ -22,9 +20,7 @@ def test_list_users_empty(mock_session_local):
     mock_session.execute.assert_called()
 
 
-# --------------------------
-# List users non-empty
-# --------------------------
+# UNI-54/05
 @patch("backend.src.services.user.SessionLocal")
 def test_list_users_nonempty(mock_session_local):
     from backend.src.services import user as user_service
@@ -32,7 +28,6 @@ def test_list_users_nonempty(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value.__enter__.return_value = mock_session
 
-    # Create two MagicMock ORM-like users
     orm1 = MagicMock()
     orm1.email = VALID_USER_ADMIN["email"]
     orm2 = MagicMock()

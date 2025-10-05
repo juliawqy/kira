@@ -1,18 +1,14 @@
 from unittest.mock import patch, MagicMock
 from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_USER
 
-# --------------------------
-# Get user by ID
-# --------------------------
+# UNI-54/01
 @patch("backend.src.services.user.SessionLocal")
 def test_get_user_by_id_found(mock_session_local):
     from backend.src.services import user as user_service
 
-    # Mock session context manager
     mock_session = MagicMock()
     mock_session_local.return_value.__enter__.return_value = mock_session
 
-    # simulate session.get returning an ORM-like object
     orm_user = MagicMock()
     orm_user.email = VALID_USER_ADMIN["email"]
     mock_session.get.return_value = orm_user
@@ -22,10 +18,7 @@ def test_get_user_by_id_found(mock_session_local):
     assert getattr(res, "email") == VALID_USER_ADMIN["email"]
     mock_session.get.assert_called_with(user_service.User, VALID_USER_ADMIN["user_id"])
 
-
-# --------------------------
-# Get user by identifier (email)
-# --------------------------
+# UNI-54/02
 @patch("backend.src.services.user.SessionLocal")
 def test_get_user_by_identifier_found(mock_session_local):
     from backend.src.services import user as user_service
@@ -45,9 +38,7 @@ def test_get_user_by_identifier_found(mock_session_local):
     mock_session.execute.assert_called()
 
 
-# --------------------------
-# User not found
-# --------------------------
+# UNI-54/03
 @patch("backend.src.services.user.SessionLocal")
 def test_get_user_not_found(mock_session_local):
     from backend.src.services import user as user_service
