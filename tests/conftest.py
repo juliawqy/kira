@@ -8,9 +8,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# --- Your app & DB DI ---
+# --- Your app & DB setup ---
 from backend.src.main import app
-from backend.src.database.db_setup import Base, get_db
+from backend.src.database.db_setup import Base
 
 # --- ORM models you already use in factories ---
 from backend.src.database.models.user import User
@@ -65,23 +65,16 @@ def db_session(test_engine):
         connection.close()
 
 
-# ---------- FastAPI client that uses the SAME per-test session ----------
+# ---------- FastAPI client for API testing ----------
 @pytest.fixture
-def client(db_session):
+def client():
     """
-    TestClient with get_db overridden to yield the per-test SQLAlchemy session.
-    Ensures API requests hit the real test DB.
+    TestClient for API testing.
+    Since your app doesn't use dependency injection for DB sessions,
+    this provides a simple test client for API endpoint testing.
     """
-    def _override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass  # session lifecycle handled by db_session fixture
-
-    app.dependency_overrides[get_db] = _override_get_db
     with TestClient(app) as c:
         yield c
-    app.dependency_overrides.clear()
 
 
 # ---------- Factories (aligned to your User model columns) ----------
