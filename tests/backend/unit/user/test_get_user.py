@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_USER
+from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_USER, INVALID_EMAIL_DOESNT_EXIST
 
 # UNI-054/001
 @patch("backend.src.services.user.SessionLocal")
@@ -50,7 +50,7 @@ def test_get_user_not_found(mock_session_local):
     execute_result.scalar_one_or_none.return_value = None
     mock_session.execute.return_value = execute_result
 
-    res = user_service.get_user("nonexistent@example.com")
+    res = user_service.get_user(INVALID_EMAIL_DOESNT_EXIST)
     assert res is None
     mock_session.execute.assert_called()
 

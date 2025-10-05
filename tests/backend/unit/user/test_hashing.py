@@ -4,7 +4,8 @@ import pytest
 from backend.src.services import user as user_service
 from tests.mock_data.user.unit_data import (
     VALID_PASSWORD_CHANGE,
-    INVALID_PASSWORD_TYPE
+    INVALID_PASSWORD_TYPE,
+    INVALID_PASSWORD_CHANGE_WRONG_CURRENT
 )
 
 #UNI-052/005
@@ -17,7 +18,7 @@ def test_hash_and_verify_normal_password():
     
     assert hashed, "_hash_password returned empty"
     assert user_service._verify_password(password, hashed) is True
-    assert user_service._verify_password("wrongpass", hashed) is False
+    assert user_service._verify_password(INVALID_PASSWORD_CHANGE_WRONG_CURRENT["current_password"], hashed) is False
 
 #UNI-052/006
 def test_verify_with_invalid_inputs():

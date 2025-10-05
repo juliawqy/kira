@@ -1,7 +1,15 @@
 # tests/unit/services/test_update_user.py
 import pytest
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_UPDATE_NAME, VALID_UPDATE_EMAIL, VALID_USER
+from tests.mock_data.user.unit_data import (
+    VALID_USER_ADMIN, 
+    VALID_UPDATE_NAME, 
+    VALID_UPDATE_EMAIL, 
+    VALID_USER,
+    INVALID_USER_ID,
+    VALID_UPDATE_DEPARTMENT,
+    INVALID_ADMIN_TYPE
+)
 from backend.src.enums.user_role import UserRole
 
 # UNI-053/001
@@ -36,7 +44,7 @@ def test_update_user_not_found(mock_session_local):
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     mock_session.get.return_value = None
 
-    res = user_service.update_user(9999, name="No One")
+    res = user_service.update_user(INVALID_USER_ID, name=VALID_USER["name"])
     assert res is None
 
 # UNI-053/003
@@ -96,9 +104,9 @@ def test_update_user_department_and_admin_success(mock_session_local):
     user_obj.admin = False
     mock_session.get.return_value = user_obj
 
-    updated = user_service.update_user(user_obj.user_id, department_id=42, admin=True)
+    updated = user_service.update_user(user_obj.user_id, department_id=VALID_UPDATE_DEPARTMENT["department_id"], admin=True)
     assert updated is not None
-    assert updated.department_id == 42
+    assert updated.department_id == VALID_UPDATE_DEPARTMENT["department_id"]
     assert updated.admin is True
 
 # UNI-053/006
@@ -110,5 +118,5 @@ def test_update_user_invalid_role_type(mock_session_local):
     mock_session.get.return_value = MagicMock(user_id=1, role=UserRole.STAFF.value)
 
     with pytest.raises(ValueError) as exc:
-        user_service.update_user(1, role="manager")  # invalid string
+        user_service.update_user(VALID_USER["user_id"], role=INVALID_ADMIN_TYPE)  # invalid string
     assert "role must be a valid UserRole" in str(exc.value)

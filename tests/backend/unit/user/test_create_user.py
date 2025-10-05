@@ -7,6 +7,7 @@ from tests.mock_data.user.unit_data import (
     VALID_USER_ADMIN,
     INVALID_CREATE_SHORT_PASSWORD,
     INVALID_CREATE_NO_SPECIAL,
+    INVALID_ADMIN_TYPE
 )
 
 # UNI-052/008
@@ -65,11 +66,12 @@ def test_create_user_invalid_role_type():
         user_service.create_user(
             name=VALID_CREATE_PAYLOAD_USER["name"],
             email=VALID_CREATE_PAYLOAD_USER["email"],
-            role="admin",  # invalid type, string instead of UserRole
+            role=INVALID_ADMIN_TYPE,  # invalid type, string instead of UserRole
             password=VALID_CREATE_PAYLOAD_USER["password"],
         )
     assert "role must be a valid UserRole" in str(exc.value)
 
+# UNI-052/012
 def test_create_user_missing_name():
     from backend.src.services import user as user_service
 
@@ -81,6 +83,7 @@ def test_create_user_missing_name():
             password=VALID_CREATE_PAYLOAD_USER["password"],
         )
 
+# UNI-052/013
 def test_create_user_missing_email():
     from backend.src.services import user as user_service
 
@@ -92,6 +95,7 @@ def test_create_user_missing_email():
             password=VALID_CREATE_PAYLOAD_USER["password"],
         )
 
+# UNI-052/014
 def test_create_user_non_admin():
     from backend.src.services import user as user_service
     # placeholder to fill in test for user creation with non admin account

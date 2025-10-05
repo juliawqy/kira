@@ -7,12 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-# --- Your app & DB setup ---
 from backend.src.main import app
 from backend.src.database.db_setup import Base
-
-# --- ORM models you already use in factories ---
 from backend.src.database.models.user import User
 from backend.src.database.models.task import Task
 
@@ -88,15 +84,13 @@ def user_factory(db_session):
         from backend.src.enums.user_role import UserRole
 
         role_val = kwargs.pop("role", UserRole.STAFF)
-        # role column is a string; accept Enum or str
-        role_str = role_val.value if hasattr(role_val, "value") else str(role_val)
-
+        role_str = role_val.value 
         default = {
             "name": "Test User",
             "email": "test@example.com",
             "role": role_str,
             "admin": False,
-            "hashed_pw": "hashed_password",   # matches model column
+            "hashed_pw": "hashed_password",   
             "department_id": 1,
         }
         default.update(kwargs)
@@ -129,8 +123,7 @@ def task_factory(db_session):
             "description": "Test Description",
             "status": TaskStatus.TODO,
             "priority": TaskPriority.MEDIUM,
-            "assigned_user_id": None,
-            "assigned_user_id": None,
+            "assigned_user_id": None
         }
         default.update(kwargs)
 
