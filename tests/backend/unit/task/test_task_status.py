@@ -1,52 +1,70 @@
+# tests/backend/unit/task/test_task_status.py
+from __future__ import annotations
+
 import pytest
-from unittest.mock import patch, MagicMock
-from tests.mock_data.task_data import VALID_TASK_1, VALID_TASK_ID, INVALID_TASK_ID
+import backend.src.services.task as svc
+from backend.src.services.task import TaskStatus
 
-# KIRA-001/001 (test case id corresponding to test case sheets)
-@patch("backend.src.services.task.SessionLocal")
-def test_update_task_invalid_status_raises(mock_session_local, mock_session):
-    from backend.src.services import task as task_service
+pytestmark = pytest.mark.unit
 
-    with pytest.raises(ValueError, match="Invalid status"):
-        task_service.update_task_status(VALID_TASK_ID, "INVALID")
 
-# KIRA-001/001 (test case id corresponding to test case sheets)
-@patch("backend.src.services.task.SessionLocal")
-def test_start_and_complete_task(mock_session_local, mock_session):
-    from backend.src.services import task as task_service
+def _mk(title: str = "T", priority_bucket: int = 5):
+    """Helper to create a task with required priority_bucket."""
+    return svc.add_task(
+        title=title,
+        description=None,
+        start_date=None,
+        deadline=None,
+        priority_bucket=priority_bucket,
+    )
 
-    mock_task = MagicMock(**VALID_TASK_1)
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = mock_task
+# UNI-048/041
+def test_start_task_sets_in_progress():
+    """start_task sets status to In-progress."""
+    t = _mk()
+    svc.start_task(t.id)
+    got = svc.get_task_with_subtasks(t.id)
+    assert got.status == TaskStatus.IN_PROGRESS.value
 
-    started = task_service.start_task(VALID_TASK_ID)
-    assert started.status == task_service.TaskStatus.IN_PROGRESS.value
+# UNI-048/042
+def test_block_task_sets_blocked():
+    """block_task sets status to Blocked."""
+    t = _mk()
+    svc.block_task(t.id)
+    got = svc.get_task_with_subtasks(t.id)
+    assert got.status == TaskStatus.BLOCKED.value
 
-    completed = task_service.complete_task(VALID_TASK_ID)
-    assert completed.status == task_service.TaskStatus.COMPLETED.value
+# UNI-048/043
+def test_complete_task_sets_completed():
+    """complete_task sets status to Completed."""
+    t = _mk()
+    svc.complete_task(t.id)
+    got = svc.get_task_with_subtasks(t.id)
+    assert got.status == TaskStatus.COMPLETED.value
 
-# KIRA-001/001 (test case id corresponding to test case sheets)
-@patch("backend.src.services.task.SessionLocal")
-def test_mark_task_blocked_success(mock_session_local, mock_session):
-    from backend.src.services import task as task_service
+# UNI-048/044
+def test_repeating_same_transition_is_stable():
+    """Calling the same transition repeatedly leaves status unchanged."""
+    t = _mk()
+    svc.start_task(t.id)
+    svc.start_task(t.id)  # idempotent
+    got = svc.get_task_with_subtasks(t.id)
+    assert got.status == TaskStatus.IN_PROGRESS.value
 
-    # Mock a task with ID = 1
-    mock_task = MagicMock(**VALID_TASK_1, subtasks=[])
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = mock_task
-
-    result = task_service.mark_blocked(VALID_TASK_ID)
-
-    assert result.status == task_service.TaskStatus.BLOCKED.value
-    assert mock_task.status == task_service.TaskStatus.BLOCKED.value
-
-# KIRA-001/001 (test case id corresponding to test case sheets)
-@patch("backend.src.services.task.SessionLocal")
-def test_mark_task_blocked_failure(mock_session_local, mock_session):
-    from backend.src.services import task as task_service
-
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = None  # Task not found
-
+# UNI-048/045
+def test_transitions_on_missing_task_raise_value_error():
+    """Transitions on a non-existent id raise ValueError."""
     with pytest.raises(ValueError):
-        task_service.mark_blocked(INVALID_TASK_ID)
+        svc.start_task(999_999)
+    with pytest.raises(ValueError):
+        svc.block_task(999_999)
+    with pytest.raises(ValueError):
+        svc.complete_task(999_999)
+
+# UNI-048/046
+def test_set_status_invalid_status_raises_valueerror():
+    """Direct _set_status with a bad value raises ValueError."""
+    t = _mk("S")
+    with pytest.raises(ValueError, match="Invalid status"):
+        # Calling the internal for unit verification is fine.
+        svc._set_status(t.id, "NotAStatus")  # type: ignore[arg-type]

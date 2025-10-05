@@ -1,7 +1,7 @@
 from enum import Enum
 
 class TaskStatus(str, Enum):
-    TODO = "To-do"
+    TO_DO = "To-do"
     IN_PROGRESS = "In-progress"
     COMPLETED = "Completed"
     BLOCKED = "Blocked"
