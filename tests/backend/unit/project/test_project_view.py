@@ -7,7 +7,7 @@ from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, NOT_F
 def make_user(user_dict):
     return type("User", (), user_dict)
 
-# UNI-083/005
+# UNI-078/001
 @patch("backend.src.services.project.SessionLocal")
 def test_view_project_success(mock_session_local):
     mock_session = MagicMock()
@@ -28,7 +28,7 @@ def test_view_project_success(mock_session_local):
     assert result["project_manager"] == MANAGER_USER["user_id"]
     assert result["active"] is True
 
-# UNI-083/006
+# UNI-078/002
 @patch("backend.src.services.project.SessionLocal")
 def test_view_project_not_found(mock_session_local):
     mock_session = MagicMock()
