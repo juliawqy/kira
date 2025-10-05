@@ -9,8 +9,8 @@ omit =
     backend/src/schemas/__init__.py
     backend/src/api/v1/__init__.py
     backend/src/api/v1/routes/__init__.py
-    backend/src/services/__init__.py
-    
+    backend/src/services/__init__.py  
+
 [report]
 show_missing = True
 skip_covered = False

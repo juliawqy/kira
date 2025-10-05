@@ -39,8 +39,12 @@ def isolated_test_db():
     except (OSError, PermissionError):
         pass  # File might already be cleaned up
 
-
+# INT-084/001
 def test_create_and_get_team(isolated_test_db):
+    # INT-084/001
+    # Scenario: Create a team using the real database (isolated test DB) and fetch it.
+    # Result: team is persisted to the DB and can be retrieved by id.
+    # Expected: created team has correct team_id, team_name and manager_id equals the creating user.
     # use mock manager data
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
     team = team_service.create_team(
@@ -54,24 +58,21 @@ def test_create_and_get_team(isolated_test_db):
     assert fetched["team_id"] == team["team_id"]
     assert fetched["team_name"] == team["team_name"]
 
-
+# INT-084/002
 def test_create_team_integration_non_manager_raises(isolated_test_db):
-    # use mock staff data
     staff = type("U", (), {"user_id": STAFF_USER["user_id"], "role": STAFF_USER["role"]})()
     # Non-manager should not be allowed to create a team
     with pytest.raises(ValueError) as exc:
         team_service.create_team(VALID_TEAM_CREATE["team_name"], staff)
     assert "Only managers" in str(exc.value)
 
-
+# INT-084/003
 def test_create_team_integration_empty_name_raises(isolated_test_db):
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
     with pytest.raises(ValueError):
         team_service.create_team("   ", manager)
 
-
+# INT-084/004
 def test_get_team_integration_not_found(isolated_test_db):
-    # Ensure get_team_by_id raises when id is absent
     with pytest.raises(ValueError):
         team_service.get_team_by_id(NOT_FOUND_ID)
-        
