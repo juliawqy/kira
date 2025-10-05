@@ -17,7 +17,7 @@ def create_project(project_name: str, user) -> Dict:
         project = Project(
             project_name=project_name_clean,
             project_manager=user.user_id,
-            active=True  # permanently true for now
+            active=True  
         )
         session.add(project)
         session.flush()

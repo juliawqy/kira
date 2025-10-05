@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 class ProjectCreate(BaseModel):
-    project_name: str  # user doesn’t provide project_manager or active
+    project_name: str  
 
 class ProjectRead(BaseModel):
     project_id: int

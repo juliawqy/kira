@@ -25,6 +25,7 @@ def isolated_test_db():
     except (OSError, PermissionError):
         pass
 
+# INT-083/001
 def test_create_and_get_project(isolated_test_db):
     user = type("User", (), MANAGER_USER)()
     project = project_service.create_project(VALID_PROJECT_NAME, user)
@@ -36,16 +37,19 @@ def test_create_and_get_project(isolated_test_db):
     assert fetched["project_id"] == project["project_id"]
     assert fetched["project_name"] == project["project_name"]
 
+# INT-083/002
 def test_create_project_non_manager_raises(isolated_test_db):
     user = type("User", (), STAFF_USER)()
     with pytest.raises(ValueError):
         project_service.create_project(VALID_PROJECT_NAME, user)
 
+# INT-083/003
 def test_create_project_empty_name_raises(isolated_test_db):
     user = type("User", (), MANAGER_USER)()
     with pytest.raises(ValueError):
         project_service.create_project("   ", user)
 
+# INT-083/004
 def test_get_project_not_found_raises(isolated_test_db):
     with pytest.raises(ValueError):
         project_service.get_project_by_id(NOT_FOUND_ID)
