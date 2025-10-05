@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_PASSWORD_CHANGE, INVALID_PASSWORD_CHANGE_WEAK
 
-# UNI-52/001
+# UNI-052/001
 @patch("backend.src.services.user.SessionLocal")
 @patch("backend.src.services.user._verify_password", return_value=True)
 @patch("backend.src.services.user._hash_password", return_value="new_hashed")
@@ -27,7 +27,7 @@ def test_change_password_success(mock_hash, mock_verify, mock_session_local):
     assert mock_user.hashed_pw == "new_hashed"
     mock_session.add.assert_called_with(mock_user)
 
-# UNI-52/002
+# UNI-052/002
 @patch("backend.src.services.user.SessionLocal")
 def test_change_password_user_not_found(mock_session_local):
     from backend.src.services import user as user_service
@@ -40,7 +40,7 @@ def test_change_password_user_not_found(mock_session_local):
         user_service.change_password(9999, "x", "Y!longpass1")
     assert "User not found" in str(exc.value)
 
-# UNI-52/003
+# UNI-052/003
 @patch("backend.src.services.user.SessionLocal")
 @patch("backend.src.services.user._verify_password", return_value=False)
 def test_change_password_wrong_current(mock_verify, mock_session_local):
@@ -57,7 +57,7 @@ def test_change_password_wrong_current(mock_verify, mock_session_local):
         user_service.change_password(mock_user.user_id, "incorrect", "New!Pass1")
     assert "Current password is incorrect" in str(exc.value)
 
-# UNI-52/004
+# UNI-052/004
 def test_change_password_weak_new_password_raises():
     from backend.src.services import user as user_service
 

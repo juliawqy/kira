@@ -9,7 +9,7 @@ from tests.mock_data.user.unit_data import (
     INVALID_CREATE_NO_SPECIAL,
 )
 
-# UNI-52/008
+# UNI-052/008
 @patch("backend.src.services.user.SessionLocal")
 @patch("backend.src.services.user._hash_password", return_value="hashed_pw")
 def test_create_user_success(mock_hash, mock_session_local):
@@ -33,7 +33,7 @@ def test_create_user_success(mock_hash, mock_session_local):
     mock_session.flush.assert_called()
     mock_session.refresh.assert_called_with(result)
 
-# UNI-52/009
+# UNI-052/009
 @patch("backend.src.services.user.SessionLocal")
 def test_create_user_duplicate_emai(mock_session_local):
     from backend.src.services import user as user_service
@@ -49,7 +49,7 @@ def test_create_user_duplicate_emai(mock_session_local):
         user_service.create_user(**VALID_CREATE_PAYLOAD_USER)
     assert "already exists" in str(exc.value)
 
-# UNI-52/010
+# UNI-052/010
 def test_create_user_password_validation_fail():
     from backend.src.services import user as user_service
 
@@ -58,7 +58,7 @@ def test_create_user_password_validation_fail():
     with pytest.raises(ValueError):
         user_service.create_user(**INVALID_CREATE_NO_SPECIAL)
 
-# UNI-52/011
+# UNI-052/011
 def test_create_user_invalid_role_type():
     from backend.src.enums.user_role import UserRole
     from backend.src.services import user as user_service
