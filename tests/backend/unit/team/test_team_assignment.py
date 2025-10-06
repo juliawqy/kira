@@ -26,11 +26,8 @@ def make_user(user_dict):
 	role = user_dict.get("role")
 	attrs = {"user_id": user_dict.get("user_id")}
 	if role is not None:
-		if isinstance(role, str):
-			try:
-				role_val = UserRole(role)
-			except Exception:
-				role_val = role
+		if isinstance(role, UserRole):
+			role_val = role.value
 		else:
 			role_val = role
 		attrs["role"] = role_val
