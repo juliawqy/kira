@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.src.database.db_setup import Base
 from backend.src.services import project as project_service
-from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, STAFF_USER, NOT_FOUND_ID
+from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, STAFF_USER, NOT_FOUND_ID, EMPTY_PROJECT_NAME
 from unittest.mock import patch
 
 @pytest.fixture(autouse=True)
@@ -47,7 +47,7 @@ def test_create_project_non_manager_raises(isolated_test_db):
 def test_create_project_empty_name_raises(isolated_test_db):
     user = type("User", (), MANAGER_USER)()
     with pytest.raises(ValueError):
-        project_service.create_project("   ", user)
+        project_service.create_project(EMPTY_PROJECT_NAME, user)
 
 # INT-078/001
 def test_get_project_not_found_raises(isolated_test_db):

@@ -3,6 +3,7 @@ from typing import Optional
 
 class ProjectCreate(BaseModel):
     project_name: str  
+    project_manager: int
 
 class ProjectRead(BaseModel):
     project_id: int

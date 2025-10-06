@@ -13,4 +13,4 @@ STAFF_USER = {
 }
 
 NOT_FOUND_ID = 9999
-
+EMPTY_PROJECT_NAME = "   "  
