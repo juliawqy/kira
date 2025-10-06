@@ -36,3 +36,10 @@ DUPLICATE_USER = {
 EMPTY_PROJECT_NAME = "   "  
 
 TEST_PROJECT_ID = 1  
+
+MISSING_ROLE_USER = {
+    "user_id": 42,
+    "role": None,
+    "email": "user42@example.com",
+    "hashed_pw": "hashed_dummy_password42"
+}

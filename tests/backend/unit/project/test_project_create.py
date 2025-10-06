@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from backend.src.services import project as project_service
-from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, STAFF_USER, EMPTY_PROJECT_NAME
+from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, STAFF_USER, EMPTY_PROJECT_NAME, MISSING_ROLE_USER
 
 # UNI-077/001
 @patch("backend.src.services.project.SessionLocal")
@@ -42,6 +42,6 @@ def test_create_project_missing_role(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
-    user = type("User", (), {"user_id": 42, "role": None})
+    user = type("User", (), MISSING_ROLE_USER)
     with pytest.raises(ValueError):
         project_service.create_project(VALID_PROJECT_NAME, user)

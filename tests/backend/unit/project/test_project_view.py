@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from backend.src.services import project as project_service
-from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, NOT_FOUND_ID
+from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, NOT_FOUND_ID, TEST_PROJECT_ID
 
 
 def make_user(user_dict):
@@ -15,7 +15,7 @@ def test_view_project_success(mock_session_local):
 
     # Mock a fake project object
     mock_project = MagicMock()
-    mock_project.project_id = 1
+    mock_project.project_id = TEST_PROJECT_ID
     mock_project.project_name = VALID_PROJECT_NAME
     mock_project.project_manager = MANAGER_USER["user_id"]
     mock_project.active = True
