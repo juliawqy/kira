@@ -41,12 +41,21 @@ def get_team_by_id(team_id: int) -> dict:
         team = session.get(Team, team_id)
         if not team:
             raise ValueError("Team not found")
+        # Load assignments for the team so the returned payload matches TeamRead (which includes assignments)
+        assignments = (
+            session.query(TeamAssignment).filter_by(team_id=team_id).all()
+        )
+        assignments_list = [
+            {"id": a.id, "team_id": a.team_id, "user_id": a.user_id} for a in assignments
+        ]
+
         return {
             "team_id": team.team_id,
             "team_name": team.team_name,
             "manager_id": team.manager_id,
             "department_id": team.department_id,
             "team_number": team.team_number,
+            "assignments": assignments_list,
         }
 
 def assign_to_team(team_id: int, assignee_id: int, user) -> dict:

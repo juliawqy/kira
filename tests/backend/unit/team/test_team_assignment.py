@@ -94,5 +94,26 @@ def test_assign_to_team_flush_failure_rolls_back_and_raises(mock_session_local):
 	mock_session.rollback.assert_called_once()
 
 
+# UNI-084/011
+@patch("backend.src.services.team.SessionLocal")
+def test_assign_to_team_adds_assignment_to_session(mock_session_local):
+	"""Verify that assign_to_team creates a TeamAssignment and adds it to the session."""
+	mock_session = MagicMock()
+	mock_session_local.begin.return_value.__enter__.return_value = mock_session
+	mock_team = MagicMock()
+	mock_team.team_id = 42
+	mock_session.get.return_value = mock_team
+
+	user = make_user(MANAGER_USER)
+	result = team_service.assign_to_team(42, 999, user)
+
+	# ensure session.add was called once with an object that has expected attributes
+	assert mock_session.add.call_count == 1
+	added_obj = mock_session.add.call_args[0][0]
+	assert getattr(added_obj, "team_id", None) == 42
+	assert getattr(added_obj, "user_id", None) == 999
+	assert result["status"] == "assigned"
+
+
 
 
