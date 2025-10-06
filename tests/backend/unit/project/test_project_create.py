@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from backend.src.services import project as project_service
-from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, STAFF_USER
+from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, STAFF_USER, EMPTY_PROJECT_NAME
 
 # UNI-077/001
 @patch("backend.src.services.project.SessionLocal")
@@ -34,7 +34,7 @@ def test_create_project_blank_name(mock_session_local):
 
     user = type("User", (), MANAGER_USER)
     with pytest.raises(ValueError):
-        project_service.create_project("   ", user)
+        project_service.create_project(EMPTY_PROJECT_NAME, user)
 
 # UNI-077/004
 @patch("backend.src.services.project.SessionLocal")

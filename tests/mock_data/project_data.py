@@ -24,3 +24,4 @@ DUPLICATE_USER = {
     "user_id": 4,
     "role": UserRole.STAFF.value
 }
+EMPTY_PROJECT_NAME = "   "  
