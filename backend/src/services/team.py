@@ -3,7 +3,7 @@ from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.team import Team
 from backend.src.enums.user_role import UserRole
 
-
+#create a function that 
 def create_team(team_name: str, user, department_id: int, team_number: int) -> dict:
     """Create a team and return it. Only managers can create a team.
     """
