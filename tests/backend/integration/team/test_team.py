@@ -97,7 +97,7 @@ def test_assign_to_team_integration_not_found(isolated_test_db):
     # Attempt to assign to a team id that doesn't exist should raise
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
     with pytest.raises(ValueError) as exc:
-        team_service.assign_to_team(NOT_FOUND_ID, 10, manager)
+        team_service.assign_to_team(NOT_FOUND_ID, ASSIGNEE_ID_123, manager)
     assert f"Team with id {NOT_FOUND_ID} not found" in str(exc.value)
 
 
@@ -194,7 +194,7 @@ def test_assign_with_nonexistent_user_id_creates_assignment(isolated_test_db):
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
 
     # Manager creates a team
-    team = team_service.create_team("Team for invalid user test", manager, department_id=1, team_number=1)
+    team = team_service.create_team("Team for invalid user test", manager, department_id=VALID_TEAM_CREATE["department_id"], team_number=VALID_TEAM_CREATE["team_number"])
 
     # Use an arbitrary user id that doesn't exist in users table
     invalid_user_id = ASSIGNEE_ID_999
@@ -217,7 +217,7 @@ def test_manager_creates_team_and_assigns_member(isolated_test_db):
     """Manager creates a team and then assigns a member; verify persisted assignment."""
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
 
-    team = team_service.create_team("Manager create then assign", manager, department_id=2, team_number=2)
+    team = team_service.create_team("Manager create then assign", manager, department_id=VALID_TEAM_CREATE["department_id"] , team_number=VALID_TEAM_CREATE["team_number"])
 
     assignee = ASSIGNEE_ID_123
     result = team_service.assign_to_team(team["team_id"], assignee, manager)
