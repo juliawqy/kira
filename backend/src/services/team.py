@@ -4,7 +4,7 @@ from backend.src.database.models.team import Team
 from backend.src.enums.user_role import UserRole
 
 
-def create_team(team_name: str, user, department_id: Optional[int] = None, team_number: Optional[int] = None) -> dict:
+def create_team(team_name: str, user, department_id: int, team_number: int) -> dict:
     """Create a team and return it. Only managers can create a team.
     """
     # normalize and check against UserRole enum

@@ -6,7 +6,7 @@ from tests.mock_data.team_data import VALID_TEAM_CREATE, MANAGER_USER, STAFF_USE
 def make_user(user_dict):
     return type("User", (), user_dict)
 
-# UNI-084/004
+# UNI-061/001
 @patch("backend.src.services.team.SessionLocal")
 def test_view_team_success(mock_session_local):
     mock_session = MagicMock()
@@ -26,7 +26,7 @@ def test_view_team_success(mock_session_local):
     assert result["department_id"] == VALID_TEAM_CREATE.get("department_id")
     assert result["team_number"] == VALID_TEAM_CREATE.get("team_number")
 
-# UNI-084/005
+# UNI-061/002
 @patch("backend.src.services.team.SessionLocal")
 def test_view_team_not_found(mock_session_local):
     mock_session = MagicMock()
