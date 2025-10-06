@@ -8,14 +8,14 @@ from tests.mock_data.project_data import MANAGER_USER, ASSIGNABLE_USER, DUPLICAT
 def test_assign_user_to_project_success(mock_session_local):
     mock_session = MagicMock()
     def get_side_effect(model, id):
-        if id == TEST_PROJECT_ID:  # project exists
-            return MagicMock()  # project mock
-        if id == ASSIGNABLE_USER["user_id"]:  # user exists
-            return MagicMock()  # user mock
+        if id == TEST_PROJECT_ID:  
+            return MagicMock()  
+        if id == ASSIGNABLE_USER["user_id"]:  
+            return MagicMock()  
         return None
 
     mock_session.get.side_effect = get_side_effect
-    mock_session.query().filter_by().first.return_value = None  # no existing assignment
+    mock_session.query().filter_by().first.return_value = None  
 
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
@@ -47,8 +47,8 @@ def test_assign_nonexistent_user_to_project(mock_session_local):
 @patch("backend.src.services.project.SessionLocal")
 def test_duplicate_assignment_raises(mock_session_local):
     mock_session = MagicMock()
-    mock_session.get.side_effect = lambda model, id: MagicMock()  # project and user exist
-    mock_session.query().filter_by().first.return_value = MagicMock()  # simulate existing assignment
+    mock_session.get.side_effect = lambda model, id: MagicMock()  
+    mock_session.query().filter_by().first.return_value = MagicMock()  
 
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
