@@ -55,3 +55,35 @@ def get_team_by_id(team_id: int) -> dict:
             "team_number": team.team_number,
             "assignments": assignments_list,
         }
+
+
+def assign_to_team(team_id: int, assignee_id: int, user) -> dict:
+    """Assign a user to a team. Only managers and directors allowed."""
+    user_role = getattr(user, "role", None)
+    user_id = getattr(user, "user_id", None)
+    if not user_role or str(user_role).lower() not in [
+        UserRole.MANAGER.value.lower(),
+        UserRole.DIRECTOR.value.lower(),
+    ]:
+        raise ValueError("Only managers and directors can assign to a team.")
+
+    with SessionLocal.begin() as session:
+        team = session.get(Team, team_id)
+        if not team:
+            raise ValueError(f"Team with id {team_id} not found.")
+
+        assignment = TeamAssignment(team_id=team_id, user_id=assignee_id)
+        session.add(assignment)
+        try:
+            session.flush()
+            session.refresh(assignment)
+        except Exception as e:
+            session.rollback()
+            raise ValueError(f"Failed to assign: {str(e)}")
+
+        return {
+            "team_id": team.team_id,
+            "user_id": assignee_id,
+            "assigned_by": user_id,
+            "status": "assigned",
+        }

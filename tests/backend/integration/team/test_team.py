@@ -95,7 +95,11 @@ def test_assign_to_team_integration_not_found(isolated_test_db):
 def test_assign_to_team_persists_assignment(isolated_test_db):
     # Create manager and a team
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
-    team = team_service.create_team(VALID_TEAM_CREATE["team_name"], manager)
+    team = team_service.create_team(
+        VALID_TEAM_CREATE["team_name"], manager,
+        department_id=VALID_TEAM_CREATE.get("department_id"),
+        team_number=VALID_TEAM_CREATE.get("team_number"),
+    )
 
     # Assign a user to the team
     assignee_id = 123
@@ -118,7 +122,11 @@ def test_assign_to_team_persists_assignment(isolated_test_db):
 def test_director_can_assign(isolated_test_db):
     # Create manager-owned team, director assigns
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
-    team = team_service.create_team(VALID_TEAM_CREATE["team_name"], manager)
+    team = team_service.create_team(
+        VALID_TEAM_CREATE["team_name"], manager,
+        department_id=VALID_TEAM_CREATE.get("department_id"),
+        team_number=VALID_TEAM_CREATE.get("team_number"),
+    )
 
     director = type("U", (), {"user_id": DIRECTOR_USER["user_id"], "role": DIRECTOR_USER["role"]})()
     assignee_id = 222
@@ -130,7 +138,11 @@ def test_director_can_assign(isolated_test_db):
 # INT-084/007
 def test_unauthorized_user_cannot_assign(isolated_test_db):
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
-    team = team_service.create_team(VALID_TEAM_CREATE["team_name"], manager)
+    team = team_service.create_team(
+        VALID_TEAM_CREATE["team_name"], manager,
+        department_id=VALID_TEAM_CREATE.get("department_id"),
+        team_number=VALID_TEAM_CREATE.get("team_number"),
+    )
 
     staff = type("U", (), {"user_id": STAFF_USER["user_id"], "role": STAFF_USER["role"]})()
     with pytest.raises(ValueError):
@@ -140,7 +152,11 @@ def test_unauthorized_user_cannot_assign(isolated_test_db):
 # INT-084/008
 def test_duplicate_assignment_raises_and_only_one_record_exists(isolated_test_db):
     manager = type("U", (), {"user_id": MANAGER_USER["user_id"], "role": MANAGER_USER["role"]})()
-    team = team_service.create_team(VALID_TEAM_CREATE["team_name"], manager)
+    team = team_service.create_team(
+        VALID_TEAM_CREATE["team_name"], manager,
+        department_id=VALID_TEAM_CREATE.get("department_id"),
+        team_number=VALID_TEAM_CREATE.get("team_number"),
+    )
 
     assignee_id = 55
     # First assignment should succeed
