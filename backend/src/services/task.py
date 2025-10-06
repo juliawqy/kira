@@ -50,7 +50,7 @@ def add_task(
     *,
     priority_bucket: int,
     status: str = TaskStatus.TO_DO.value,
-    project_id: Optional[int] = None,
+    project_id: int,
     active: bool = True,
     parent_id: Optional[int] = None,
 ) -> Optional[Task]:
@@ -79,8 +79,6 @@ def add_task(
         session.flush()  
 
         if parent_id is not None:
-            if parent_id == task.id: # pragma: no cover - cannot happen for a brand-new task
-                raise ValueError("A task cannot be its own parent.") # pragma: no cover
             parent = session.get(Task, parent_id)
             if not parent:
                 raise ValueError(f"Parent task {parent_id} not found.")
@@ -254,25 +252,6 @@ def block_task(task_id: int) -> Task:
     """Set status -> Blocked."""
     return _set_status(task_id, TaskStatus.BLOCKED.value)
 
-# In case, we need this in the future
-# def complete_task_with_cascade(task_id: int) -> Task:
-#     """
-#     Set the task to Completed; if it has subtasks, complete all of them
-#     in the same transaction.
-#     """
-#     with SessionLocal.begin() as session:
-#         task = session.get(Task, task_id)
-#         if not task:
-#             raise ValueError("Task not found")
-#         task.status = TaskStatus.COMPLETED.value
-#         # iterate over association-proxied list (loads lazily inside tx if needed)
-#         for st in task.subtasks:
-#             st.status = TaskStatus.COMPLETED.value
-#             session.add(st)
-#         session.add(task)
-#         session.flush()
-#         return task
-
 def get_task_with_subtasks(task_id: int) -> Optional[Task]:
     """
     Return a task with its subtasks
@@ -339,18 +318,3 @@ def archive_task(task_id: int, *, detach_links: bool = True) -> Task:
         session.flush()
         return task
 
-
-def restore_task(task_id: int) -> Task:
-    """
-    Restore a previously archived task by setting active=True.
-    Note: does not reattach any previous parent/subtask links.
-    Use attach_subtask(...) if you need to re-parent after restoring.
-    """
-    with SessionLocal.begin() as session:
-        task = session.get(Task, task_id)
-        if not task:
-            raise ValueError("Task not found")
-        task.active = True
-        session.add(task)
-        session.flush()
-        return task

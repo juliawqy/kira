@@ -3,9 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict, Field, conint
-
-# Keep these exactly in sync with your DB CHECK constraints
-Status = Literal["To-do", "In-progress", "Completed", "Blocked"]
+from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 # ---------- Read models ----------
 
@@ -17,7 +15,7 @@ class TaskRead(BaseModel):
     description: Optional[str] = None
     start_date: Optional[date] = None
     deadline: Optional[date] = None
-    status: Status
+    status: str
     priority_bucket: int
     project_id: Optional[int] = None
     active: bool
@@ -40,9 +38,9 @@ class TaskCreate(BaseModel):
     description: Optional[str] = None
     start_date: Optional[date] = None
     deadline: Optional[date] = None
-    status: Status = "To-do"
+    status: TaskStatus.TO_DO.value
     priority_bucket: conint(ge=1, le=10) = Field(..., description="1 = least important, 10 = most important")
-    project_id: Optional[int] = None
+    project_id: int
     active: bool = True
     parent_id: Optional[int] = None      
 
