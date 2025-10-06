@@ -23,7 +23,7 @@ def test_view_project_success(mock_session_local):
     mock_session.get.return_value = mock_project
 
     result = project_service.get_project_by_id(1)
-    assert result["project_id"] == 1
+    assert result["project_id"] == TEST_PROJECT_ID
     assert result["project_name"] == VALID_PROJECT_NAME
     assert result["project_manager"] == MANAGER_USER["user_id"]
     assert result["active"] is True
