@@ -57,4 +57,3 @@ def test_create_team_invalid_name(mock_session_local, invalid_team):
         )
 
 
-
