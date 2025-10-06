@@ -25,3 +25,9 @@ DUPLICATE_USER = {
     "role": UserRole.STAFF.value
 }
 EMPTY_PROJECT_NAME = "   "  
+
+TEST_USER_EMAIL = "testuser@example.com"
+TEST_PROJECT_ID = 1  
+ASSIGNABLE_USER_EMAIL = "user3@example.com"
+DUPLICATE_USER_EMAIL = "user4@example.com"
+MANAGER_USER_EMAIL = "user1@example.com"

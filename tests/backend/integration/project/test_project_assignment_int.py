@@ -7,7 +7,7 @@ from backend.src.database.db_setup import Base
 from backend.src.services import project as project_service
 from backend.src.services import user as user_service
 from backend.src.database.models.user import User
-from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, ASSIGNABLE_USER, DUPLICATE_USER, NOT_FOUND_ID
+from tests.mock_data.project_data import VALID_PROJECT_NAME, MANAGER_USER, ASSIGNABLE_USER, DUPLICATE_USER, NOT_FOUND_ID, ASSIGNABLE_USER_EMAIL, DUPLICATE_USER_EMAIL, MANAGER_USER_EMAIL
 from unittest.mock import patch
 
 @pytest.fixture(autouse=True)
@@ -24,7 +24,11 @@ def isolated_test_db():
             session.add(User(
                 user_id=user_data["user_id"],
                 name=f"User{user_data['user_id']}",
-                email=f"user{user_data['user_id']}@example.com",
+                email=(
+                    MANAGER_USER_EMAIL if user_data == MANAGER_USER
+                    else ASSIGNABLE_USER_EMAIL if user_data == ASSIGNABLE_USER
+                    else DUPLICATE_USER_EMAIL
+                ),
                 role=user_data["role"],
                 hashed_pw="dummy"
             ))
