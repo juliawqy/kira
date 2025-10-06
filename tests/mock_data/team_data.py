@@ -8,6 +8,19 @@ STAFF_USER = {
     "role": UserRole.STAFF.value,
 }
 
+DIRECTOR_USER = {
+    "user_id": 3,
+    "name": "Director User",
+    "email": "boss@example.com",
+    "role": "Director",
+}
+
+NO_ROLE_USER = {
+    "user_id": 60,
+    "name": "No Role User",
+    "email": "norole@example.com",
+}
+
 VALID_TEAM_CREATE = {
     "team_id": 1,
     "team_name": "Cong is the baddie",
@@ -47,4 +60,17 @@ NO_ROLE_USER = {
 }
 
 NOT_FOUND_ID = 9999
+
+# Common assignee ids used in integration tests
+ASSIGNEE_ID_123 = 123
+ASSIGNEE_ID_222 = 222
+ASSIGNEE_ID_55 = 55
+ASSIGNEE_ID_999 = 999
+
+# Common team ids used in tests
+TEAM_ID_1 = 1
+TEAM_ID_2 = 2
+TEAM_ID_3 = 3
+TEAM_ID_42 = 42
+TEAM_ID_77 = 77
 
