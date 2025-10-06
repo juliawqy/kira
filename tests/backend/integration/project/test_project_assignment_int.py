@@ -31,7 +31,7 @@ def isolated_test_db():
                 name=f"User{user_data['user_id']}",
                 email=user_data["email"],
                 role=user_data["role"],
-                hashed_pw="dummy"
+                hashed_pw=user_data["hashed_pw"]
             ))
 
     with patch("backend.src.services.project.SessionLocal", TestSessionLocal):
