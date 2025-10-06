@@ -13,3 +13,7 @@ class ProjectRead(BaseModel):
 
     class Config:
         orm_mode = True
+
+class ProjectAssignmentCreate(BaseModel):
+    project_id: int
+    user_id: int
