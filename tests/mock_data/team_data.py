@@ -61,3 +61,9 @@ NO_ROLE_USER = {
 
 NOT_FOUND_ID = 9999
 
+# Common assignee ids used in integration tests
+ASSIGNEE_ID_123 = 123
+ASSIGNEE_ID_222 = 222
+ASSIGNEE_ID_55 = 55
+ASSIGNEE_ID_999 = 999
+

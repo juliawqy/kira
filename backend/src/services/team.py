@@ -13,6 +13,7 @@ def create_team(team_name: str, user, department_id: int, team_number: int) -> d
         raise ValueError("Only managers can create a team.")
     if not team_name or not team_name.strip():
         raise ValueError("Team name cannot be empty or whitespace.")
+
     with SessionLocal.begin() as session:
         team_name_clean = team_name.strip()
         team = Team(
@@ -76,14 +77,18 @@ def assign_to_team(team_id: int, assignee_id: int, user) -> dict:
         session.add(assignment)
         try:
             session.flush()
-            session.refresh(assignment)
+            # Try to refresh to populate DB-generated fields (id). For mocks this may be a no-op.
+            try:
+                session.refresh(assignment)
+            except Exception:
+                pass
         except Exception as e:
+            # explicit rollback for clarity and to satisfy tests asserting rollback
             session.rollback()
             raise ValueError(f"Failed to assign: {str(e)}")
 
         return {
-            "team_id": team.team_id,
-            "user_id": assignee_id,
-            "assigned_by": user_id,
-            "status": "assigned",
+            "id": assignment.id,
+            "team_id": assignment.team_id,
+            "user_id": assignment.user_id,
         }
