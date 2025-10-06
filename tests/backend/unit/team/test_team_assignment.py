@@ -1,31 +1,42 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from backend.src.services import team as team_service
+from backend.src.enums.user_role import UserRole
 from tests.mock_data.team_data import (
 	MANAGER_USER,
 	STAFF_USER,
 	DIRECTOR_USER,
 	NO_ROLE_USER,
 	NOT_FOUND_ID,
+	ASSIGNEE_ID_123,
+	ASSIGNEE_ID_222,
+	ASSIGNEE_ID_55,
+	ASSIGNEE_ID_999,
+	TEAM_ID_1,
+	TEAM_ID_2,
+	TEAM_ID_3,
+	TEAM_ID_42,
+	TEAM_ID_77,
 )
 
 
-def make_user(user_dict):
-	return type("User", (), user_dict)
 
-# Mock ids used across tests to avoid magic numbers
-TEAM_ID_1 = 1
-ASSIGNEE_ID_99 = 99
-TEAM_ID_2 = 2
-ASSIGNEE_ID_100 = 100
-ASSIGNEE_ID_50 = 50
-ASSIGNEE_ID_55 = 55
-TEAM_ID_3 = 3
-ASSIGNEE_ID_77 = 77
-TEAM_ID_42 = 42
-ASSIGNEE_ID_999 = 999
-TEAM_ID_77 = 77
-ASSIGNEE_ID_444 = 444
+def make_user(user_dict):
+	"""Return a lightweight user object. Normalize the role into a UserRole enum when possible."""
+	role = user_dict.get("role")
+	attrs = {"user_id": user_dict.get("user_id")}
+	if role is not None:
+		if isinstance(role, str):
+			try:
+				role_val = UserRole(role)
+			except Exception:
+				role_val = role
+		else:
+			role_val = role
+		attrs["role"] = role_val
+	return type("User", (), attrs)
+
+
 
 # UNI-062/001
 @patch("backend.src.services.team.SessionLocal")
@@ -38,14 +49,14 @@ def test_assign_to_team_success_manager(mock_session_local):
 	mock_session.get.return_value = mock_team
 
 	user = make_user(MANAGER_USER)
-	result = team_service.assign_to_team(TEAM_ID_1, ASSIGNEE_ID_99, user)
+	result = team_service.assign_to_team(TEAM_ID_1, ASSIGNEE_ID_123, user)
 
 	assert result["team_id"] == TEAM_ID_1
-	assert result["user_id"] == ASSIGNEE_ID_99
+	assert result["user_id"] == ASSIGNEE_ID_123
 	# result should contain the assignment's id/team_id/user_id
 	assert "id" in result
-	assert result["team_id"] == 1
-	assert result["user_id"] == 99
+	assert result["team_id"] == TEAM_ID_1
+	assert result["user_id"] == ASSIGNEE_ID_123
 
 
 
@@ -59,13 +70,12 @@ def test_assign_to_team_success_director(mock_session_local):
 	mock_session.get.return_value = mock_team
 
 	user = make_user(DIRECTOR_USER)
-	result = team_service.assign_to_team(TEAM_ID_2, ASSIGNEE_ID_100, user)
+	result = team_service.assign_to_team(TEAM_ID_2, ASSIGNEE_ID_222, user)
 
 	assert result["team_id"] == TEAM_ID_2
-	assert result["user_id"] == ASSIGNEE_ID_100
 	assert "id" in result
-	assert result["team_id"] == 2
-	assert result["user_id"] == 100
+	assert result["team_id"] == TEAM_ID_2
+	assert result["user_id"] == ASSIGNEE_ID_222
 
 
 # UNI-062/003
@@ -76,7 +86,7 @@ def test_assign_to_team_unauthorized(mock_session_local, user_dict):
 	mock_session_local.begin.return_value.__enter__.return_value = mock_session
 	user = make_user(user_dict)
 	with pytest.raises(ValueError):
-		team_service.assign_to_team(TEAM_ID_1, ASSIGNEE_ID_50, user)
+		team_service.assign_to_team(TEAM_ID_1, ASSIGNEE_ID_55, user)
 
 # UNI-062/004
 @patch("backend.src.services.team.SessionLocal")
@@ -102,7 +112,7 @@ def test_assign_to_team_flush_failure_rolls_back_and_raises(mock_session_local):
 
 	user = make_user(MANAGER_USER)
 	with pytest.raises(ValueError) as exc:
-		team_service.assign_to_team(TEAM_ID_3, ASSIGNEE_ID_77, user)
+		team_service.assign_to_team(TEAM_ID_3, ASSIGNEE_ID_55, user)
 
 	assert "Failed to assign" in str(exc.value)
 	mock_session.rollback.assert_called_once()
@@ -146,10 +156,10 @@ def test_assign_to_team_refresh_ignored_on_error(mock_session_local):
 	mock_session.refresh.side_effect = Exception("refresh failed")
 
 	user = make_user(MANAGER_USER)
-	result = team_service.assign_to_team(TEAM_ID_77, ASSIGNEE_ID_444, user)
+	result = team_service.assign_to_team(TEAM_ID_77, ASSIGNEE_ID_123, user)
 
 	assert result["team_id"] == TEAM_ID_77
-	assert result["user_id"] == ASSIGNEE_ID_444
+	assert result["user_id"] == ASSIGNEE_ID_123
 	assert "id" in result
 	# rollback should not have been called for a refresh failure
 	mock_session.rollback.assert_not_called()
