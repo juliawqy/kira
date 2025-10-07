@@ -6,7 +6,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 from backend.src.database.db_setup import Base
 from backend.src.database.models.parent_assignment import ParentAssignment  
-from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
+from backend.src.enums.task_status import TaskStatus
 
 class Task(Base):
     __tablename__ = "task"  
@@ -17,7 +17,7 @@ class Task(Base):
     start_date  = Column(Date)
     deadline    = Column(Date)
     status      = Column(String, nullable=False, default=TaskStatus.TO_DO.value)
-    priority = Column(Integer, nullable=False)
+    priority = Column(Integer, nullable=False, default=5)
 
     #Link FK to Project table later: ForeignKey("project.id", ondelete="SET NULL")
     project_id  = Column(Integer, nullable=False, index=True)
@@ -45,7 +45,6 @@ class Task(Base):
     parent   = association_proxy("parent_link",   "parent")   
 
     __table_args__ = (
-        CheckConstraint(f"status IN {ALLOWED_STATUSES}",     name="ck_task_status"),
         CheckConstraint("priority >= 1 AND priority <= 10", name="ck_priority_range"),
         Index("ix_task_project_active_deadline", "project_id", "active", "deadline"),
     )

@@ -39,7 +39,7 @@ class TaskCreate(BaseModel):
     start_date: Optional[date] = None
     deadline: Optional[date] = None
     status: Literal["To-do", "In-progress", "Completed", "Blocked"] = TaskStatus.TO_DO.value
-    priority: Annotated[int, Field(ge=1, le=10, description="1 = least important, 10 = most important")]
+    priority: Annotated[int, Field(ge=1, le=10, description="1 = least important, 10 = most important")] = 5
     project_id: int
     active: bool = True
     parent_id: Optional[int] = None      

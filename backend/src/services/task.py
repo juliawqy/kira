@@ -44,11 +44,11 @@ def _validate_bucket(n: int) -> None:
 
 def add_task(
     title: str,
-    description: Optional[str],
-    start_date: Optional[date],
-    deadline: Optional[date],
     *,
-    priority: int,
+    description: Optional[str] = None,
+    start_date: Optional[date] = None,
+    deadline: Optional[date] = None,
+    priority: int = 5,
     status: str = TaskStatus.TO_DO.value,
     project_id: int,
     active: bool = True,
