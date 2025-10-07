@@ -1,8 +1,8 @@
 # backend/src/schemas/task.py
 from __future__ import annotations
 from datetime import date
-from typing import Optional, List, Literal
-from pydantic import BaseModel, ConfigDict, Field, conint
+from typing import Optional, List, Literal, Annotated
+from pydantic import BaseModel, ConfigDict, Field
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 # ---------- Read models ----------
@@ -39,7 +39,7 @@ class TaskCreate(BaseModel):
     start_date: Optional[date] = None
     deadline: Optional[date] = None
     status: Literal["To-do", "In-progress", "Completed", "Blocked"] = TaskStatus.TO_DO.value
-    priority: conint(ge=1, le=10) = Field(..., description="1 = least important, 10 = most important")
+    priority: Annotated[int, Field(ge=1, le=10, description="1 = least important, 10 = most important")]
     project_id: int
     active: bool = True
     parent_id: Optional[int] = None      
@@ -51,6 +51,6 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     start_date: Optional[date] = None
     deadline: Optional[date] = None
-    priority: Optional[conint(ge=1, le=10)] = None
+    priority: Optional[Annotated[int, Field(ge=1, le=10)]] = None
     project_id: Optional[int] = None
     active: Optional[bool] = None
