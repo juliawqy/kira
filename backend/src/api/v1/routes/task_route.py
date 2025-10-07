@@ -25,7 +25,6 @@ def create_task(payload: TaskCreate):
             raise HTTPException(status_code=404, detail=str(e))
         raise HTTPException(status_code=400, detail=str(e))
 
-
 @router.patch("/{task_id}", response_model=TaskRead, name="update_task")
 def update_task(task_id: int, payload: TaskUpdate):
     """
@@ -40,28 +39,11 @@ def update_task(task_id: int, payload: TaskUpdate):
         raise HTTPException(404, "Task not found")
     return updated
 
-@router.post("/{task_id}/start", response_model=TaskRead, name="start_task")
-def start_task(task_id: int):
-    """Set status to 'In progress'; return updated task."""
+@router.post("/{task_id}/status/{new_status}", response_model=TaskRead, name="set_task_status")
+def set_task_status(task_id: int, new_status: str):
+    """Set a task's status."""
     try:
-        return task_service.start_task(task_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-@router.post("/{task_id}/complete", response_model=TaskRead, name="complete_task")
-def complete_task(task_id: int):
-    """Set status to 'Completed'; optionally cascade to subTasks; return updated task."""
-    try:
-        return task_service.complete_task(task_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
-@router.post("/{task_id}/block", response_model=TaskRead, name="block_task")
-def block_task(task_id: int):
-    """Set status to 'Blocked'; return updated task."""
-    try:
-        return task_service.block_task(task_id)
+        return task_service._set_status(task_id, new_status)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -79,23 +61,14 @@ def list_parent_tasks():
     return task_service.list_parent_tasks()
 
 @router.post(
-    "/{task_id}/archive",
+    "/{task_id}/delete",
     response_model=TaskRead,
-    name="archive_task",
+    name="delete_task",
 )
-def archive_task(task_id: int, detach_links: bool = Query(True, description="Detach parent/subtask links while archiving")):
+def delete_task(task_id: int, detach_links: bool = Query(True, description="Detach parent/subtask links while deleting")):
     """Soft-delete a task (active=False). Optionally detach all links; return updated task."""
     try:
-        return task_service.archive_task(task_id, detach_links=detach_links)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
-@router.post("/{task_id}/restore", response_model=TaskRead, name="restore_task")
-def restore_task(task_id: int):
-    """Restore a soft-deleted task (active=True); return updated task."""
-    try:
-        return task_service.restore_task(task_id)
+        return task_service.delete_task(task_id, detach_links=detach_links)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -106,7 +79,6 @@ def list_subtasks(task_id: int):
     if not t:
         raise HTTPException(404, "Task not found")
     return t.subtasks
-
 
 @router.post("/{parent_id}/subtasks", response_model=TaskWithSubTasks, name="attach_subtasks")
 def attach_subtasks(parent_id: int, payload: SubtaskIds):
@@ -123,7 +95,6 @@ def attach_subtasks(parent_id: int, payload: SubtaskIds):
         if "already have a parent" in msg or "cycle" in msg:
             raise HTTPException(status_code=409, detail=str(e))
         raise HTTPException(status_code=400, detail=str(e))
-
 
 @router.delete("/{parent_id}/subtasks/{subtask_id}", status_code=204, name="detach_subtask")
 def detach_subtask(parent_id: int, subtask_id: int):

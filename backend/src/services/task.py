@@ -38,9 +38,9 @@ def _assert_no_cycle(session, parent_id: int, child_id: int) -> None:
 
 def _validate_bucket(n: int) -> None:
     if not (1 <= n <= 10):
-        raise ValueError("priority_bucket must be between 1 and 10")
+        raise ValueError("priority must be between 1 and 10")
 
-# ---- CRUD -------------------------------------------------------------------
+# ---- Task CRUD -------------------------------------------------------------------
 
 def add_task(
     title: str,
@@ -48,7 +48,7 @@ def add_task(
     start_date: Optional[date],
     deadline: Optional[date],
     *,
-    priority_bucket: int,
+    priority: int,
     status: str = TaskStatus.TO_DO.value,
     project_id: int,
     active: bool = True,
@@ -59,7 +59,7 @@ def add_task(
     Returns the new task created.
     """
 
-    _validate_bucket(priority_bucket)
+    _validate_bucket(priority)
 
     if status not in ALLOWED_STATUSES:
         raise ValueError(f"Invalid status '{status}'")
@@ -71,7 +71,7 @@ def add_task(
             start_date=start_date,
             deadline=deadline,
             status=status,
-            priority_bucket=priority_bucket,
+            priority=priority,
             project_id=project_id,
             active=active,
         )
@@ -99,7 +99,7 @@ def update_task(
     description: Optional[str] = None,
     start_date: Optional[date] = None,
     deadline: Optional[date] = None,
-    priority_bucket: Optional[int] = None,
+    priority: Optional[int] = None,
     project_id: Optional[int] = None,
     active: Optional[bool] = None,
 ) -> Optional[Task]:
@@ -120,15 +120,96 @@ def update_task(
         if description is not None: task.description = description
         if start_date is not None:  task.start_date = start_date
         if deadline is not None:    task.deadline = deadline
-        if priority_bucket is not None:
-            _validate_bucket(priority_bucket)
-            task.priority_bucket = priority_bucket
+        if priority is not None:
+            _validate_bucket(priority)
+            task.priority = priority
         if project_id is not None:  task.project_id = project_id
         if active is not None:      task.active = active
 
         session.add(task)
         session.flush()
         return task
+
+def set_task_status(task_id: int, new_status: str) -> Task:
+    if new_status not in ALLOWED_STATUSES:
+        raise ValueError(f"Invalid status '{new_status}'")
+    with SessionLocal.begin() as session:
+        task = session.get(Task, task_id)
+        if not task:
+            raise ValueError("Task not found")
+        task.status = new_status
+        session.add(task)
+        session.flush()
+        return task
+
+def get_task_with_subtasks(task_id: int) -> Optional[Task]:
+    """
+    Return a task with its subtasks
+    """
+    with SessionLocal() as session:
+        stmt = (
+            select(Task)
+            .where(Task.id == task_id)
+            .options(
+                # load link rows and their subtask Task objects
+                selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask)
+            )
+        )
+        return session.execute(stmt).scalar_one_or_none()
+
+def list_parent_tasks(*, active_only: bool = True, project_id: Optional[int] = None) -> list[Task]:
+    """
+    Return all top-level tasks (tasks that are not referenced as a subtask),
+    with their subtasks eagerly loaded. Ordered by deadline (nulls last), then id.
+    """
+    with SessionLocal() as session:
+        # correlated NOT EXISTS: task.id not present as a subtask_id in parent_assignment
+        not_a_subtask = ~exists(
+            select(ParentAssignment.subtask_id).where(ParentAssignment.subtask_id == Task.id)
+        )
+        stmt = (
+            select(Task)
+            .where(not_a_subtask)
+            .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
+            .order_by(Task.deadline.is_(None), Task.deadline.asc(), Task.id.asc())
+        )
+        if active_only:
+            stmt = stmt.where(Task.active.is_(True))
+        if project_id is not None:
+            stmt = stmt.where(Task.project_id == project_id)
+        return session.execute(stmt).scalars().all()
+
+# Soft Delete
+def delete_task(task_id: int, *, detach_links: bool = True) -> Task:
+    """
+    Soft-delete a task by setting active=False.
+    By default, detach all links so archived tasks are not part of any hierarchy.
+
+    Returns the updated Task.
+    """
+    with SessionLocal.begin() as session:
+        task = session.get(Task, task_id)
+        if not task:
+            raise ValueError("Task not found")
+
+        if task.active is False:
+            raise ValueError("Task not found")
+        
+        if detach_links:
+            # Remove links where this task is parent or subtask
+            session.query(ParentAssignment).filter(
+                ParentAssignment.parent_id == task_id
+            ).delete()
+            session.query(ParentAssignment).filter(
+                ParentAssignment.subtask_id == task_id
+            ).delete()
+
+        task.active = False
+        session.add(task)
+        session.flush()
+        return task
+
+# ---- Subtask CRUD -------------------------------------------------------------------
 
 def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
     """
@@ -224,97 +305,3 @@ def detach_subtask(parent_id: int, subtask_id: int) -> bool:
 
         session.delete(link)
         return True
-
-
-# ---- Status transitions -----------------------------------------------------
-
-def _set_status(task_id: int, new_status: str) -> Task:
-    if new_status not in ALLOWED_STATUSES:
-        raise ValueError(f"Invalid status '{new_status}'")
-    with SessionLocal.begin() as session:
-        task = session.get(Task, task_id)
-        if not task:
-            raise ValueError("Task not found")
-        task.status = new_status
-        session.add(task)
-        session.flush()
-        return task
-
-def start_task(task_id: int) -> Task:
-    """Set status -> In-progress."""
-    return _set_status(task_id, TaskStatus.IN_PROGRESS.value)
-
-def complete_task(task_id: int) -> Task:
-    """Set status -> Completed (single task)."""
-    return _set_status(task_id, TaskStatus.COMPLETED.value)
-
-def block_task(task_id: int) -> Task:
-    """Set status -> Blocked."""
-    return _set_status(task_id, TaskStatus.BLOCKED.value)
-
-def get_task_with_subtasks(task_id: int) -> Optional[Task]:
-    """
-    Return a task with its subtasks
-    """
-    with SessionLocal() as session:
-        stmt = (
-            select(Task)
-            .where(Task.id == task_id)
-            .options(
-                # load link rows and their subtask Task objects
-                selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask)
-            )
-        )
-        return session.execute(stmt).scalar_one_or_none()
-
-
-def list_parent_tasks(*, active_only: bool = True, project_id: Optional[int] = None) -> list[Task]:
-    """
-    Return all top-level tasks (tasks that are not referenced as a subtask),
-    with their subtasks eagerly loaded. Ordered by deadline (nulls last), then id.
-    """
-    with SessionLocal() as session:
-        # correlated NOT EXISTS: task.id not present as a subtask_id in parent_assignment
-        not_a_subtask = ~exists(
-            select(ParentAssignment.subtask_id).where(ParentAssignment.subtask_id == Task.id)
-        )
-        stmt = (
-            select(Task)
-            .where(not_a_subtask)
-            .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
-            .order_by(Task.deadline.is_(None), Task.deadline.asc(), Task.id.asc())
-        )
-        if active_only:
-            stmt = stmt.where(Task.active.is_(True))
-        if project_id is not None:
-            stmt = stmt.where(Task.project_id == project_id)
-        return session.execute(stmt).scalars().all()
-
-
-# ---- Soft-Deletion ---------------------------------------------------------------
-def archive_task(task_id: int, *, detach_links: bool = True) -> Task:
-    """
-    Soft-delete a task by setting active=False.
-    By default, detach all links so archived tasks are not part of any hierarchy.
-
-    Returns the updated Task.
-    """
-    with SessionLocal.begin() as session:
-        task = session.get(Task, task_id)
-        if not task:
-            raise ValueError("Task not found")
-
-        if detach_links:
-            # Remove links where this task is parent or subtask
-            session.query(ParentAssignment).filter(
-                ParentAssignment.parent_id == task_id
-            ).delete()
-            session.query(ParentAssignment).filter(
-                ParentAssignment.subtask_id == task_id
-            ).delete()
-
-        task.active = False
-        session.add(task)
-        session.flush()
-        return task
-

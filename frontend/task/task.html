@@ -109,7 +109,7 @@
       </div>
       <div>
         <label>Priority Bucket (1–10)</label>
-        <input id="c_priority_bucket" type="number" min="1" max="10" value="5" />
+        <input id="c_priority" type="number" min="1" max="10" value="5" />
       </div>
       <div>
         <label>Status</label>
@@ -164,7 +164,7 @@
         <div><label>Description</label><input id="e_desc" /></div>
         <div>
           <label>Priority Bucket (1–10)</label>
-          <input id="e_priority_bucket" type="number" min="1" max="10" />
+          <input id="e_priority" type="number" min="1" max="10" />
         </div>
         <div><label>Start date</label><input id="e_start" placeholder="YYYY-MM-DD"/></div>
         <div><label>Deadline</label><input id="e_due" placeholder="YYYY-MM-DD"/></div>
@@ -200,7 +200,7 @@
   const dlgEdit = document.getElementById("dlgEdit");
   const e_title = document.getElementById("e_title");
   const e_desc = document.getElementById("e_desc");
-  const e_priority_bucket = document.getElementById("e_priority_bucket");
+  const e_priority = document.getElementById("e_priority");
   const e_start = document.getElementById("e_start");
   const e_due = document.getElementById("e_due");
   const e_project = document.getElementById("e_project");
@@ -211,7 +211,7 @@
   // Create form refs
   const c_title = document.getElementById("c_title");
   const c_desc = document.getElementById("c_desc");
-  const c_priority_bucket = document.getElementById("c_priority_bucket");
+  const c_priority = document.getElementById("c_priority");
   const c_status = document.getElementById("c_status");
   const c_start = document.getElementById("c_start");
   const c_due = document.getElementById("c_due");
@@ -250,7 +250,7 @@
   }
 
   function getPriorityDisplay(task) {
-    if (typeof task.priority_bucket === "number") return String(task.priority_bucket);
+    if (typeof task.priority === "number") return String(task.priority);
     if (typeof task.priority === "string") return task.priority;
     return "—";
   }
@@ -516,7 +516,7 @@
     editingTaskId = task.id;
     e_title.value = task.title || "";
     e_desc.value = task.description || "";
-    e_priority_bucket.value = (typeof task.priority_bucket === "number" ? task.priority_bucket : "") || "";
+    e_priority.value = (typeof task.priority === "number" ? task.priority : "") || "";
     e_start.value = task.start_date || "";
     e_due.value = task.deadline || "";
     e_project.value = task.project_id ?? "";
@@ -531,7 +531,7 @@
     const payload = {};
     if (e_title.value !== "") payload.title = e_title.value;
     if (e_desc.value !== "") payload.description = e_desc.value;
-    if (e_priority_bucket.value !== "") payload.priority_bucket = Number(e_priority_bucket.value);
+    if (e_priority.value !== "") payload.priority = Number(e_priority.value);
     if (e_start.value !== "") payload.start_date = e_start.value || null;
     if (e_due.value !== "") payload.deadline = e_due.value || null;
     if (e_project.value !== "") payload.project_id = Number(e_project.value);
@@ -550,13 +550,13 @@
 
   // Create task
   document.getElementById("btnCreate").addEventListener("click", async () => {
-    const pb = Number(c_priority_bucket.value);
+    const pb = Number(c_priority.value);
     const payload = {
       title: c_title.value || "",
       description: c_desc.value || null,
       start_date: c_start.value || null,
       deadline: c_due.value || null,
-      priority_bucket: Number.isNaN(pb) ? 5 : Math.min(10, Math.max(1, pb)),
+      priority: Number.isNaN(pb) ? 5 : Math.min(10, Math.max(1, pb)),
       status: c_status.value,
       project_id: c_project.value === "" ? null : Number(c_project.value),
       active: c_active.value === "true",

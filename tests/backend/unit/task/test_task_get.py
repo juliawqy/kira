@@ -12,20 +12,20 @@ pytestmark = pytest.mark.unit
 def _mk(
     title: str,
     *,
-    priority_bucket: int = 5,
+    priority: int = 5,
     parent_id: int | None = None,
     project_id: int | None = None,
     start_date: date | None = None,
     deadline: date | None = None,
     active: bool = True,
 ):
-    """Helper to create a task with required priority_bucket and common fields."""
+    """Helper to create a task with required priority and common fields."""
     return svc.add_task(
         title=title,
         description=None,
         start_date=start_date,
         deadline=deadline,
-        priority_bucket=priority_bucket,
+        priority=priority,
         project_id=project_id,
         active=active,
         parent_id=parent_id,

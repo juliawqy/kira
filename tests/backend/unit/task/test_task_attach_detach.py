@@ -6,14 +6,14 @@ import backend.src.services.task as svc
 
 pytestmark = pytest.mark.unit
 
-def _mk(title: str, priority_bucket: int = 5, active: bool = True):
-    """Helper to create a task with required priority_bucket quickly."""
+def _mk(title: str, priority: int = 5, active: bool = True):
+    """Helper to create a task with required priority quickly."""
     t = svc.add_task(
         title=title,
         description=None,
         start_date=None,
         deadline=None,
-        priority_bucket=priority_bucket,
+        priority=priority,
         active=active,
     )
     return t

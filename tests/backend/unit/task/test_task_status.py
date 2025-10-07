@@ -8,14 +8,14 @@ from backend.src.services.task import TaskStatus
 pytestmark = pytest.mark.unit
 
 
-def _mk(title: str = "T", priority_bucket: int = 5):
-    """Helper to create a task with required priority_bucket."""
+def _mk(title: str = "T", priority: int = 5):
+    """Helper to create a task with required priority."""
     return svc.add_task(
         title=title,
         description=None,
         start_date=None,
         deadline=None,
-        priority_bucket=priority_bucket,
+        priority=priority,
     )
 
 # UNI-048/041

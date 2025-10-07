@@ -21,7 +21,7 @@ def test_create_and_get_task(client, task_base_path):
         "description": "desc",
         "start_date": None,
         "deadline": None,
-        "priority_bucket": 5,
+        "priority": 5,
         "status": TaskStatus.TO_DO.value,
         "project_id": None,
         "active": True,
@@ -31,7 +31,7 @@ def test_create_and_get_task(client, task_base_path):
     assert r.status_code == 201, r.text
     created = r.json()
     assert created["title"] == "Parent A"
-    assert created["priority_bucket"] == 5
+    assert created["priority"] == 5
 
     gid = created["id"]
     r2 = client.get(f"{task_base_path}/{gid}")
@@ -45,13 +45,13 @@ def test_create_child_and_list_via_parent(client, task_base_path):
     """Create child with parent_id; GET parent shows child; list returns parents only."""
     p = client.post(f"{task_base_path}/", json={
         "title": "P1", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
 
     c = client.post(f"{task_base_path}/", json={
         "title": "C1", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 6, "status": TaskStatus.TO_DO.value,
+        "priority": 6, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": p["id"]
     }).json()
     assert "id" in p and "id" in c
@@ -77,7 +77,7 @@ def test_update_task_details(client, task_base_path):
     """PATCH updates fields; GET reflects changes."""
     created = client.post(f"{task_base_path}/", json={
         "title": "ToUpdate", "description": "d", "start_date": None, "deadline": None,
-        "priority_bucket": 3, "status": TaskStatus.TO_DO.value,
+        "priority": 3, "status": TaskStatus.TO_DO.value,
         "project_id": 3, "active": True, "parent_id": None
     }).json()
     tid = created["id"]
@@ -85,7 +85,7 @@ def test_update_task_details(client, task_base_path):
 
     r2 = client.patch(f"{task_base_path}/{tid}", json={
         "title": "Updated",
-        "priority_bucket": 9,
+        "priority": 9,
         "deadline": new_deadline,
         "project_id": 7,
         "active": False
@@ -93,7 +93,7 @@ def test_update_task_details(client, task_base_path):
     assert r2.status_code == 200, r2.text
     updated = r2.json()
     assert updated["title"] == "Updated"
-    assert updated["priority_bucket"] == 9
+    assert updated["priority"] == 9
     assert updated["project_id"] == 7
     assert updated["active"] is False
     assert updated["deadline"] == new_deadline
@@ -103,7 +103,7 @@ def test_status_transitions_start_block_complete(client, task_base_path):
     """POST start/block/complete endpoints flip status accordingly."""
     created = client.post(f"{task_base_path}/", json={
         "title": "StatusFlow", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     tid = created["id"]
@@ -125,12 +125,12 @@ def test_archive_parent_detaches_children_by_default(client, task_base_path):
     """Archiving a parent detaches links; children become top-level parents."""
     p = client.post(f"{task_base_path}/", json={
         "title": "P", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     client.post(f"{task_base_path}/", json={
         "title": "C", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 6, "status": TaskStatus.TO_DO.value,
+        "priority": 6, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": p["id"]
     })
 
@@ -151,12 +151,12 @@ def test_archive_parent_without_detach_keeps_links_and_hides_both(client, task_b
     """If detach_links=False, parent stays linked to child; both hidden from default list."""
     p = client.post(f"{task_base_path}/", json={
         "title": "P2", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     client.post(f"{task_base_path}/", json={
         "title": "C2", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 6, "status": TaskStatus.TO_DO.value,
+        "priority": 6, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": p["id"]
     })
 
@@ -176,12 +176,12 @@ def test_restore_parent_after_default_archive_does_not_restore_links(client, tas
     """Restoring a parent (after detach) doesn't reattach children."""
     p = client.post(f"{task_base_path}/", json={
         "title": "PR", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     client.post(f"{task_base_path}/", json={
         "title": "CR", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 6, "status": TaskStatus.TO_DO.value,
+        "priority": 6, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": p["id"]
     })
 
@@ -199,10 +199,10 @@ def test_restore_parent_after_default_archive_does_not_restore_links(client, tas
 
 # INT-048/009
 def test_create_with_invalid_priority_and_status(client, task_base_path):
-    """Invalid priority_bucket/status are rejected by schema -> 422."""
+    """Invalid priority/status are rejected by schema -> 422."""
     r1 = client.post(f"{task_base_path}/", json={
         "title": "BadPri", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 0,  # invalid (must be 1-10)
+        "priority": 0,  # invalid (must be 1-10)
         "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     })
@@ -210,7 +210,7 @@ def test_create_with_invalid_priority_and_status(client, task_base_path):
 
     r2 = client.post(f"{task_base_path}/", json={
         "title": "BadStat", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5,
+        "priority": 5,
         "status": "In progress",  # invalid spelling/case vs enum
         "project_id": None, "active": True, "parent_id": None
     })
@@ -221,7 +221,7 @@ def test_create_child_with_missing_or_inactive_parent_errors(client, task_base_p
     """Missing parent -> 404; inactive parent -> 400."""
     r_missing = client.post(f"{task_base_path}/", json={
         "title": "Orphan", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": 999999
     })
     assert r_missing.status_code == 404
@@ -229,14 +229,14 @@ def test_create_child_with_missing_or_inactive_parent_errors(client, task_base_p
     # Make an inactive parent
     p = client.post(f"{task_base_path}/", json={
         "title": "P3", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     client.post(f"{task_base_path}/{p['id']}/archive")
 
     r_inactive = client.post(f"{task_base_path}/", json={
         "title": "C3", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": p["id"]
     })
     # service raises "inactive and cannot accept subtasks" -> mapped to 400 by route
@@ -251,12 +251,12 @@ def test_attach_subtasks_happy_and_idempotent(client, task_base_path):
     """POST /{parent}/subtasks attaches; second call idempotent."""
     p = client.post(f"{task_base_path}/", json={
         "title": "P", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     c1 = client.post(f"{task_base_path}/", json={
         "title": "C1", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
 
@@ -276,7 +276,7 @@ def test_attach_subtasks_missing_parent_and_child(client, task_base_path):
 
     p = client.post(f"{task_base_path}/", json={
         "title": "P", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     r2 = client.post(f"{task_base_path}/{p['id']}/subtasks", json={"subtask_ids": [999999]})
@@ -287,12 +287,12 @@ def test_attach_subtasks_inactive_parent_and_child(client, task_base_path):
     """Inactive parent or child -> 400."""
     p = client.post(f"{task_base_path}/", json={
         "title": "P", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     c = client.post(f"{task_base_path}/", json={
         "title": "C", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
 
@@ -305,7 +305,7 @@ def test_attach_subtasks_inactive_parent_and_child(client, task_base_path):
     # archive child
     p2 = client.post(f"{task_base_path}/", json={
         "title": "P2", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     client.post(f"{task_base_path}/{c['id']}/archive")
@@ -317,17 +317,17 @@ def test_attach_subtasks_conflict_and_cycle_and_selflink(client, task_base_path)
     """409 for conflict/cycle; 400 for self-link."""
     p1 = client.post(f"{task_base_path}/", json={
         "title": "P1", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     p2 = client.post(f"{task_base_path}/", json={
         "title": "P2", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     c = client.post(f"{task_base_path}/", json={
         "title": "C", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
 
@@ -350,7 +350,7 @@ def test_attach_subtasks_empty_list_is_ok(client, task_base_path):
     """Empty list is a no-op; returns parent with current subtasks."""
     p = client.post(f"{task_base_path}/", json={
         "title": "P", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     r = client.post(f"{task_base_path}/{p['id']}/subtasks", json={"subtask_ids": []})
@@ -362,12 +362,12 @@ def test_detach_subtask_happy_and_missing(client, task_base_path):
     """DELETE link -> 204; deleting a non-existent link -> 404."""
     p = client.post(f"{task_base_path}/", json={
         "title": "P", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     c = client.post(f"{task_base_path}/", json={
         "title": "C", "description": None, "start_date": None, "deadline": None,
-        "priority_bucket": 5, "status": TaskStatus.TO_DO.value,
+        "priority": 5, "status": TaskStatus.TO_DO.value,
         "project_id": None, "active": True, "parent_id": None
     }).json()
     client.post(f"{task_base_path}/{p['id']}/subtasks", json={"subtask_ids": [c["id"]]})

@@ -15,8 +15,8 @@ class TaskRead(BaseModel):
     description: Optional[str] = None
     start_date: Optional[date] = None
     deadline: Optional[date] = None
-    status: str
-    priority_bucket: int
+    status: Literal["To-do", "In-progress", "Completed", "Blocked"]
+    priority: int
     project_id: Optional[int] = None
     active: bool
 
@@ -38,8 +38,8 @@ class TaskCreate(BaseModel):
     description: Optional[str] = None
     start_date: Optional[date] = None
     deadline: Optional[date] = None
-    status: TaskStatus.TO_DO.value
-    priority_bucket: conint(ge=1, le=10) = Field(..., description="1 = least important, 10 = most important")
+    status: Literal["To-do", "In-progress", "Completed", "Blocked"] = TaskStatus.TO_DO.value
+    priority: conint(ge=1, le=10) = Field(..., description="1 = least important, 10 = most important")
     project_id: int
     active: bool = True
     parent_id: Optional[int] = None      
@@ -51,6 +51,6 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     start_date: Optional[date] = None
     deadline: Optional[date] = None
-    priority_bucket: Optional[conint(ge=1, le=10)] = None
+    priority: Optional[conint(ge=1, le=10)] = None
     project_id: Optional[int] = None
     active: Optional[bool] = None

@@ -154,7 +154,7 @@ def click_restore_and_wait(drv, task_id: int, timeout=8):
 
 
 # ---------- UI flows (create / edit / attach / detach) ----------
-def create_task_via_form(drv, *, title, parent_id=None, priority_bucket: int = 5, status="To-do"):
+def create_task_via_form(drv, *, title, parent_id=None, priority: int = 5, status="To-do"):
     drv.find_element(By.ID, "c_title").clear()
     drv.find_element(By.ID, "c_title").send_keys(title)
 
@@ -165,8 +165,8 @@ def create_task_via_form(drv, *, title, parent_id=None, priority_bucket: int = 5
         c_parent.send_keys(str(parent_id))
 
     # Priority bucket (1–10)
-    pb = max(1, min(10, int(priority_bucket)))
-    c_pb = drv.find_element(By.ID, "c_priority_bucket")
+    pb = max(1, min(10, int(priority)))
+    c_pb = drv.find_element(By.ID, "c_priority")
     c_pb.clear()
     c_pb.send_keys(str(pb))
 
@@ -188,7 +188,7 @@ def save_edit_dialog(
     *,
     title=None,
     description=None,
-    priority_bucket: int | None = None,
+    priority: int | None = None,
     start=None,
     due=None,
     project=None,
@@ -203,10 +203,10 @@ def save_edit_dialog(
         e = wait_present(drv, By.ID, "e_desc")
         e.clear()
         e.send_keys(description)
-    if priority_bucket is not None:
-        e = wait_present(drv, By.ID, "e_priority_bucket")
+    if priority is not None:
+        e = wait_present(drv, By.ID, "e_priority")
         e.clear()
-        e.send_keys(str(max(1, min(10, int(priority_bucket)))))
+        e.send_keys(str(max(1, min(10, int(priority)))))
     if start is not None:
         e = drv.find_element(By.ID, "e_start")
         e.clear()
@@ -278,7 +278,7 @@ def test_task_e2e_full_flow(driver, frontend_url, api_base):
     child_title = f"Child {uuid.uuid4().hex[:6]}"
 
     # 2) Create parent
-    create_task_via_form(driver, title=parent_title, priority_bucket=5)
+    create_task_via_form(driver, title=parent_title, priority=5)
     # list auto-reloads; if you want, you can trigger explicit reload too:
     driver.find_element(By.ID, "btnLoad").click()
     wait_parents_loaded(driver)
@@ -289,7 +289,7 @@ def test_task_e2e_full_flow(driver, frontend_url, api_base):
     assert parent_id is not None, "Could not read data-id from the parent card"
 
     # 3) Create child (linked on creation)
-    create_task_via_form(driver, title=child_title, parent_id=parent_id, priority_bucket=6)
+    create_task_via_form(driver, title=child_title, parent_id=parent_id, priority=6)
     driver.find_element(By.ID, "btnLoad").click()
     wait_parents_loaded(driver)
     parent_card = find_card_by_id(driver, parent_id)
@@ -298,7 +298,7 @@ def test_task_e2e_full_flow(driver, frontend_url, api_base):
     # 4) Edit parent title
     open_edit_dialog_for_card(parent_card)
     edited_title = f"{parent_title} (edited)"
-    save_edit_dialog(driver, title=edited_title, priority_bucket=7)
+    save_edit_dialog(driver, title=edited_title, priority=7)
     driver.find_element(By.ID, "btnLoad").click()
     wait_parents_loaded(driver)
     parent_card = find_card_by_id(driver, parent_id)

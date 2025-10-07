@@ -19,7 +19,7 @@ export const MockDB = (() => {
         {
             id: 2,
             title: "Pull revenue data",
-            status: "In progress",
+            status: "In-progress",
             priority: "Medium",
             deadline: null,
             parent_id: 1,
@@ -56,7 +56,7 @@ export const MockDB = (() => {
     {
         id: 5,
         title: "Marketing site refresh",
-        status: "In progress",
+        status: "In-progress",
         priority: "High",
         start_date: iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3)),
         deadline: iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14)),
@@ -94,7 +94,7 @@ export const MockDB = (() => {
     {
         id: 8,
         title: "A/B test: Pricing page",
-        status: "In progress",
+        status: "In-progress",
         priority: "Low",
         start_date: iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)),
         deadline: iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 10)),

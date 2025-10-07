@@ -6,7 +6,6 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 from backend.src.database.db_setup import Base
 from backend.src.database.models.parent_assignment import ParentAssignment  
-from backend.src.enums import task_status
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 class Task(Base):
@@ -17,13 +16,12 @@ class Task(Base):
     description = Column(String(256))
     start_date  = Column(Date)
     deadline    = Column(Date)
-
-    status      = Column(String(20), nullable=False, default="To-do")
-    priority_bucket = Column(Integer, nullable=False)
+    status      = Column(String, nullable=False, default=TaskStatus.TO_DO.value)
+    priority = Column(Integer, nullable=False)
 
     #Link FK to Project table later: ForeignKey("project.id", ondelete="SET NULL")
     project_id  = Column(Integer, nullable=False, index=True)
-    active      = Column(Boolean, nullable=False, server_default=text("1"))  # SQLite 'true' equivalent
+    active      = Column(Boolean, nullable=False, default=True)
 
     # --- Association-object relationships ---
     # One parent -> many link rows (each link points to a subtask)
@@ -31,7 +29,6 @@ class Task(Base):
         ParentAssignment,
         foreign_keys=[ParentAssignment.parent_id],
         back_populates="parent",
-        cascade="all, delete-orphan",
         passive_deletes=True,
     )
 
@@ -41,7 +38,6 @@ class Task(Base):
         foreign_keys=[ParentAssignment.subtask_id],
         back_populates="subtask",
         uselist=False,
-        cascade="all, delete-orphan",
         passive_deletes=True,
     )
 
@@ -50,5 +46,6 @@ class Task(Base):
 
     __table_args__ = (
         CheckConstraint(f"status IN {ALLOWED_STATUSES}",     name="ck_task_status"),
+        CheckConstraint("priority >= 1 AND priority <= 10", name="ck_priority_range"),
         Index("ix_task_project_active_deadline", "project_id", "active", "deadline"),
     )
