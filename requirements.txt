@@ -3,6 +3,7 @@ uvicorn[standard]
 sqlalchemy
 pydantic
 pydantic[email]
+pydantic-settings  # for BaseSettings
 pytest
 pytest-cov
 httpx           # for async API testing for FastAPI
@@ -12,3 +13,6 @@ email-validator
 selenium>=4.0.0
 webdriver-manager
 pytest-selenium
+aiosmtplib      # for async SMTP client
+jinja2          # for email templates
+python-dotenv   # for environment variables
