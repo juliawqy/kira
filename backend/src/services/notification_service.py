@@ -58,7 +58,6 @@ class NotificationService:
     
 
 
-
 # Global notification service instance
 notification_service = NotificationService()
 
