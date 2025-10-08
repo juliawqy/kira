@@ -6,13 +6,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 from backend.src.database.db_setup import Base
 from backend.src.database.models.parent_assignment import ParentAssignment  
-<<<<<<< HEAD
-
-STATUS_VALUES   = ("To-do", "In-progress", "Completed", "Blocked")  
-PRIORITY_VALUES = ("Low", "Medium", "High")
-=======
 from backend.src.enums.task_status import TaskStatus
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f
 
 class Task(Base):
     __tablename__ = "task"  
@@ -22,16 +16,6 @@ class Task(Base):
     description = Column(String(256))
     start_date  = Column(Date)
     deadline    = Column(Date)
-<<<<<<< HEAD
-
-    status      = Column(String(20), nullable=False, default="To-do")
-    priority    = Column(String(10), nullable=False, default="Medium")
-
-    #Link FK to Project table later: ForeignKey("project.id", ondelete="SET NULL")
-    project_id  = Column(Integer, nullable=True, index=True)
-    active      = Column(Boolean, nullable=False, server_default=text("1"))  # SQLite 'true' equivalent
-
-=======
     status      = Column(String, nullable=False, default=TaskStatus.TO_DO.value)
     priority = Column(Integer, nullable=False, default=5)
 
@@ -39,17 +23,12 @@ class Task(Base):
     project_id  = Column(Integer, nullable=False, index=True)
     active      = Column(Boolean, nullable=False, default=True)
 
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f
     # --- Association-object relationships ---
     # One parent -> many link rows (each link points to a subtask)
     subtask_links = relationship(
         ParentAssignment,
         foreign_keys=[ParentAssignment.parent_id],
         back_populates="parent",
-<<<<<<< HEAD
-        cascade="all, delete-orphan",
-=======
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f
         passive_deletes=True,
     )
 
@@ -59,19 +38,6 @@ class Task(Base):
         foreign_keys=[ParentAssignment.subtask_id],
         back_populates="subtask",
         uselist=False,
-<<<<<<< HEAD
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-
-    # --- Friendly proxies (so your app can keep using task.subtasks / task.parent) 
-    subtasks = association_proxy("subtask_links", "subtask")  # list-like: append Task objects
-    parent   = association_proxy("parent_link",   "parent")   # single Task or None
-
-    __table_args__ = (
-        CheckConstraint(f"status IN {STATUS_VALUES}",     name="ck_task_status"),
-        CheckConstraint(f"priority IN {PRIORITY_VALUES}", name="ck_task_priority"),
-=======
         passive_deletes=True,
     )
 
@@ -80,6 +46,5 @@ class Task(Base):
 
     __table_args__ = (
         CheckConstraint("priority >= 1 AND priority <= 10", name="ck_priority_range"),
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f
         Index("ix_task_project_active_deadline", "project_id", "active", "deadline"),
     )
