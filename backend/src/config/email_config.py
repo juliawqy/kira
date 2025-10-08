@@ -1,0 +1,40 @@
+"""
+Email configuration settings for FastMail integration
+"""
+import os
+from pydantic_settings import BaseSettings
+from typing import Optional
+
+
+class EmailSettings(BaseSettings):
+    """Email configuration settings"""
+    
+    # FastMail SMTP Configuration
+    fastmail_smtp_host: str = "smtp.fastmail.com"
+    fastmail_smtp_port: int = 587
+    fastmail_username: str = ""
+    fastmail_password: str = ""
+    fastmail_from_email: str = ""
+    fastmail_from_name: str = "Kira Task Management"
+    
+    # Application Configuration
+    app_name: str = "Kira Task Management System"
+    app_url: str = "http://localhost:8000"
+    
+    # Email Settings
+    use_tls: bool = True
+    use_ssl: bool = False
+    timeout: int = 60
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+
+# Global email settings instance
+email_settings = EmailSettings()
+
+
+def get_email_settings() -> EmailSettings:
+    """Get email settings instance"""
+    return email_settings
