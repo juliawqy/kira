@@ -37,6 +37,8 @@ def _assert_no_cycle(session, parent_id: int, child_id: int) -> None:
         to_visit.extend(rows)
 
 def _validate_bucket(n: int) -> None:
+    if not isinstance(n, int):
+        raise TypeError("priority must be an integer")
     if not (1 <= n <= 10):
         raise ValueError("priority must be between 1 and 10")
 

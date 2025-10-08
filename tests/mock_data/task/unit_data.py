@@ -168,6 +168,8 @@ INVALID_CREATE_NONEXISTENT_PARENT = {
     "parent_id": 999999,  # Non-existent parent ID
 }
 
+INVALID_TASK_ID_NONEXISTENT = 99999
+
 # Update payloads
 VALID_UPDATE_TITLE = {"title": "Updated Task Title"}
 VALID_UPDATE_DESCRIPTION = {"description": "Updated description"}
@@ -184,8 +186,10 @@ EDGE_CASE_PRIORITY_BOUNDARY_LOW = {"priority": 1}  # Minimum valid
 EDGE_CASE_PRIORITY_BOUNDARY_HIGH = {"priority": 10}  # Maximum valid
 
 # Invalid test data for parameterized tests
-INVALID_PRIORITIES = [-1, 0, 11, 999]
-INVALID_STATUSES = ["In progress", "DONE", "Todo", None, ""]
+INVALID_PRIORITIES = [-1, 0, 11, 999, "High", None]
+INVALID_PRIORITY_VALUES = [-1, 0, 11, 999]  
+INVALID_PRIORITY_TYPES = ["High", None, 3.14, [], {}] 
+INVALID_STATUSES = ["In progress", "DONE", "Todo", None, "", 123]
 INVALID_PARENT_IDS = [0, -1]
 
 # Mock task instances for testing relationships

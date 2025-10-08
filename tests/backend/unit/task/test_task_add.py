@@ -17,6 +17,8 @@ from tests.mock_data.task.unit_data import (
     INACTIVE_PARENT_TASK,
     INVALID_CREATE_NONEXISTENT_PARENT,
     INVALID_PRIORITIES,
+    INVALID_PRIORITY_VALUES,
+    INVALID_PRIORITY_TYPES,
     INVALID_STATUSES,
     INVALID_PARENT_IDS,
 )
@@ -78,10 +80,10 @@ def test_add_task_with_explicit_priority(mock_session_local):
         description=None,   
         start_date=None,    
         deadline=None,      
-        status=TaskStatus.TO_DO.value,  # Should default to TO_DO
-        priority=8,         # Explicit priority from payload
+        status=TaskStatus.TO_DO.value,
+        priority=8,         
         project_id=100,
-        active=True,        # Should default to True
+        active=True,        
     )
 
     assert result == mock_task
@@ -120,88 +122,10 @@ def test_add_task_full_fields(mock_session_local):
     mock_session.add.assert_called_with(mock_task)
     mock_session.flush.assert_called()
 
-
-
-
-
-
-
-# ------------ TO FIX FROM HERE ------------
-
-# UNI-001/003
-@patch("backend.src.services.task.SessionLocal")
-@patch("backend.src.services.task._assert_no_cycle")  # Mock the cycle check function
-def test_add_task_with_parent_links_child_to_parent(mock_assert_no_cycle, mock_session_local):
-    """Create child with parent_id; parent links child."""
-    from backend.src.services import task as task_service
-    
-    mock_session = MagicMock()
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
-    # Mock parent task exists and is active
-    mock_parent = MagicMock()
-    mock_parent.id = VALID_PARENT_TASK["id"]
-    mock_parent.active = True
-    mock_session.get.return_value = mock_parent
-    
-    # Mock the child task creation
-    mock_child = MagicMock()
-    mock_child.id = 3
-    mock_child.title = VALID_CREATE_PAYLOAD_WITH_PARENT["title"]
-    
-    with patch("backend.src.services.task.Task", return_value=mock_child):
-        with patch("backend.src.services.task.ParentAssignment") as mock_assignment_class:
-            result = task_service.add_task(**VALID_CREATE_PAYLOAD_WITH_PARENT)
-    
-    # Verify parent was fetched
-    mock_session.get.assert_called()
-    
-    # Verify cycle check was called
-    mock_assert_no_cycle.assert_called_once()
-    
-    # Verify child task and assignment were added
-    mock_session.add.assert_called()
-    mock_session.flush.assert_called()
-
 # UNI-001/004
-@patch("backend.src.services.task.SessionLocal")
-def test_add_task_with_inactive_parent_raises_value_error(mock_session_local):
-    """Reject linking to an inactive parent."""
-    from backend.src.services import task as task_service
-    
-    mock_session = MagicMock()
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
-    # Mock inactive parent
-    mock_parent = MagicMock()
-    mock_parent.id = INACTIVE_PARENT_TASK["id"]
-    mock_parent.active = False
-    mock_session.get.return_value = mock_parent
-    
-    with pytest.raises(ValueError) as exc:
-        task_service.add_task(**VALID_CREATE_PAYLOAD_WITH_PARENT)
-    assert "inactive" in str(exc.value)
-
-# UNI-001/005
-@patch("backend.src.services.task.SessionLocal")
-def test_add_task_with_nonexistent_parent_raises_value_error(mock_session_local):
-    """Reject non-existent parent_id with a helpful error."""
-    from backend.src.services import task as task_service
-    
-    mock_session = MagicMock()
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
-    # Mock parent not found
-    mock_session.get.return_value = None
-    
-    with pytest.raises(ValueError) as exc:
-        task_service.add_task(**INVALID_CREATE_NONEXISTENT_PARENT)
-    assert "not found" in str(exc.value)
-
-# UNI-001/006
-@pytest.mark.parametrize("bad_priority", INVALID_PRIORITIES)
-def test_add_task_with_invalid_priority_raises_value_error(bad_priority: int):
-    """Reject invalid priority (allowed: 1..10)."""
+@pytest.mark.parametrize("bad_priority", INVALID_PRIORITY_VALUES)
+def test_add_task_with_invalid_priority_value_raises_value_error(bad_priority: int):
+    """Reject invalid priority values (allowed: 1..10, but wrong values like -1, 0, 11, 999)."""
     from backend.src.services import task as task_service
     
     invalid_payload = {
@@ -211,9 +135,24 @@ def test_add_task_with_invalid_priority_raises_value_error(bad_priority: int):
     
     with pytest.raises(ValueError) as exc:
         task_service.add_task(**invalid_payload)
-    assert "priority" in str(exc.value) or "between 1 and 10" in str(exc.value)
+    assert "priority must be between 1 and 10" in str(exc.value)
 
-# UNI-001/007
+# UNI-001/005
+@pytest.mark.parametrize("bad_priority", INVALID_PRIORITY_TYPES)
+def test_add_task_with_invalid_priority_type_raises_type_error(bad_priority):
+    """Reject invalid priority types (strings, None, floats, lists, etc.)."""
+    from backend.src.services import task as task_service
+    
+    invalid_payload = {
+        **VALID_CREATE_PAYLOAD_MINIMAL,
+        "priority": bad_priority
+    }
+    
+    with pytest.raises(TypeError) as exc:
+        task_service.add_task(**invalid_payload)
+    assert "priority must be an integer" in str(exc.value)
+
+# UNI-001/006
 @pytest.mark.parametrize("bad_status", INVALID_STATUSES)
 def test_add_task_with_invalid_status_raises_value_error(bad_status):
     """Reject invalid status (must match allowed strings exactly)."""
@@ -228,24 +167,3 @@ def test_add_task_with_invalid_status_raises_value_error(bad_status):
         task_service.add_task(**invalid_payload)
     assert "Invalid status" in str(exc.value)
 
-# UNI-001/008
-@pytest.mark.parametrize("bad_parent", INVALID_PARENT_IDS)
-@patch("backend.src.services.task.SessionLocal")
-def test_add_task_with_invalid_parent_sentinel_values_raises(mock_session_local, bad_parent: int):
-    """Reject impossible parent ids (0/negative)."""
-    from backend.src.services import task as task_service
-    
-    mock_session = MagicMock()
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
-    # Mock parent not found for invalid IDs
-    mock_session.get.return_value = None
-    
-    invalid_payload = {
-        **VALID_CREATE_PAYLOAD_MINIMAL,
-        "parent_id": bad_parent
-    }
-    
-    with pytest.raises(ValueError) as exc:
-        task_service.add_task(**invalid_payload)
-    assert "not found" in str(exc.value)

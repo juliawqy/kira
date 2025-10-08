@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional, List, Literal, Annotated
 from pydantic import BaseModel, ConfigDict, Field
+from backend.src.enums.task_status import TaskStatus
 
 # ---------- Read models ----------
 
