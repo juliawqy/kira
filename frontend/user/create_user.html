@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Create User</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 20px; 
+      max-width: 600px;
+    }
+    .form-container {
+      border: 1px solid #ccc;
+      padding: 20px;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    .form-group { 
+      margin-bottom: 15px; 
+    }
+    .form-group label { 
+      display: block; 
+      margin-bottom: 5px; 
+      font-weight: bold;
+    }
+    .form-group input, .form-group select { 
+      width: 100%; 
+      padding: 8px; 
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      box-sizing: border-box;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .checkbox-group input {
+      width: auto;
+    }
+    button { 
+      padding: 10px 20px; 
+      border: none; 
+      border-radius: 3px; 
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .btn-create { background-color: #28a745; color: white; }
+    .btn-back { background-color: #007bff; color: white; }
+    #status { 
+      margin-top: 20px; 
+      font-weight: bold; 
+    }
+    .success { color: green; }
+    .error { color: red; }
+    .navigation {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="navigation">
+    <button class="btn-back" onclick="window.location.href='user.html'">← Back to Users</button>
+  </div>
+  
+  <h1>Create User</h1>
+  
+  <div class="form-container">
+    <form id="userForm">
+      <div class="form-group">
+        <label for="name">Name:</label>
+        <input type="text" id="name" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="role">Role:</label>
+        <select id="role" required>
+          <option value="">Select Role</option>
+          <option value="Staff">Staff</option>
+          <option value="Manager">Manager</option>
+          <option value="Director">Director</option>
+          <option value="HR">HR</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="department_id">Department ID:</label>
+        <input type="number" id="department_id" required min="1">
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <input type="checkbox" id="admin">
+        <label for="admin">Admin Access</label>
+      </div>
+      
+      <button type="submit" class="btn-create">Create User</button>
+    </form>
+  </div>
+  
+  <p id="status"></p>
+
+  <script>
+    // 🔑 Central API base
+    const API_BASE = "http://127.0.0.1:8000/kira/app/api/v1";
+
+    function setStatus(message, isError = false) {
+      const statusEl = document.getElementById("status");
+      statusEl.innerText = message;
+      statusEl.className = isError ? "error" : "success";
+    }
+
+    document.getElementById("userForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      // Get form data
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const role = document.getElementById("role").value;
+      const password = document.getElementById("password").value;
+      const department_id = document.getElementById("department_id").value;
+      const admin = document.getElementById("admin").checked;
+
+      // Basic validation
+      if (!name || !email || !role || !password || !department_id) {
+        setStatus("All fields are required", true);
+        return;
+      }
+
+      const payload = {
+        name: name,
+        email: email,
+        role: role,
+        password: password,
+        department_id: parseInt(department_id),
+        admin: admin,
+      };
+
+      try {
+        setStatus("Creating user...");
+        
+        const resp = await fetch(`${API_BASE}/user/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.detail || "Unknown error");
+        }
+
+        const data = await resp.json();
+        setStatus(`User ${data.name} created successfully! (ID: ${data.user_id})`);
+        
+        // Reset form
+        document.getElementById("userForm").reset();
+        
+        // Show success message and option to go back
+        setTimeout(() => {
+          if (confirm("User created successfully! Would you like to go back to the users list?")) {
+            window.location.href = 'user.html';
+          }
+        }, 1000);
+        
+      } catch (err) {
+        setStatus("Error creating user: " + err.message, true);
+      }
+    });
+  </script>
+</body>
+</html>
