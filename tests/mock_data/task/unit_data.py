@@ -9,7 +9,7 @@ VALID_DEFAULT_TASK = {
     "deadline": None,
     "status": TaskStatus.TO_DO.value,
     "priority": 5,
-    "project_id": None,
+    "project_id": 123,
     "active": True,
 }
 
@@ -53,7 +53,7 @@ VALID_TASK_TODO = {
     "id": 1,
     "title": "Complete user authentication",
     "description": "Implement login and registration system",
-    "start_date": date.today(),
+    "start_date": date.today() + timedelta(days=1),
     "deadline": date.today() + timedelta(days=7),
     "status": TaskStatus.TO_DO.value,
     "priority": 8,
@@ -66,7 +66,7 @@ VALID_TASK_IN_PROGRESS = {
     "title": "Database migration",
     "description": "Migrate from SQLite to PostgreSQL",
     "start_date": date.today() - timedelta(days=2),
-    "deadline": date.today() + timedelta(days=5),
+    "deadline": date.today() + timedelta(days=14),
     "status": TaskStatus.IN_PROGRESS.value,
     "priority": 9,
     "project_id": 100,
@@ -89,7 +89,7 @@ VALID_TASK_BLOCKED = {
     "id": 4,
     "title": "Performance optimization",
     "description": "Optimize database queries",
-    "start_date": date.today() - timedelta(days=1),
+    "start_date": date.today() - timedelta(days=10),
     "deadline": date.today() + timedelta(days=14),
     "status": TaskStatus.BLOCKED.value,
     "priority": 5,
@@ -181,11 +181,14 @@ INVALID_CREATE_NONEXISTENT_PARENT = {
 }
 
 INVALID_TASK_ID_NONEXISTENT = 99999
+EMPTY_PROJECT_ID = 99999
 
 # Update payloads
 VALID_UPDATE_TITLE = {"title": "Updated Task Title"}
 VALID_UPDATE_DESCRIPTION = {"description": "Updated description"}
 VALID_UPDATE_PRIORITY = {"priority": 8}
+VALID_PROJECT_ID = 123
+VALID_PROJECT_ID_INACTIVE_TASK = 100
 VALID_UPDATE_DATES = {
     "start_date": date.today() + timedelta(days=1),
     "deadline": date.today() + timedelta(days=14),
@@ -202,6 +205,7 @@ INVALID_PRIORITIES = [-1, 0, 11, 999, "High", None]
 INVALID_PRIORITY_VALUES = [-1, 0, 11, 999]  
 INVALID_PRIORITY_TYPES = ["High", None, 3.14, [], {}] 
 INVALID_STATUSES = ["In progress", "DONE", "Todo", None, "", 123]
+INVALID_TASK_ID_TYPE = ["123", 3.14, None]
 INVALID_PARENT_IDS = [0, -1]
 
 # Mock task instances for testing relationships
