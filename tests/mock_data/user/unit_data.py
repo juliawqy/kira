@@ -1,6 +1,5 @@
 from backend.src.enums.user_role import UserRole
 
-# DB-like records represented as plain dicts (no helper classes)
 VALID_USER_ADMIN = {
     "user_id": 1,
     "name": "Alice Admin",
@@ -21,7 +20,6 @@ VALID_USER = {
     "password": "Empl@yee123",
 }
 
-# Create payloads (independent of above user dicts)
 VALID_CREATE_PAYLOAD_ADMIN = {
     "name": "Alice Admin",
     "email": "alice.admin@example.com",
@@ -72,6 +70,7 @@ INVALID_CREATE_BAD_EMAIL = {
 VALID_UPDATE_NAME = {"name": "Alice A."}
 VALID_UPDATE_EMAIL = {"email": "alice.a@example.com"}
 VALID_UPDATE_ADMIN_TOGGLE = {"admin": False}
+VALID_UPDATE_DEPARTMENT = {"department_id": 30}
 
 # Password change payloads
 VALID_PASSWORD_CHANGE = {
@@ -86,6 +85,9 @@ INVALID_PASSWORD_CHANGE_WRONG_CURRENT = {
     "current_password": "wrongcurrent",
     "new_password": "Another!Pass1"
 }
+INVALID_PASSWORD_TYPE = 12345
+INVALID_ADMIN_TYPE = "yes"
+INVALID_EMAIL_DOESNT_EXIST = "notfound@example.com"
 
 # Edge cases
 LARGE_NAME = {"name": "A" * 1024}
