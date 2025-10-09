@@ -2,10 +2,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from tests.mock_data.task.unit_data import (
-    VALID_TASK_IN_PROGRESS,
     VALID_DEFAULT_TASK,
-    VALID_PARENT_TASK,
-    INACTIVE_PARENT_TASK,
+    INACTIVE_TASK,
     INVALID_TASK_ID_NONEXISTENT
 )
 
@@ -96,12 +94,12 @@ def test_delete_already_inactive_task_raises_value_error(mock_session_local):
     
     # Mock existing inactive task
     mock_task = MagicMock()
-    mock_task.id = INACTIVE_PARENT_TASK["id"]
+    mock_task.id = INACTIVE_TASK["id"]
     mock_task.active = False
     mock_session.get.return_value = mock_task
     
     with pytest.raises(ValueError) as exc:
-        task_service.delete_task(INACTIVE_PARENT_TASK["id"])
+        task_service.delete_task(INACTIVE_TASK["id"])
     
     assert "Task not found" in str(exc.value)
-    mock_session.get.assert_called_once_with(task_service.Task, INACTIVE_PARENT_TASK["id"])
+    mock_session.get.assert_called_once_with(task_service.Task, INACTIVE_TASK["id"])

@@ -37,6 +37,18 @@ VALID_TASK_FULL = {
     "active": True,
 }
 
+INACTIVE_TASK = {
+    "id": 4,
+    "title": "Inactive Task",
+    "description": "This task is inactive",
+    "start_date": None,
+    "deadline": None,
+    "status": TaskStatus.TO_DO.value,
+    "priority": 5,
+    "project_id": 100,
+    "active": False,
+}
+
 VALID_TASK_TODO = {
     "id": 1,
     "title": "Complete user authentication",

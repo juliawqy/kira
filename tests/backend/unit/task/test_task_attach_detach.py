@@ -543,3 +543,76 @@ def test_add_task_with_invalid_parent_sentinel_values_raises(mock_session_local,
     with pytest.raises(ValueError) as exc:
         task_service.add_task(**invalid_payload)
     assert "not found" in str(exc.value)
+
+# UNI-002/001
+@patch("backend.src.services.task.SessionLocal")
+def test_get_task_with_subtasks_nonexistent_returns_none(mock_session_local):
+    """get_task_with_subtasks returns None for unknown id."""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.return_value.__enter__.return_value = mock_session
+    
+    # Mock task not found
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_session.execute.return_value = mock_result
+    
+    result = task_service.get_task_with_subtasks(INVALID_TASK_ID_NONEXISTENT)
+    
+    assert result is None
+    mock_session.execute.assert_called_once()
+
+# UNI-002/002
+@patch("backend.src.services.task.SessionLocal")
+def test_get_task_with_subtasks_no_children_returns_empty_list(mock_session_local):
+    """A leaf task returns an empty subtasks list."""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.return_value.__enter__.return_value = mock_session
+    
+    # Mock task with no subtasks
+    mock_task = MagicMock()
+    mock_task.id = VALID_TASK_TODO["id"]
+    mock_task.title = VALID_TASK_TODO["title"]
+    mock_task.subtasks = []
+    
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_task
+    mock_session.execute.return_value = mock_result
+    
+    result = task_service.get_task_with_subtasks(VALID_TASK_TODO["id"])
+    
+    assert result is not None
+    assert result.title == VALID_TASK_TODO["title"]
+    assert result.subtasks == []
+
+# UNI-002/003
+@patch("backend.src.services.task.SessionLocal")
+def test_get_task_with_subtasks_direct_children_only(mock_session_local):
+    """A's subtasks include only B (direct), not grandchild C."""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.return_value.__enter__.return_value = mock_session
+    
+    # Mock parent task A with direct child B
+    mock_child_b = MagicMock()
+    mock_child_b.id = MOCK_CHILD_TASKS[0]["id"]
+    mock_child_b.title = MOCK_CHILD_TASKS[0]["title"]
+    
+    mock_parent_a = MagicMock()
+    mock_parent_a.id = VALID_PARENT_TASK["id"]
+    mock_parent_a.title = VALID_PARENT_TASK["title"]
+    mock_parent_a.subtasks = [mock_child_b]
+    
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_parent_a
+    mock_session.execute.return_value = mock_result
+    
+    result = task_service.get_task_with_subtasks(VALID_PARENT_TASK["id"])
+    
+    assert result is not None
+    subtask_titles = [st.title for st in result.subtasks]
+    assert subtask_titles == [MOCK_CHILD_TASKS[0]["title"]]
