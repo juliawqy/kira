@@ -2,7 +2,6 @@
 Test script to simulate task update and trigger email notification
 Run this script to test your email notification system
 """
-import asyncio
 import sys
 import os
 
@@ -13,7 +12,7 @@ sys.path.append(project_root)
 from backend.src.services.notification_service import get_notification_service
 
 
-async def test_task_update_notification():
+def test_task_update_notification():
     """Test sending a task update notification email"""
     
     print("🚀 Starting email notification test...")
@@ -48,7 +47,7 @@ async def test_task_update_notification():
     
     try:
         # Send the notification
-        response = await notification_service.notify_task_updated(
+        response = notification_service.notify_task_updated(
             task_id=test_data["task_id"],
             task_title=test_data["task_title"],
             updated_by=test_data["updated_by"],
@@ -78,7 +77,7 @@ async def test_task_update_notification():
         print("3. Ensure you have internet connection")
 
 
-async def test_multiple_field_updates():
+def test_multiple_field_updates():
     """Test with different types of field updates"""
     
     print("\n" + "="*60)
@@ -119,7 +118,7 @@ async def test_multiple_field_updates():
         print(f"\n📧 Test {i}: {scenario['name']}")
         
         try:
-            response = await notification_service.notify_task_updated(**scenario['data'])
+            response = notification_service.notify_task_updated(**scenario['data'])
             
             if response.success:
                 print(f"✅ {scenario['name']} - Email sent successfully!")
@@ -130,16 +129,16 @@ async def test_multiple_field_updates():
             print(f"💥 {scenario['name']} - Error: {str(e)}")
 
 
-async def main():
+def main():
     """Main test function"""
     print("🎯 Kira Email Notification System Test")
     print("="*60)
     
     # Test basic notification
-    await test_task_update_notification()
+    test_task_update_notification()
     
     # Test multiple scenarios
-    await test_multiple_field_updates()
+    test_multiple_field_updates()
     
     print("\n" + "="*60)
     print("🏁 Test completed!")
@@ -150,5 +149,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Run the async test
-    asyncio.run(main())
+    # Run the test
+    main()
