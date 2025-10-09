@@ -19,7 +19,7 @@ class TaskNotificationService:
     def __init__(self):
         self.notification_service = get_notification_service()
     
-    async def update_task_with_notification(
+    def update_task_with_notification(
         self,
         task_id: int,
         updated_by: str,  # Name or email of person making the update
@@ -108,7 +108,7 @@ class TaskNotificationService:
         email_response = None
         if updated_fields:
             try:
-                email_response = await self.notification_service.notify_task_updated(
+                email_response = self.notification_service.notify_task_updated(
                     task_id=task_id,
                     task_title=updated_task.title,
                     updated_by=updated_by,
@@ -133,7 +133,7 @@ class TaskNotificationService:
             "updated_fields": updated_fields
         }
     
-    async def update_task_status_with_notification(
+    def update_task_status_with_notification(
         self,
         task_id: int,
         new_status: str,
@@ -171,7 +171,7 @@ class TaskNotificationService:
         email_response = None
         if original_status != new_status:
             try:
-                email_response = await self.notification_service.notify_task_updated(
+                email_response = self.notification_service.notify_task_updated(
                     task_id=task_id,
                     task_title=updated_task.title,
                     updated_by=updated_by,

@@ -18,7 +18,7 @@ class NotificationService:
     def __init__(self):
         self.email_service = get_email_service()
     
-    async def notify_task_updated(
+    def notify_task_updated(
         self,
         task_id: int,
         task_title: str,
@@ -51,7 +51,7 @@ class NotificationService:
             logger.info(f"Sending task update notification for task {task_id} to {assignee_email}")
             
             # Send email notification
-            email_response = await self.email_service.send_task_update_notification(
+            email_response = self.email_service.send_task_update_notification(
                 task_id=task_id,
                 task_title=task_title,
                 updated_by=updated_by,
@@ -78,7 +78,7 @@ class NotificationService:
                 recipients_count=0
             )
     
-    async def notify_multiple_users_task_updated(
+    def notify_multiple_users_task_updated(
         self,
         task_id: int,
         task_title: str,
@@ -109,7 +109,7 @@ class NotificationService:
         
         for recipient in recipients:
             try:
-                response = await self.notify_task_updated(
+                response = self.notify_task_updated(
                     task_id=task_id,
                     task_title=task_title,
                     updated_by=updated_by,
