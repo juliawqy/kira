@@ -13,6 +13,7 @@ router = APIRouter(prefix="/task", tags=["task"])
 class SubtaskIds(BaseModel):
     subtask_ids: List[int] = []  # allow empty list -> idempotent no-op
 
+# ---------- Task CRUD Handlers ----------
 @router.post("/", response_model=TaskRead, status_code=201, name="create_task")
 def create_task(payload: TaskCreate):
     """Create a task; return the task created."""
@@ -24,6 +25,85 @@ def create_task(payload: TaskCreate):
         if "not found" in msg:
             raise HTTPException(status_code=404, detail=str(e))
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/", response_model=List[TaskWithSubTasks], name="list_tasks")
+def list_parent_tasks():
+    """Return all top-level tasks in as."""
+    return task_service.list_parent_tasks()
+
+@router.get("/filter", response_model=List[TaskWithSubTasks], name="list_tasks_filtered_sorted")
+def list_tasks_filtered_sorted(
+    # checking for "?sort_by=...&filters=..." in the URL
+    sort_by: str = Query("priority_desc", description="Sort criteria"),
+    filters: str = Query(None, description="JSON string with filter criteria. Date ranges (due_date_range, start_date_range) can be combined. Other filters (priority_range, status) must be used separately.")
+):
+    """Return all top-level tasks with optional filtering and sorting. Date ranges can be combined; other filters are mutually exclusive."""
+    try:
+        filter_by = None
+        if filters:
+            import json
+            from datetime import datetime
+            
+            filter_data = json.loads(filters)
+            filter_by = {}
+            
+            # Validate filter combinations
+            valid_filters = ["priority_range", "status", "due_date_range", "start_date_range"]
+            active_filters = [f for f in valid_filters if f in filter_data]
+            
+            if len(active_filters) == 0 and filter_data:
+                invalid_filters = [f for f in filter_data.keys() if f not in valid_filters]
+                raise ValueError(f"Invalid filter types: {invalid_filters}")
+            
+            # Check for invalid combinations
+            date_filters = set(filter_data.keys()) & {"due_date_range", "start_date_range"}
+            non_date_filters = set(filter_data.keys()) & {"priority_range", "status"}
+            
+            # Date filters can be combined with each other, but not with non-date filters
+            if len(non_date_filters) > 1:
+                raise ValueError(f"Only one non-date filter allowed. Found: {list(non_date_filters)}")
+            if len(non_date_filters) >= 1 and len(date_filters) >= 1:
+                raise ValueError(f"Date filters cannot be combined with other filter types. Found date filters: {list(date_filters)}, other filters: {list(non_date_filters)}")
+            
+            # Process filters
+            if "priority_range" in filter_data:
+                filter_by["priority_range"] = filter_data["priority_range"]
+            
+            if "status" in filter_data:
+                filter_by["status"] = filter_data["status"]
+            
+            if "due_date_range" in filter_data:
+                date_range = filter_data["due_date_range"]
+                start_date = datetime.strptime(date_range[0], "%Y-%m-%d").date()
+                end_date = datetime.strptime(date_range[1], "%Y-%m-%d").date()
+                filter_by["due_date_range"] = [start_date, end_date]
+            
+            if "start_date_range" in filter_data:
+                date_range = filter_data["start_date_range"]
+                start_date = datetime.strptime(date_range[0], "%Y-%m-%d").date()
+                end_date = datetime.strptime(date_range[1], "%Y-%m-%d").date()
+                filter_by["start_date_range"] = [start_date, end_date]
+        
+        return task_service.list_parent_tasks(sort_by=sort_by, filter_by=filter_by)
+    
+    except (ValueError, json.JSONDecodeError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid filter parameters: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/project/{project_id}", response_model=List[TaskWithSubTasks], name="list_tasks_by_project")
+def list_tasks_by_project(project_id: int):
+    """Get all parent-level tasks for a specific project."""
+    tasks = task_service.list_tasks_by_project(project_id)
+    return tasks
+
+@router.get("/{task_id}", response_model=TaskWithSubTasks, name="get_task")
+def get_task(task_id: int):
+    """Get a task by id; return it with its subtasks."""
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    return task
 
 @router.patch("/{task_id}", response_model=TaskRead, name="update_task")
 def update_task(task_id: int, payload: TaskUpdate):
@@ -46,54 +126,7 @@ def set_task_status(task_id: int, new_status: str):
         return task_service._set_status(task_id, new_status)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-
-@router.get("/{task_id}", response_model=TaskWithSubTasks, name="get_task")
-def get_task(task_id: int):
-    """Get a task by id; return it with its subtasks."""
-    task = task_service.get_task_with_subtasks(task_id)
-    if not task:
-        raise HTTPException(404, "Task not found")
-    return task
-
-@router.get("/", response_model=List[TaskWithSubTasks], name="list_tasks")
-def list_parent_tasks():
-    """Return all top-level tasks in as."""
-    return task_service.list_parent_tasks()
-
-@router.get("/filter", response_model=List[TaskWithSubTasks], name="list_tasks_filtered_sorted")
-def list_tasks_filtered_sorted(
-    # checking for "?sort_by=...&filter_type=...&filter_value=..." in the URL
-    sort_by: str = Query("priority_desc", description="Sort criteria"),
-    filter_type: str = Query(None, description="Filter type (priority, priority_range, status, etc.)"),
-    filter_value: str = Query(None, description="Filter value (JSON string for complex values)")
-):
-    """Return all top-level tasks with optional filtering and sorting."""
-    try:
-        filter_by = None
-        if filter_type and filter_value:
-            import json
-
-            if filter_type == "priority":
-                filter_by = {"priority": int(filter_value)}
-            elif filter_type == "priority_range":
-                range_values = json.loads(filter_value)
-                filter_by = {"priority_range": range_values}
-            elif filter_type == "status":
-                filter_by = {"status": filter_value}
-            elif filter_type in ["created_after", "created_before", "due_after", "due_before", "start_after", "start_before"]:
-                from datetime import datetime
-                date_value = datetime.strptime(filter_value, "%Y-%m-%d").date()
-                filter_by = {filter_type: date_value}
-            else:
-                raise ValueError(f"Invalid filter_type: {filter_type}")
-        
-        return task_service.list_parent_tasks(sort_by=sort_by, filter_by=filter_by)
     
-    except (ValueError, json.JSONDecodeError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid filter parameters: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.post(
     "/{task_id}/delete",
     response_model=TaskRead,
@@ -106,6 +139,8 @@ def delete_task(task_id: int, detach_links: bool = Query(True, description="Deta
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+
+# ---------- Subtask Handlers ----------
 @router.get("/{task_id}/subtasks", response_model=List[TaskRead], name="list_subtasks")
 def list_subtasks(task_id: int):
     """Return direct subtasks of the given task."""
