@@ -1,11 +1,10 @@
 """
-Email service for sending emails via FastMail SMTP
+Email service for sending emails via FastMail SMTP (Synchronous)
 """
-import asyncio
 import logging
+import smtplib
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -26,7 +25,7 @@ class EmailService:
         self.settings = get_email_settings()
         self.templates = EmailTemplates()
     
-    async def send_email(self, email_message: EmailMessage) -> EmailResponse:
+    def send_email(self, email_message: EmailMessage) -> EmailResponse:
         """Send an email message"""
         try:
             # Validate email settings
@@ -38,10 +37,10 @@ class EmailService:
                 )
             
             # Prepare email content
-            msg = await self._prepare_message(email_message)
+            msg = self._prepare_message(email_message)
             
             # Send email via SMTP
-            await self._send_smtp_message(msg, email_message.recipients)
+            self._send_smtp_message(msg, email_message.recipients)
             
             logger.info(f"Email sent successfully to {len(email_message.recipients)} recipients")
             
@@ -59,7 +58,7 @@ class EmailService:
                 recipients_count=0
             )
     
-    async def _prepare_message(self, email_message: EmailMessage) -> MIMEMultipart:
+    def _prepare_message(self, email_message: EmailMessage) -> MIMEMultipart:
         """Prepare email message"""
         msg = MIMEMultipart('alternative')
         
@@ -73,7 +72,7 @@ class EmailService:
             msg['Cc'] = ", ".join([recipient.email for recipient in email_message.cc])
         
         # Prepare content
-        text_content, html_content = await self._prepare_content(email_message)
+        text_content, html_content = self._prepare_content(email_message)
         
         # Add text part
         if text_content:
@@ -87,7 +86,7 @@ class EmailService:
         
         return msg
     
-    async def _prepare_content(self, email_message: EmailMessage) -> tuple[Optional[str], Optional[str]]:
+    def _prepare_content(self, email_message: EmailMessage) -> tuple[Optional[str], Optional[str]]:
         """Prepare email content (text and HTML)"""
         content = email_message.content
         
@@ -111,34 +110,45 @@ class EmailService:
         # Use direct content
         return content.text_body, content.html_body
     
-    async def _send_smtp_message(self, msg: MIMEMultipart, recipients: List[EmailRecipient]):
+    def _send_smtp_message(self, msg: MIMEMultipart, recipients: List[EmailRecipient]):
         """Send message via SMTP"""
         # Collect all recipient emails
         recipient_emails = [recipient.email for recipient in recipients]
         
         # Create SMTP connection
-        smtp = aiosmtplib.SMTP(
-            hostname=self.settings.fastmail_smtp_host,
-            port=self.settings.fastmail_smtp_port,
-            use_tls=self.settings.use_tls,
-            timeout=self.settings.timeout
-        )
+        if self.settings.use_ssl:
+            # Use SSL directly (typically port 465)
+            smtp = smtplib.SMTP_SSL(
+                host=self.settings.fastmail_smtp_host,
+                port=self.settings.fastmail_smtp_port,
+                timeout=self.settings.timeout
+            )
+        else:
+            # Use regular SMTP connection
+            smtp = smtplib.SMTP(
+                host=self.settings.fastmail_smtp_host,
+                port=self.settings.fastmail_smtp_port,
+                timeout=self.settings.timeout
+            )
+            
+            # Start TLS if enabled (typically port 587)
+            if self.settings.use_tls:
+                smtp.starttls()
         
         try:
-            # Connect and authenticate
-            await smtp.connect()
-            await smtp.login(self.settings.fastmail_username, self.settings.fastmail_password)
+            # Authenticate
+            smtp.login(self.settings.fastmail_username, self.settings.fastmail_password)
             
             # Send email
-            await smtp.send_message(
+            smtp.send_message(
                 msg,
-                sender=self.settings.fastmail_from_email,
-                recipients=recipient_emails
+                from_addr=self.settings.fastmail_from_email,
+                to_addrs=recipient_emails
             )
             
         finally:
             # Close connection
-            await smtp.quit()
+            smtp.quit()
     
     def _validate_settings(self) -> bool:
         """Validate email settings"""
@@ -151,7 +161,7 @@ class EmailService:
         
         return all(setting for setting in required_settings)
     
-    async def send_task_update_notification(
+    def send_task_update_notification(
         self,
         task_id: int,
         task_title: str,
@@ -188,7 +198,7 @@ class EmailService:
             email_type=EmailType.TASK_UPDATED
         )
         
-        return await self.send_email(email_message)
+        return self.send_email(email_message)
 
 
 # Global email service instance
