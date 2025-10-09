@@ -7,6 +7,7 @@ from backend.src.database.models.user import User
 from backend.src.database.models.department import Department
 
 
+
 # Create tables
 Base.metadata.create_all(engine)
 print("Tables created!")
