@@ -57,8 +57,42 @@ def get_task(task_id: int):
 
 @router.get("/", response_model=List[TaskWithSubTasks], name="list_tasks")
 def list_parent_tasks():
-    """Return all top-level tasks (tasks that are not referenced as a subtask)."""
+    """Return all top-level tasks in as."""
     return task_service.list_parent_tasks()
+
+@router.get("/filter", response_model=List[TaskWithSubTasks], name="list_tasks_filtered_sorted")
+def list_tasks_filtered_sorted(
+    # checking for "?sort_by=...&filter_type=...&filter_value=..." in the URL
+    sort_by: str = Query("priority_desc", description="Sort criteria"),
+    filter_type: str = Query(None, description="Filter type (priority, priority_range, status, etc.)"),
+    filter_value: str = Query(None, description="Filter value (JSON string for complex values)")
+):
+    """Return all top-level tasks with optional filtering and sorting."""
+    try:
+        filter_by = None
+        if filter_type and filter_value:
+            import json
+
+            if filter_type == "priority":
+                filter_by = {"priority": int(filter_value)}
+            elif filter_type == "priority_range":
+                range_values = json.loads(filter_value)
+                filter_by = {"priority_range": range_values}
+            elif filter_type == "status":
+                filter_by = {"status": filter_value}
+            elif filter_type in ["created_after", "created_before", "due_after", "due_before", "start_after", "start_before"]:
+                from datetime import datetime
+                date_value = datetime.strptime(filter_value, "%Y-%m-%d").date()
+                filter_by = {filter_type: date_value}
+            else:
+                raise ValueError(f"Invalid filter_type: {filter_type}")
+        
+        return task_service.list_parent_tasks(sort_by=sort_by, filter_by=filter_by)
+    
+    except (ValueError, json.JSONDecodeError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid filter parameters: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post(
     "/{task_id}/delete",

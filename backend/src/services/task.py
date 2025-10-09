@@ -144,28 +144,38 @@ def set_task_status(task_id: int, new_status: str) -> Task:
         session.flush()
         return task
 
-def get_task_with_subtasks(task_id: int) -> Optional[Task]:
-    """
-    Return a task with its subtasks
-    """
-    with SessionLocal() as session:
-        stmt = (
-            select(Task)
-            .where(Task.id == task_id)
-            .options(
-                # load link rows and their subtask Task objects
-                selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask)
-            )
-        )
-        return session.execute(stmt).scalar_one_or_none()
-
-def list_parent_tasks(*, active_only: bool = True, project_id: Optional[int] = None) -> list[Task]:
+def list_parent_tasks(
+    *, 
+    active_only: bool = True, 
+    project_id: Optional[int] = None,
+    sort_by: str = "priority_desc",
+    filter_by: Optional[dict] = None
+) -> list[Task]:
     """
     Return all top-level tasks (tasks that are not referenced as a subtask),
-    with their subtasks eagerly loaded. Ordered by deadline (nulls last), then id.
+    with their subtasks eagerly loaded.
+    
+    Filter options (only one filter type per call):
+    - {"priority": 5} - Exact priority
+    - {"priority_range": [3, 7]} - Priority range (min, max)
+    - {"status": "IN_PROGRESS"} - Exact status
+    - {"created_after": date(2024, 1, 1)} - Created after date
+    - {"created_before": date(2024, 12, 31)} - Created before date
+    - {"due_after": date(2024, 10, 1)} - Due after date
+    - {"due_before": date(2024, 10, 31)} - Due before date
+    - {"start_after": date(2024, 10, 1)} - Start after date
+    - {"start_before": date(2024, 10, 31)} - Start before date
+    
+    Sort options:
+    - "priority_desc" (default): Priority high to low, then deadline closest to furthest
+    - "priority_asc": Priority low to high, then deadline closest to furthest  
+    - "start_date_asc": Start date oldest to latest, then by priority high to low
+    - "start_date_desc": Start date latest to oldest, then by priority high to low
+    - "deadline_asc": Deadline oldest to latest, then by priority high to low
+    - "deadline_desc": Deadline latest to oldest, then by priority high to low
+    - "status": By status, then by priority high to low
     """
     with SessionLocal() as session:
-        # correlated NOT EXISTS: task.id not present as a subtask_id in parent_assignment
         not_a_subtask = ~exists(
             select(ParentAssignment.subtask_id).where(ParentAssignment.subtask_id == Task.id)
         )
@@ -173,12 +183,90 @@ def list_parent_tasks(*, active_only: bool = True, project_id: Optional[int] = N
             select(Task)
             .where(not_a_subtask)
             .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
-            .order_by(Task.deadline.is_(None), Task.deadline.asc(), Task.id.asc())
         )
+        
+        # Apply basic filters
         if active_only:
             stmt = stmt.where(Task.active.is_(True))
         if project_id is not None:
             stmt = stmt.where(Task.project_id == project_id)
+            
+        # Apply single filter if provided
+        if filter_by:
+            if "priority" in filter_by:
+                stmt = stmt.where(Task.priority == filter_by["priority"])
+            elif "priority_range" in filter_by:
+                min_p, max_p = filter_by["priority_range"]
+                stmt = stmt.where(Task.priority >= min_p, Task.priority <= max_p)
+            elif "status" in filter_by:
+                stmt = stmt.where(Task.status == filter_by["status"])
+            elif "created_after" in filter_by:
+                stmt = stmt.where(Task.created_at >= filter_by["created_after"])
+            elif "created_before" in filter_by:
+                stmt = stmt.where(Task.created_at <= filter_by["created_before"])
+            elif "due_after" in filter_by:
+                stmt = stmt.where(Task.deadline >= filter_by["due_after"])
+            elif "due_before" in filter_by:
+                stmt = stmt.where(Task.deadline <= filter_by["due_before"])
+            elif "start_after" in filter_by:
+                stmt = stmt.where(Task.start_date >= filter_by["start_after"])
+            elif "start_before" in filter_by:
+                stmt = stmt.where(Task.start_date <= filter_by["start_before"])
+            else:
+                raise ValueError(f"Invalid filter_by parameter: {filter_by}")
+        
+        # Apply sorting after filtering
+        if sort_by == "priority_desc":
+            stmt = stmt.order_by(
+                Task.priority.desc(), 
+                Task.deadline.is_(None), 
+                Task.deadline.asc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "priority_asc":
+            stmt = stmt.order_by(
+                Task.priority.asc(), 
+                Task.deadline.is_(None), 
+                Task.deadline.asc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "start_date_asc":
+            stmt = stmt.order_by(
+                Task.start_date.is_(None), 
+                Task.start_date.asc(), 
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "start_date_desc":
+            stmt = stmt.order_by(
+                Task.start_date.desc(), 
+                Task.start_date.is_(None), 
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "deadline_asc":
+            stmt = stmt.order_by(
+                Task.deadline.is_(None), 
+                Task.deadline.asc(), 
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "deadline_desc":
+            stmt = stmt.order_by(
+                Task.deadline.desc(), 
+                Task.deadline.is_(None), 
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "status":
+            stmt = stmt.order_by(
+                Task.status.asc(), 
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        else:
+            raise ValueError(f"Invalid sort_by parameter: {sort_by}")
+        
         return session.execute(stmt).scalars().all()
 
 # Soft Delete
@@ -307,3 +395,18 @@ def detach_subtask(parent_id: int, subtask_id: int) -> bool:
 
         session.delete(link)
         return True
+
+def get_task_with_subtasks(task_id: int) -> Optional[Task]:
+    """
+    Return a task with its subtasks
+    """
+    with SessionLocal() as session:
+        stmt = (
+            select(Task)
+            .where(Task.id == task_id)
+            .options(
+                # load link rows and their subtask Task objects
+                selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask)
+            )
+        )
+        return session.execute(stmt).scalar_one_or_none()
