@@ -179,7 +179,6 @@ INVALID_UPDATE_PAYLOAD_WITH_STATUS_AND_ACTIVE = {
     "active" : False
 }
 
-
 # Valid test values
 VALID_PROJECT_ID = 123
 VALID_PROJECT_ID_INACTIVE_TASK = 100
@@ -197,28 +196,7 @@ EMPTY_PROJECT_ID = 99999
 EDGE_CASE_PRIORITY_BOUNDARY_LOW = {"priority": 1}  # Minimum valid
 EDGE_CASE_PRIORITY_BOUNDARY_HIGH = {"priority": 10}  # Maximum valid
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-VALID_CREATE_PAYLOAD_WITH_PARENT = {
-    "title": "Child Task",
-    "priority": 4,
-    "project_id": 100,
-    "active": True,
-    "parent_id": 1,
-}
-
-# Parent task for testing hierarchy
+# Parent task 
 VALID_PARENT_TASK = {
     "id": 10,
     "title": "Parent Task",
@@ -231,7 +209,6 @@ VALID_PARENT_TASK = {
     "active": True,
 }
 
-# Inactive parent task for testing validation
 INACTIVE_PARENT_TASK = {
     "id": 11,
     "title": "Inactive Parent",
@@ -244,39 +221,5 @@ INACTIVE_PARENT_TASK = {
     "active": False,
 }
 
-INVALID_CREATE_NONEXISTENT_PARENT = {
-    "title": "Orphan Task",
-    "priority": 5,
-    "project_id": 100,
-    "parent_id": 999999,  # Non-existent parent ID
-}
-
-
-
-
-
-
-
-
-
-
 INVALID_PARENT_IDS = [0, -1]
 
-# Mock task instances for testing relationships
-MOCK_CHILD_TASKS = [
-    {"id": 20, "title": "Child-1", "priority": 4},
-    {"id": 21, "title": "Child-2", "priority": 7},
-]
-
-# Mock return values for session operations
-MOCK_TASK_RETURN = {
-    "id": 1,
-    "title": "Mocked Task",
-    "description": "Task created via mock",
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.TO_DO.value,
-    "priority": 5,
-    "project_id": 100,
-    "active": True,
-}
