@@ -428,7 +428,7 @@ def detach_subtask(parent_id: int, subtask_id: int) -> bool:
 
 def get_task_with_subtasks(task_id: int) -> Optional[Task]:
     """
-    Return a task with its subtasks
+    Return a task with its active subtasks
     """
     if not isinstance(task_id, int):
         raise TypeError(f"task_id must be an integer, got {type(task_id).__name__}")
@@ -438,8 +438,8 @@ def get_task_with_subtasks(task_id: int) -> Optional[Task]:
             select(Task)
             .where(Task.id == task_id)
             .options(
-                # load link rows and their subtask Task objects
-                selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask)
+                # load link rows and their active subtask Task objects
+                selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask.and_(Task.active.is_(True)))
             )
         )
         return session.execute(stmt).scalar_one_or_none()

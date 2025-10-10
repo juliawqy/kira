@@ -27,9 +27,17 @@ def create_task(payload: TaskCreate):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/", response_model=List[TaskWithSubTasks], name="list_tasks")
-def list_parent_tasks():
-    """Return all top-level tasks in as."""
-    return task_service.list_parent_tasks()
+def list_tasks():
+    """Return all top-level tasks with their subtasks."""
+    parent_tasks = task_service.list_parent_tasks()
+
+    enriched_tasks = []
+    for task in parent_tasks:
+        task_with_subtasks = task_service.get_task_with_subtasks(task.id)
+        if task_with_subtasks:
+            enriched_tasks.append(task_with_subtasks)
+    
+    return enriched_tasks
 
 @router.get("/filter", response_model=List[TaskWithSubTasks], name="list_tasks_filtered_sorted")
 def list_tasks_filtered_sorted(
@@ -83,8 +91,16 @@ def list_tasks_filtered_sorted(
                 start_date = datetime.strptime(date_range[0], "%Y-%m-%d").date()
                 end_date = datetime.strptime(date_range[1], "%Y-%m-%d").date()
                 filter_by["start_date_range"] = [start_date, end_date]
+
+        parent_tasks = task_service.list_parent_tasks(sort_by=sort_by, filter_by=filter_by)
+
+        enriched_tasks = []
+        for task in parent_tasks:
+            task_with_subtasks = task_service.get_task_with_subtasks(task.id)
+            if task_with_subtasks:
+                enriched_tasks.append(task_with_subtasks)
         
-        return task_service.list_parent_tasks(sort_by=sort_by, filter_by=filter_by)
+        return enriched_tasks
     
     except (ValueError, json.JSONDecodeError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid filter parameters: {str(e)}")
@@ -93,9 +109,16 @@ def list_tasks_filtered_sorted(
 
 @router.get("/project/{project_id}", response_model=List[TaskWithSubTasks], name="list_tasks_by_project")
 def list_tasks_by_project(project_id: int):
-    """Get all parent-level tasks for a specific project."""
-    tasks = task_service.list_tasks_by_project(project_id)
-    return tasks
+    """Get all parent-level tasks for a specific project with their subtasks."""
+    parent_tasks = task_service.list_tasks_by_project(project_id)
+
+    enriched_tasks = []
+    for task in parent_tasks:
+        task_with_subtasks = task_service.get_task_with_subtasks(task.id)
+        if task_with_subtasks:
+            enriched_tasks.append(task_with_subtasks)
+    
+    return enriched_tasks
 
 @router.get("/{task_id}", response_model=TaskWithSubTasks, name="get_task")
 def get_task(task_id: int):
@@ -145,8 +168,12 @@ def delete_task(task_id: int, detach_links: bool = Query(True, description="Deta
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-
 # ---------- Subtask Handlers ----------
+@router.get("/parents", response_model=List[TaskRead], name="list_parent_tasks")
+def list_parent_tasks_only():
+    """Return all parent-level tasks without their subtasks."""
+    return task_service.list_parent_tasks()
+
 @router.get("/{task_id}/subtasks", response_model=List[TaskRead], name="list_subtasks")
 def list_subtasks(task_id: int):
     """Return direct subtasks of the given task."""
