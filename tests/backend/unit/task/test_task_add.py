@@ -41,7 +41,7 @@ def test_add_task_minimal_uses_default_priority_5(mock_session_local):
         deadline=None,     
         status=TaskStatus.TO_DO.value,  # Should default to TO_DO
         priority=5,        # Should default to 5
-        project_id=100,
+        project_id=VALID_CREATE_PAYLOAD_MINIMAL["project_id"],
         active=True,       # Should default to True
     )
 
@@ -55,10 +55,9 @@ def test_add_task_with_explicit_priority(mock_session_local):
     """Create with explicit priority; verify it's used instead of default."""
     from backend.src.services import task as task_service
     
-    # Mock session context manager
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
+
     mock_task = MagicMock()
     mock_task.id = VALID_TASK_EXPLICIT_PRIORITY["id"]
 
@@ -73,7 +72,7 @@ def test_add_task_with_explicit_priority(mock_session_local):
         deadline=None,      
         status=TaskStatus.TO_DO.value,
         priority=8,         
-        project_id=100,
+        project_id=VALID_CREATE_PAYLOAD_WITH_EXPLICIT_PRIORITY["project_id"],
         active=True,        
     )
 

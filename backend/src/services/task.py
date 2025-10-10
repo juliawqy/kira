@@ -103,20 +103,27 @@ def update_task(
     deadline: Optional[date] = None,
     priority: Optional[int] = None,
     project_id: Optional[int] = None,
-    active: Optional[bool] = None,
-) -> Optional[Task]:
+    **kwargs
+) -> Task:
     """
     Update details of a task.
 
     Return the updated task.
 
-    Use start_task/complete_task/block_task for status transitions.
-
+    Use delete_task for setting active=False.
+    Use set_task_status for status transitions.
+    
+    Raises ValueError if 'active' or 'status' fields are included in the update.
     """
+    # Check for disallowed fields
+    disallowed_fields = {'active', 'status'} & set(kwargs.keys())
+    if disallowed_fields:
+        raise ValueError(f"Cannot update fields {disallowed_fields}. Use delete_task() for 'active' or set_task_status() for 'status'.")
+    
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
         if not task:
-            return None
+            raise ValueError("Task not found")
 
         if title is not None:       task.title = title
         if description is not None: task.description = description
@@ -126,7 +133,6 @@ def update_task(
             _validate_bucket(priority)
             task.priority = priority
         if project_id is not None:  task.project_id = project_id
-        if active is not None:      task.active = active
 
         session.add(task)
         session.flush()

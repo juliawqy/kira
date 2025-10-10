@@ -112,12 +112,18 @@ def update_task(task_id: int, payload: TaskUpdate):
 
     Return the updated task.
 
-    Use start_task/complete_task/block_task for status transitions.
+    Use delete_task for setting active=False.
+    Use set_task_status for status transitions.
     """
-    updated = task_service.update_task(task_id, **payload.model_dump(exclude_unset=True))
-    if not updated:
-        raise HTTPException(404, "Task not found")
-    return updated
+    try:
+        updated = task_service.update_task(task_id, **payload.model_dump(exclude_unset=True))
+        return updated
+    except ValueError as e:
+        msg = str(e).lower()
+        # Treat "not found" as 404; everything else remains 400
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/{task_id}/status/{new_status}", response_model=TaskRead, name="set_task_status")
 def set_task_status(task_id: int, new_status: str):

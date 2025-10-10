@@ -53,4 +53,3 @@ class TaskUpdate(BaseModel):
     deadline: Optional[date] = None
     priority: Optional[Annotated[int, Field(ge=1, le=10)]] = None
     project_id: Optional[int] = None
-    active: Optional[bool] = None
