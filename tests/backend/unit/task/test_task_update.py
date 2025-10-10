@@ -1,249 +1,436 @@
-<<<<<<< HEAD
-=======
 # tests/backend/unit/task/test_task_update.py
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f
 from __future__ import annotations
 
-from datetime import date, timedelta
 import pytest
+from unittest.mock import MagicMock, patch
 
-import backend.src.services.task as svc
-from backend.src.services.task import TaskStatus
+from tests.mock_data.task.unit_data import (
+    VALID_DEFAULT_TASK, 
+    VALID_UPDATE_PAYLOAD,
+    EMPTY_UPDATE_PAYLOAD,
+    INVALID_UPDATE_PAYLOAD_WITH_ACTIVE,
+    INVALID_UPDATE_PAYLOAD_WITH_STATUS,
+    INVALID_UPDATE_PAYLOAD_WITH_STATUS_AND_ACTIVE,
+    INVALID_TASK_ID_NONEXISTENT, 
+    INVALID_PRIORITY_VALUES, 
+    INVALID_PRIORITY_TYPES,
+    EDGE_CASE_PRIORITY_BOUNDARY_LOW, 
+    EDGE_CASE_PRIORITY_BOUNDARY_HIGH
+)
 
 pytestmark = pytest.mark.unit
 
-<<<<<<< HEAD
-
-def test_update_task_changes_multiple_fields():
-    """Update several fields; values should persist after re-fetch."""
-    start = date.today()
-    due = start + timedelta(days=3)
-=======
-# UNI-048/047
-def test_update_task_changes_multiple_fields():
-    """Update several fields; values should persist after re-fetch."""
-    start = date.today()
-    due = start + timedelta(days=3)
-
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f
-    t = svc.add_task(
-        title="Orig",
-        description="desc",
-        start_date=None,
-        deadline=None,
-        status=TaskStatus.TO_DO.value,
-<<<<<<< HEAD
-        priority="Medium",
-=======
-        priority=5,
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f
-        project_id=None,
-        active=True,
+# UNI-003/001
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_with_valid_payload(mock_session_local):
+    """Update task using comprehensive update payload"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    
+    mock_task = MagicMock()
+    mock_task.id = VALID_DEFAULT_TASK["id"]
+    mock_task.title = VALID_DEFAULT_TASK["title"]
+    mock_task.description = VALID_DEFAULT_TASK["description"]
+    mock_task.priority = VALID_DEFAULT_TASK["priority"]
+    mock_task.project_id = VALID_DEFAULT_TASK["project_id"]
+    mock_task.active = VALID_DEFAULT_TASK["active"]
+    mock_task.start_date = VALID_DEFAULT_TASK["start_date"]
+    mock_task.deadline = VALID_DEFAULT_TASK["deadline"]
+    
+    mock_session.get.return_value = mock_task
+    mock_session.flush.return_value = None
+    
+    result = task_service.update_task(
+        task_id=VALID_DEFAULT_TASK["id"],
+        **VALID_UPDATE_PAYLOAD
     )
+    
+    mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_called_once_with(mock_task)
+    mock_session.flush.assert_called_once()
 
-    new_due = due
-    updated = svc.update_task(
-        t.id,
-        title="New",
-        description="desc2",
-        start_date=start,
-        deadline=new_due,
-<<<<<<< HEAD
-        priority="High",
-=======
-        priority=8,
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f
-        project_id=42,
-        active=False,
+    assert mock_task.title == VALID_UPDATE_PAYLOAD["title"]
+    assert mock_task.description == VALID_UPDATE_PAYLOAD["description"]
+    assert mock_task.priority == VALID_UPDATE_PAYLOAD["priority"]
+    assert mock_task.start_date == VALID_UPDATE_PAYLOAD["start_date"]
+    assert mock_task.deadline == VALID_UPDATE_PAYLOAD["deadline"]
+    assert result == mock_task
+
+# UNI-003/002
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_no_fields_returns_task(mock_session_local):
+    """Update task with empty/None fields returns existing task with original values unchanged"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+
+    mock_task = MagicMock()
+    mock_task.id = VALID_DEFAULT_TASK["id"]
+    mock_task.title = VALID_DEFAULT_TASK["title"]
+    mock_task.description = VALID_DEFAULT_TASK["description"]
+    mock_task.priority = VALID_DEFAULT_TASK["priority"]
+    mock_task.project_id = VALID_DEFAULT_TASK["project_id"]
+    mock_task.active = VALID_DEFAULT_TASK["active"]
+    mock_task.start_date = VALID_DEFAULT_TASK["start_date"]
+    mock_task.deadline = VALID_DEFAULT_TASK["deadline"]
+    
+    original_title = mock_task.title
+    original_description = mock_task.description
+    original_priority = mock_task.priority
+    original_project_id = mock_task.project_id
+    original_active = mock_task.active
+    original_start_date = mock_task.start_date
+    original_deadline = mock_task.deadline
+    
+    mock_session.get.return_value = mock_task
+    mock_session.flush.return_value = None
+    
+    result = task_service.update_task(
+        task_id=VALID_DEFAULT_TASK["id"],
+        **EMPTY_UPDATE_PAYLOAD
     )
-    assert updated is not None
+    
+    mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_called_once_with(mock_task)
+    mock_session.flush.assert_called_once()
+    
+    assert mock_task.title == original_title
+    assert mock_task.description == original_description
+    assert mock_task.priority == original_priority
+    assert mock_task.project_id == original_project_id
+    assert mock_task.active == original_active
+    assert mock_task.start_date == original_start_date
+    assert mock_task.deadline == original_deadline
+    assert result == mock_task
 
-    got = svc.get_task_with_subtasks(t.id)
-    assert got.title == "New"
-    assert got.description == "desc2"
-    assert got.start_date == start
-    assert got.deadline == new_due
-<<<<<<< HEAD
-    assert got.priority == "High"
-    assert got.project_id == 42
-    assert got.active is False
+# UNI-003/003
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_with_status_field_raises_error(mock_session_local):
+    """Update task with status field raises ValueError and preserves original values"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    
+    mock_task = MagicMock()
+    mock_task.id = VALID_DEFAULT_TASK["id"]
+    mock_task.title = VALID_DEFAULT_TASK["title"]
+    mock_task.description = VALID_DEFAULT_TASK["description"]
+    mock_task.priority = VALID_DEFAULT_TASK["priority"]
+    mock_task.project_id = VALID_DEFAULT_TASK["project_id"]
+    mock_task.active = VALID_DEFAULT_TASK["active"]
+    mock_task.start_date = VALID_DEFAULT_TASK["start_date"]
+    mock_task.deadline = VALID_DEFAULT_TASK["deadline"]
+    mock_task.status = VALID_DEFAULT_TASK["status"]
+    
+    original_title = mock_task.title
+    original_description = mock_task.description
+    original_priority = mock_task.priority
+    original_project_id = mock_task.project_id
+    original_active = mock_task.active
+    original_start_date = mock_task.start_date
+    original_deadline = mock_task.deadline
+    original_status = mock_task.status
+    
+    mock_session.get.return_value = mock_task
+    
+    with pytest.raises(ValueError) as exc:
+        task_service.update_task(
+            task_id=VALID_DEFAULT_TASK["id"],
+            **INVALID_UPDATE_PAYLOAD_WITH_STATUS
+        )
+    
+    assert "Cannot update fields" in str(exc.value)
+    assert "'status'" in str(exc.value)
+    assert "set_task_status()" in str(exc.value)
+    mock_session_local.begin.assert_not_called()
+    
+    assert mock_task.title == original_title
+    assert mock_task.description == original_description
+    assert mock_task.priority == original_priority
+    assert mock_task.project_id == original_project_id
+    assert mock_task.active == original_active
+    assert mock_task.start_date == original_start_date
+    assert mock_task.deadline == original_deadline
+    assert mock_task.status == original_status
 
+# UNI-003/004
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_with_active_field_raises_error(mock_session_local):
+    """Update task with active field raises ValueError and preserves original values"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    
+    mock_task = MagicMock()
+    mock_task.id = VALID_DEFAULT_TASK["id"]
+    mock_task.title = VALID_DEFAULT_TASK["title"]
+    mock_task.description = VALID_DEFAULT_TASK["description"]
+    mock_task.priority = VALID_DEFAULT_TASK["priority"]
+    mock_task.project_id = VALID_DEFAULT_TASK["project_id"]
+    mock_task.active = VALID_DEFAULT_TASK["active"]
+    mock_task.start_date = VALID_DEFAULT_TASK["start_date"]
+    mock_task.deadline = VALID_DEFAULT_TASK["deadline"]
+    mock_task.status = VALID_DEFAULT_TASK["status"]
+    
+    original_title = mock_task.title
+    original_description = mock_task.description
+    original_priority = mock_task.priority
+    original_project_id = mock_task.project_id
+    original_active = mock_task.active
+    original_start_date = mock_task.start_date
+    original_deadline = mock_task.deadline
+    original_status = mock_task.status
+    
+    mock_session.get.return_value = mock_task
+    
+    with pytest.raises(ValueError) as exc:
+        task_service.update_task(
+            task_id=VALID_DEFAULT_TASK["id"],
+            **INVALID_UPDATE_PAYLOAD_WITH_ACTIVE
+        )
+    
+    assert "Cannot update fields" in str(exc.value)
+    assert "'active'" in str(exc.value)
+    assert "delete_task()" in str(exc.value)
+    mock_session_local.begin.assert_not_called()
+    
+    assert mock_task.title == original_title
+    assert mock_task.description == original_description
+    assert mock_task.priority == original_priority
+    assert mock_task.project_id == original_project_id
+    assert mock_task.active == original_active
+    assert mock_task.start_date == original_start_date
+    assert mock_task.deadline == original_deadline
+    assert mock_task.status == original_status
 
-def test_update_task_invalid_priority_raises_value_error():
-    """Reject invalid priority values."""
-    t = svc.add_task(title="T", description=None, start_date=None, deadline=None)
-    with pytest.raises(ValueError):
-        svc.update_task(t.id, priority="Ultra")  # not in {Low, Medium, High}
+# UNI-003/005
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_with_both_disallowed_fields_raises_error(mock_session_local):
+    """Update task with both active and status fields raises ValueError and preserves original values"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    
+    mock_task = MagicMock()
+    mock_task.id = VALID_DEFAULT_TASK["id"]
+    mock_task.title = VALID_DEFAULT_TASK["title"]
+    mock_task.description = VALID_DEFAULT_TASK["description"]
+    mock_task.priority = VALID_DEFAULT_TASK["priority"]
+    mock_task.project_id = VALID_DEFAULT_TASK["project_id"]
+    mock_task.active = VALID_DEFAULT_TASK["active"]
+    mock_task.start_date = VALID_DEFAULT_TASK["start_date"]
+    mock_task.deadline = VALID_DEFAULT_TASK["deadline"]
+    mock_task.status = VALID_DEFAULT_TASK["status"]
+    
+    original_title = mock_task.title
+    original_description = mock_task.description
+    original_priority = mock_task.priority
+    original_project_id = mock_task.project_id
+    original_active = mock_task.active
+    original_start_date = mock_task.start_date
+    original_deadline = mock_task.deadline
+    original_status = mock_task.status
+    
+    mock_session.get.return_value = mock_task
+    
+    with pytest.raises(ValueError) as exc:
+        task_service.update_task(
+            task_id=VALID_DEFAULT_TASK["id"],
+            **INVALID_UPDATE_PAYLOAD_WITH_STATUS_AND_ACTIVE
+        )
+    
+    assert "Cannot update fields" in str(exc.value)
+    assert ("'active'" in str(exc.value) or "'status'" in str(exc.value))
+    mock_session_local.begin.assert_not_called()
+    
+    assert mock_task.title == original_title
+    assert mock_task.description == original_description
+    assert mock_task.priority == original_priority
+    assert mock_task.project_id == original_project_id
+    assert mock_task.active == original_active
+    assert mock_task.start_date == original_start_date
+    assert mock_task.deadline == original_deadline
+    assert mock_task.status == original_status
 
+# UNI-003/006
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_nonexistent_raises_error(mock_session_local):
+    """Update nonexistent task raises ValueError"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    
+    mock_session.get.return_value = None
+    
+    with pytest.raises(ValueError) as exc:
+        task_service.update_task(
+            task_id=INVALID_TASK_ID_NONEXISTENT,
+            **VALID_UPDATE_PAYLOAD
+        )
+    
+    assert "Task not found" in str(exc.value)
+    mock_session.get.assert_called_once_with(task_service.Task, INVALID_TASK_ID_NONEXISTENT)
+    mock_session.add.assert_not_called()
+    mock_session.flush.assert_not_called()
 
-def test_update_task_nonexistent_returns_none():
-    """Return None when the target task id does not exist."""
-    assert svc.update_task(999_999, title="X") is None
+# UNI-003/007
+@pytest.mark.parametrize("invalid_priority", INVALID_PRIORITY_VALUES)
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_invalid_priority_value_raises_error(mock_session_local, invalid_priority):
+    """Update task with invalid priority value raises ValueError and preserves original values"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    
+    mock_task = MagicMock()
+    mock_task.id = VALID_DEFAULT_TASK["id"]
+    mock_task.title = VALID_DEFAULT_TASK["title"]
+    mock_task.description = VALID_DEFAULT_TASK["description"]
+    mock_task.priority = VALID_DEFAULT_TASK["priority"]
+    mock_task.project_id = VALID_DEFAULT_TASK["project_id"]
+    mock_task.active = VALID_DEFAULT_TASK["active"]
+    mock_task.start_date = VALID_DEFAULT_TASK["start_date"]
+    mock_task.deadline = VALID_DEFAULT_TASK["deadline"]
+    
+    original_title = mock_task.title
+    original_description = mock_task.description
+    original_priority = mock_task.priority
+    original_project_id = mock_task.project_id
+    original_active = mock_task.active
+    original_start_date = mock_task.start_date
+    original_deadline = mock_task.deadline
+    
+    mock_session.get.return_value = mock_task
+    
+    with pytest.raises(ValueError) as exc:
+        task_service.update_task(
+            task_id=VALID_DEFAULT_TASK["id"],
+            priority=invalid_priority
+        )
+    
+    assert "priority must be between 1 and 10" in str(exc.value)
+    mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_not_called()
+    mock_session.flush.assert_not_called()
+    
+    assert mock_task.title == original_title
+    assert mock_task.description == original_description
+    assert mock_task.priority == original_priority
+    assert mock_task.project_id == original_project_id
+    assert mock_task.active == original_active
+    assert mock_task.start_date == original_start_date
+    assert mock_task.deadline == original_deadline
 
+# UNI-003/008
+@pytest.mark.parametrize("invalid_priority", INVALID_PRIORITY_TYPES)
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_invalid_priority_type_raises_error(mock_session_local, invalid_priority):
+    """Update task with invalid priority type raises TypeError and preserves original values"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    
+    mock_task = MagicMock()
+    mock_task.id = VALID_DEFAULT_TASK["id"]
+    mock_task.title = VALID_DEFAULT_TASK["title"]
+    mock_task.description = VALID_DEFAULT_TASK["description"]
+    mock_task.priority = VALID_DEFAULT_TASK["priority"]
+    mock_task.project_id = VALID_DEFAULT_TASK["project_id"]
+    mock_task.active = VALID_DEFAULT_TASK["active"]
+    mock_task.start_date = VALID_DEFAULT_TASK["start_date"]
+    mock_task.deadline = VALID_DEFAULT_TASK["deadline"]
+    
+    original_title = mock_task.title
+    original_description = mock_task.description
+    original_priority = mock_task.priority
+    original_project_id = mock_task.project_id
+    original_active = mock_task.active
+    original_start_date = mock_task.start_date
+    original_deadline = mock_task.deadline
+    
+    mock_session.get.return_value = mock_task
+    
+    with pytest.raises(TypeError) as exc:
+        task_service.update_task(
+            task_id=VALID_DEFAULT_TASK["id"],
+            priority=invalid_priority
+        )
+    
+    assert "priority must be an integer" in str(exc.value)
+    mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_not_called()
+    mock_session.flush.assert_not_called()
+    
+    assert mock_task.title == original_title
+    assert mock_task.description == original_description
+    assert mock_task.priority == original_priority
+    assert mock_task.project_id == original_project_id
+    assert mock_task.active == original_active
+    assert mock_task.start_date == original_start_date
+    assert mock_task.deadline == original_deadline
 
-def test_update_task_no_fields_is_noop():
-    """No kwargs -> no change; returns current Task as-is."""
-    t = svc.add_task(title="T", description="d", start_date=None, deadline=None, priority="Medium")
-    before = svc.get_task_with_subtasks(t.id)
-    after = svc.update_task(t.id)  # no updates
-    assert after is not None
-    assert after.id == before.id
-    # Re-fetch to verify nothing changed
-    got = svc.get_task_with_subtasks(t.id)
-    assert got.title == before.title
-    assert got.description == before.description
-    assert got.priority == before.priority
-    assert got.active == before.active
-    assert got.project_id == before.project_id
-    assert got.start_date == before.start_date
-    assert got.deadline == before.deadline
+# UNI-003/009
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_priority_boundary_low(mock_session_local):
+    """Update task with minimum valid priority (1)"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
-
-def test_update_task_does_not_change_status():
-    """Status transitions are not handled by update_task."""
-    t = svc.add_task(
-        title="T",
-        description=None,
-        start_date=None,
-        deadline=None,
-        status=TaskStatus.IN_PROGRESS.value,
+    mock_task = MagicMock()
+    mock_task.id = VALID_DEFAULT_TASK["id"]
+    mock_task.priority = VALID_DEFAULT_TASK["priority"]
+    
+    mock_session.get.return_value = mock_task
+    mock_session.flush.return_value = None
+    
+    result = task_service.update_task(
+        task_id=VALID_DEFAULT_TASK["id"],
+        **EDGE_CASE_PRIORITY_BOUNDARY_LOW
     )
-    svc.update_task(t.id, title="T2", project_id=7)  # no status arg
-    got = svc.get_task_with_subtasks(t.id)
-    assert got.status == TaskStatus.IN_PROGRESS.value  # unchanged
-    assert got.title == "T2"
-    assert got.project_id == 7
+    
+    mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_called_once_with(mock_task)
+    mock_session.flush.assert_called_once()
+    
+    assert mock_task.priority == EDGE_CASE_PRIORITY_BOUNDARY_LOW["priority"]
+    assert result == mock_task
 
+# UNI-003/010
+@patch("backend.src.services.task.SessionLocal")
+def test_update_task_priority_boundary_high(mock_session_local):
+    """Update task with maximum valid priority (10)"""
+    from backend.src.services import task as task_service
+    
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
-def test_update_task_partial_fields_ok():
-    """Update a subset of fields; only those should change."""
-    t = svc.add_task(
-        title="Alpha",
-        description="keep",
-        start_date=None,
-        deadline=None,
-        priority="Low",
-        project_id=1,
-        active=True,
+    mock_task = MagicMock()
+    mock_task.id = VALID_DEFAULT_TASK["id"]
+    mock_task.priority = VALID_DEFAULT_TASK["priority"]
+    
+    mock_session.get.return_value = mock_task
+    mock_session.flush.return_value = None
+    
+    result = task_service.update_task(
+        task_id=VALID_DEFAULT_TASK["id"],
+        **EDGE_CASE_PRIORITY_BOUNDARY_HIGH
     )
-    svc.update_task(t.id, priority="Medium", active=False)  # partial update
-    got = svc.get_task_with_subtasks(t.id)
-    assert got.priority == "Medium"
-    assert got.active is False
-    # untouched fields remain the same
-    assert got.title == "Alpha"
-    assert got.description == "keep"
-    assert got.project_id == 1
+    
+    mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_called_once_with(mock_task)
+    mock_session.flush.assert_called_once()
+    
+    assert mock_task.priority == EDGE_CASE_PRIORITY_BOUNDARY_HIGH["priority"]
+    assert result == mock_task
 
-
-=======
-    assert got.priority == 8
-    assert got.project_id == 42
-    assert got.active is False
-
-# UNI-048/048
-@pytest.mark.parametrize("bad_bucket", [0, 11, -3, 999])
-def test_update_task_invalid_priority_raises_value_error(bad_bucket: int):
-    """Reject invalid priority updates (must be within 1..10)."""
-    t = svc.add_task(title="T", description=None, start_date=None, deadline=None, priority=4)
-    with pytest.raises(ValueError):
-        svc.update_task(t.id, priority=bad_bucket)
-
-# UNI-048/049
-def test_update_task_nonexistent_returns_none():
-    """Return None when the target task id does not exist."""
-    assert svc.update_task(999_999, title="X") is None
-
-# UNI-048/050
-def test_update_task_no_fields_is_noop():
-    """No kwargs -> no change; returns current Task as-is."""
-    t = svc.add_task(title="T", description="d", start_date=None, deadline=None, priority=6)
-    before = svc.get_task_with_subtasks(t.id)
-    after = svc.update_task(t.id)  # no updates
-    assert after is not None
-    assert after.id == before.id
-    # Re-fetch to verify nothing changed
-    got = svc.get_task_with_subtasks(t.id)
-    assert got.title == before.title
-    assert got.description == before.description
-    assert got.priority == before.priority
-    assert got.active == before.active
-    assert got.project_id == before.project_id
-    assert got.start_date == before.start_date
-    assert got.deadline == before.deadline
-
-# UNI-048/051
-def test_update_task_does_not_change_status():
-    """Status transitions are not handled by update_task (use start/block/complete)."""
-    t = svc.add_task(
-        title="T",
-        description=None,
-        start_date=None,
-        deadline=None,
-        status=TaskStatus.IN_PROGRESS.value,
-        priority=7,
-    )
-    svc.update_task(t.id, title="T2", project_id=7)  # no status arg
-    got = svc.get_task_with_subtasks(t.id)
-    assert got.status == TaskStatus.IN_PROGRESS.value  # unchanged
-    assert got.title == "T2"
-    assert got.project_id == 7
-
-# UNI-048/052
-def test_update_task_partial_fields_ok():
-    """Update a subset of fields; only those should change."""
-    t = svc.add_task(
-        title="Alpha",
-        description="keep",
-        start_date=None,
-        deadline=None,
-        priority=3,
-        project_id=1,
-        active=True,
-    )
-    svc.update_task(t.id, priority=10, active=False)  # partial update
-    got = svc.get_task_with_subtasks(t.id)
-    assert got.priority == 10
-    assert got.active is False
-    # untouched fields remain the same
-    assert got.title == "Alpha"
-    assert got.description == "keep"
-    assert got.project_id == 1
-
-# UNI-048/053
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f
-def test_update_task_ignore_none_parameters():
-    """Explicit None values are ignored by guards and do not clear fields."""
-    t = svc.add_task(
-        title="T",
-        description="desc",
-        start_date=date.today(),
-        deadline=None,
-<<<<<<< HEAD
-        priority="Medium",
-    )
-    # Attempt "clears" (service ignores None guards)
-    svc.update_task(t.id, description=None, start_date=None, deadline=None, project_id=None, active=None)
-    got = svc.get_task_with_subtasks(t.id)
-    assert got.description == "desc"                # unchanged
-    assert got.start_date is not None               # unchanged
-    assert got.deadline is None                     # unchanged
-=======
-        priority=5,
-    )
-    # Attempt "clears" (service ignores None guards)
-    svc.update_task(
-        t.id,
-        description=None,
-        start_date=None,
-        deadline=None,
-        project_id=None,
-        active=None,
-        priority=None,  # ignored if your service treats None as "no change"
-    )
-    got = svc.get_task_with_subtasks(t.id)
-    assert got.description == "desc"          # unchanged
-    assert got.start_date is not None         # unchanged
-    assert got.deadline is None               # unchanged
-    assert got.priority == 5           # unchanged
->>>>>>> 90732818ea271ec617266c163ded6d656b42ad1f

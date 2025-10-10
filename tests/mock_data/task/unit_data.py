@@ -97,14 +97,16 @@ VALID_TASK_BLOCKED = {
     "active": True,
 }
 
+# Create
+
 VALID_CREATE_PAYLOAD_MINIMAL = {
     "title": "Default Task",
-    "project_id": 100
+    "project_id": 123
 }
 
 VALID_CREATE_PAYLOAD_WITH_EXPLICIT_PRIORITY = {
     "title": "Task with Explicit Priority",
-    "priority": 8,  # Different from default to test explicit priority
+    "priority": 8, 
     "project_id": 100,
 }
 
@@ -118,6 +120,95 @@ VALID_CREATE_PAYLOAD_FULL = {
     "project_id": 123,
     "active": True,
 }
+
+# Update
+
+VALID_UPDATE_DEFAULT_TASK = {
+    "id": 1,
+    "title": "Updated Task Title",
+    "description": "Updated description",
+    "start_date": date.today() + timedelta(days=1),
+    "deadline": date.today() + timedelta(days=14),
+    "status": TaskStatus.TO_DO.value,
+    "priority": 8,
+    "project_id": 123,
+    "active": True,
+}
+
+VALID_UPDATE_PAYLOAD = {
+    "title": "Updated Task Title",
+    "description": "Updated description",
+    "priority": 8,
+    "start_date": date.today() + timedelta(days=1),
+    "deadline": date.today() + timedelta(days=14),
+}
+
+EMPTY_UPDATE_PAYLOAD = {
+    "title": None,
+    "description": None,
+    "priority": None,
+    "start_date": None,
+    "deadline": None,
+}
+
+INVALID_UPDATE_PAYLOAD_WITH_STATUS = {
+    "title": "Updated Task Title",
+    "description": "Updated description",
+    "priority": 8,
+    "start_date": date.today() + timedelta(days=1),
+    "deadline": date.today() + timedelta(days=14),
+    "status": "COMPLETED"
+}
+
+INVALID_UPDATE_PAYLOAD_WITH_ACTIVE = {
+    "title": "Updated Task Title",
+    "description": "Updated description",
+    "priority": 8,
+    "start_date": date.today() + timedelta(days=1),
+    "deadline": date.today() + timedelta(days=14),
+    "active" : False
+}
+
+INVALID_UPDATE_PAYLOAD_WITH_STATUS_AND_ACTIVE = {
+    "title": "Updated Task Title",
+    "description": "Updated description",
+    "priority": 8,
+    "start_date": date.today() + timedelta(days=1),
+    "deadline": date.today() + timedelta(days=14),
+    "status": "COMPLETED",
+    "active" : False
+}
+
+
+# Valid test values
+VALID_PROJECT_ID = 123
+VALID_PROJECT_ID_INACTIVE_TASK = 100
+
+# Invalid test data for parameterized tests
+INVALID_PRIORITIES = [-1, 0, 11, "High", None]
+INVALID_PRIORITY_VALUES = [-1, 0, 11, 999]  
+INVALID_PRIORITY_TYPES = ["High", 3.14, [], {}] 
+INVALID_STATUSES = ["In progress", "DONE", "Todo", None, "", 123]
+INVALID_TASK_ID_TYPE = ["123", 3.14, None]
+INVALID_TASK_ID_NONEXISTENT = 99999
+EMPTY_PROJECT_ID = 99999
+
+# Edge cases
+EDGE_CASE_PRIORITY_BOUNDARY_LOW = {"priority": 1}  # Minimum valid
+EDGE_CASE_PRIORITY_BOUNDARY_HIGH = {"priority": 10}  # Maximum valid
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 VALID_CREATE_PAYLOAD_WITH_PARENT = {
     "title": "Child Task",
@@ -153,26 +244,6 @@ INACTIVE_PARENT_TASK = {
     "active": False,
 }
 
-# Invalid create payloads
-INVALID_CREATE_BAD_PRIORITY_LOW = {
-    "title": "Bad Priority Low",
-    "priority": 0,  # Invalid: below 1
-    "project_id": 100,
-}
-
-INVALID_CREATE_BAD_PRIORITY_HIGH = {
-    "title": "Bad Priority High",
-    "priority": 11,  # Invalid: above 10
-    "project_id": 100,
-}
-
-INVALID_CREATE_BAD_STATUS = {
-    "title": "Bad Status",
-    "status": "In progress",  # Invalid: wrong format (should be "In-progress")
-    "priority": 5,
-    "project_id": 100,
-}
-
 INVALID_CREATE_NONEXISTENT_PARENT = {
     "title": "Orphan Task",
     "priority": 5,
@@ -180,32 +251,15 @@ INVALID_CREATE_NONEXISTENT_PARENT = {
     "parent_id": 999999,  # Non-existent parent ID
 }
 
-INVALID_TASK_ID_NONEXISTENT = 99999
-EMPTY_PROJECT_ID = 99999
 
-# Update payloads
-VALID_UPDATE_TITLE = {"title": "Updated Task Title"}
-VALID_UPDATE_DESCRIPTION = {"description": "Updated description"}
-VALID_UPDATE_PRIORITY = {"priority": 8}
-VALID_PROJECT_ID = 123
-VALID_PROJECT_ID_INACTIVE_TASK = 100
-VALID_UPDATE_DATES = {
-    "start_date": date.today() + timedelta(days=1),
-    "deadline": date.today() + timedelta(days=14),
-}
 
-# Edge cases
-EDGE_CASE_LONG_TITLE = {"title": "A" * 128}  # Max length
-EDGE_CASE_LONG_DESCRIPTION = {"description": "B" * 256}  # Max length
-EDGE_CASE_PRIORITY_BOUNDARY_LOW = {"priority": 1}  # Minimum valid
-EDGE_CASE_PRIORITY_BOUNDARY_HIGH = {"priority": 10}  # Maximum valid
 
-# Invalid test data for parameterized tests
-INVALID_PRIORITIES = [-1, 0, 11, 999, "High", None]
-INVALID_PRIORITY_VALUES = [-1, 0, 11, 999]  
-INVALID_PRIORITY_TYPES = ["High", None, 3.14, [], {}] 
-INVALID_STATUSES = ["In progress", "DONE", "Todo", None, "", 123]
-INVALID_TASK_ID_TYPE = ["123", 3.14, None]
+
+
+
+
+
+
 INVALID_PARENT_IDS = [0, -1]
 
 # Mock task instances for testing relationships
