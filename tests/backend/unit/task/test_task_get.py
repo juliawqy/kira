@@ -257,7 +257,7 @@ def test_list_tasks_with_combined_date_filters(mock_session_local):
     
     result = task_service.list_parent_tasks(filter_by={
         "start_date_range": start_range,
-        "due_date_range": due_range
+        "deadline_range": due_range
     })
     
     mock_session.execute.assert_called_once()
@@ -338,7 +338,7 @@ def test_list_tasks_with_compound_filter_raises_error(mock_session_local):
     with pytest.raises(ValueError) as exc:
         task_service.list_parent_tasks(filter_by={
             "status": "IN_PROGRESS",
-            "due_date_range": [date.today(), date.today() + timedelta(days=5)]
+            "deadline_range": [date.today(), date.today() + timedelta(days=5)]
         })
     
     assert "Date filters cannot be combined with other filter types" in str(exc.value)
@@ -612,7 +612,7 @@ def test_list_tasks_with_deadline_filter_and_status_sort(mock_session_local):
     deadline_end = date.today() + timedelta(days=20)
     
     result = task_service.list_parent_tasks(
-        filter_by={"due_date_range": [deadline_start, deadline_end]},
+        filter_by={"deadline_range": [deadline_start, deadline_end]},
         sort_by="status"
     )
 

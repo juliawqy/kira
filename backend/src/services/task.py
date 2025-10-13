@@ -150,7 +150,7 @@ def set_task_status(task_id: int, new_status: str) -> Task:
         session.flush()
         return task
 
-def list_parent_tasks(
+def list_tasks(
     *, 
     active_only: bool = True, 
     project_id: Optional[int] = None,
@@ -164,10 +164,10 @@ def list_parent_tasks(
     Filter options:
     - {"priority_range": [3, 7]} - Priority range (min, max)
     - {"status": "IN_PROGRESS"} - Exact status 
-    - {"due_date_range": [date(2024, 10, 1), date(2024, 10, 31)]} - Due date range
+    - {"deadline_range": [date(2024, 10, 1), date(2024, 10, 31)]} - Due date range
     - {"start_date_range": [date(2024, 10, 1), date(2024, 10, 31)]} - Start date range
     
-    Note: Date ranges (due_date_range, start_date_range) can be combined together.
+    Note: Date ranges (deadline_range, start_date_range) can be combined together.
     Other filters (priority_range, status) are mutually exclusive with all others.
     
     Sort options:
@@ -198,7 +198,7 @@ def list_parent_tasks(
         # Apply filters if provided
         if filter_by:
             # Validate filter combinations
-            date_filters = set(filter_by.keys()) & {"due_date_range", "start_date_range"}
+            date_filters = set(filter_by.keys()) & {"deadline_range", "start_date_range"}
             non_date_filters = set(filter_by.keys()) & {"priority_range", "status"}
             
             # Date filters can be combined with each other, but not with non-date filters
@@ -215,8 +215,8 @@ def list_parent_tasks(
             if "status" in filter_by:
                 stmt = stmt.where(Task.status == filter_by["status"])
                 
-            if "due_date_range" in filter_by:
-                start_date, end_date = filter_by["due_date_range"]
+            if "deadline_range" in filter_by:
+                start_date, end_date = filter_by["deadline_range"]
                 stmt = stmt.where(Task.deadline >= start_date, Task.deadline <= end_date)
                 
             if "start_date_range" in filter_by:
@@ -330,6 +330,132 @@ def delete_task(task_id: int, *, detach_links: bool = True) -> Task:
         return task
 
 # ---- Subtask CRUD -------------------------------------------------------------------
+
+def list_parent_tasks(
+    *, 
+    active_only: bool = True, 
+    project_id: Optional[int] = None,
+    sort_by: str = "priority_desc",
+    filter_by: Optional[dict] = None
+) -> list[Task]:
+    """
+    Return all top-level tasks (tasks that are not referenced as a subtask),
+    with their subtasks eagerly loaded.
+    
+    Filter options:
+    - {"priority_range": [3, 7]} - Priority range (min, max)
+    - {"status": "IN_PROGRESS"} - Exact status 
+    - {"deadline_range": [date(2024, 10, 1), date(2024, 10, 31)]} - Due date range
+    - {"start_date_range": [date(2024, 10, 1), date(2024, 10, 31)]} - Start date range
+    
+    Note: Date ranges (deadline_range, start_date_range) can be combined together.
+    Other filters (priority_range, status) are mutually exclusive with all others.
+    
+    Sort options:
+    - "priority_desc" (default): Priority high to low, then deadline closest to furthest
+    - "priority_asc": Priority low to high, then deadline closest to furthest  
+    - "start_date_asc": Start date oldest to latest, then by priority high to low
+    - "start_date_desc": Start date latest to oldest, then by priority high to low
+    - "deadline_asc": Deadline oldest to latest, then by priority high to low
+    - "deadline_desc": Deadline latest to oldest, then by priority high to low
+    - "status": By status, then by priority high to low
+    """
+    with SessionLocal() as session:
+        not_a_subtask = ~exists(
+            select(ParentAssignment.subtask_id).where(ParentAssignment.subtask_id == Task.id)
+        )
+        stmt = (
+            select(Task)
+            .where(not_a_subtask)
+        )
+        
+        # Apply basic filters
+        if active_only:
+            stmt = stmt.where(Task.active.is_(True))
+        if project_id is not None:
+            stmt = stmt.where(Task.project_id == project_id)
+            
+        # Apply filters if provided
+        if filter_by:
+            # Validate filter combinations
+            date_filters = set(filter_by.keys()) & {"deadline_range", "start_date_range"}
+            non_date_filters = set(filter_by.keys()) & {"priority_range", "status"}
+            
+            # Date filters can be combined with each other, but not with non-date filters
+            if len(non_date_filters) > 1:
+                raise ValueError(f"Only one non-date filter allowed. Found: {list(non_date_filters)}")
+            if len(non_date_filters) >= 1 and len(date_filters) >= 1:
+                raise ValueError(f"Date filters cannot be combined with other filter types. Found date filters: {list(date_filters)}, other filters: {list(non_date_filters)}")
+            
+            # Apply filters
+            if "priority_range" in filter_by:
+                min_p, max_p = filter_by["priority_range"]
+                stmt = stmt.where(Task.priority >= min_p, Task.priority <= max_p)
+            
+            if "status" in filter_by:
+                stmt = stmt.where(Task.status == filter_by["status"])
+                
+            if "deadline_range" in filter_by:
+                start_date, end_date = filter_by["deadline_range"]
+                stmt = stmt.where(Task.deadline >= start_date, Task.deadline <= end_date)
+                
+            if "start_date_range" in filter_by:
+                start_date, end_date = filter_by["start_date_range"]
+                stmt = stmt.where(Task.start_date >= start_date, Task.start_date <= end_date)
+        
+        # Apply sorting after filtering
+        if sort_by == "priority_desc":
+            stmt = stmt.order_by(
+                Task.priority.desc(), 
+                Task.deadline.is_(None), 
+                Task.deadline.asc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "priority_asc":
+            stmt = stmt.order_by(
+                Task.priority.asc(), 
+                Task.deadline.is_(None), 
+                Task.deadline.asc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "start_date_asc":
+            stmt = stmt.order_by(
+                Task.start_date.is_(None), 
+                Task.start_date.asc(), 
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "start_date_desc":
+            stmt = stmt.order_by(
+                Task.start_date.desc(), 
+                Task.start_date.is_(None), 
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "deadline_asc":
+            stmt = stmt.order_by(
+                Task.deadline.is_(None), 
+                Task.deadline.asc(), 
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "deadline_desc":
+            stmt = stmt.order_by(
+                Task.deadline.desc(), 
+                Task.deadline.is_(None), 
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        elif sort_by == "status":
+            stmt = stmt.order_by(
+                Task.status.desc(), # reverse alphabetical order gives to-do first and blocked last
+                Task.priority.desc(), 
+                Task.id.asc()
+            )
+        else:
+            raise ValueError(f"Invalid sort_by parameter: {sort_by}")
+        
+        return session.execute(stmt).scalars().all()
 
 def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
     """
