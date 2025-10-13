@@ -140,7 +140,7 @@ INACTIVE_SUBTASK = {
 
 TASK_CREATE_CHILD = {
     "title": "Task First Child",
-    "project_id": 123
+    "project_id": 123,
 }
 
 EXPECTED_TASK_CHILD_RESPONSE = {
@@ -227,11 +227,6 @@ TASK_CREATE_PARENT = {
     "project_id": 100
 }
 
-TASK_CREATE_CHILD_TEMPLATE = {
-    "title": "Database migration",
-    "project_id": 100,
-    "parent_id": None
-}
 
 TASK_CREATE_NONEXISTENT_PARENT = {
     "title": "Complete user authentication",

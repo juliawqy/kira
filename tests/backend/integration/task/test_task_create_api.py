@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import pytest
 from sqlalchemy import text
+from datetime import date, datetime
 
 from backend.src.enums.task_status import TaskStatus
 from tests.mock_data.task.integration_data import (
@@ -13,6 +14,19 @@ from tests.mock_data.task.integration_data import (
     EXPECTED_TASK_RESPONSE,
     EXPECTED_RESPONSE_FIELDS
 )
+
+def serialize_payload(payload: dict) -> dict:
+    """Convert date/datetime objects in payload to ISO strings for JSON serialization."""
+    def convert(value):
+        if isinstance(value, (date, datetime)):
+            return value.isoformat()
+        if isinstance(value, dict):
+            return {k: convert(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [convert(v) for v in value]
+        return value
+
+    return {k: convert(v) for k, v in payload.items()}
 
 
 @pytest.fixture
@@ -54,7 +68,7 @@ def verify_database_state(test_db_session):
 def test_create_task_successful(client, task_base_path, test_db_session, verify_database_state):
     initial_count = verify_database_state()
 
-    response = client.post(f"{task_base_path}/", json=TASK_CREATE_PAYLOAD)
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     assert response.status_code == 201
 
     data = response.json()
@@ -64,7 +78,10 @@ def test_create_task_successful(client, task_base_path, test_db_session, verify_
 
     expected_response = EXPECTED_TASK_RESPONSE
     for field, expected_value in expected_response.items():
-        assert data[field] == expected_value, f"Field {field}: expected {expected_value}, got {data[field]}"
+        if (field == "start_date" or field == "deadline") and isinstance(expected_value, date):
+            assert data[field] == expected_value.isoformat(), f"Field {field}: expected {expected_value.isoformat()}, got {data[field]}"
+        else:
+            assert data[field] == expected_value, f"Field {field}: expected {expected_value}, got {data[field]}"
 
     db_result = test_db_session.execute(
         text("SELECT title, project_id, status, priority, active, description FROM task WHERE id = :id"),
@@ -107,7 +124,7 @@ def test_create_task_invalid_parent(client, task_base_path, verify_database_stat
 def test_create_task_inactive_parent(client, task_base_path):
     """Create task with inactive parent id"""
 
-    data = client.post(f"{task_base_path}/", json=TASK_CREATE_PAYLOAD)
+    data = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     data = data.json()
     id = data["id"]
     client.post(f"{task_base_path}/{id}/delete")

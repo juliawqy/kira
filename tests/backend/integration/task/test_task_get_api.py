@@ -25,6 +25,7 @@ from tests.mock_data.task.integration_data import (
     FILTER_AND_SORT_QUERY,
     VALID_PROJECT_ID,
     VALID_PROJECT_ID_INACTIVE_TASK,
+    TASK_CREATE_CHILD
 )
 
 
@@ -317,9 +318,9 @@ def test_list_parent_tasks_excludes_subtasks(client, task_base_path):
     parent_id = r_parent.json()["id"]
 
 
-    child_payload = dict(TASK_CREATE_CHILD_TEMPLATE)
+    child_payload = dict(TASK_CREATE_CHILD)
     child_payload["parent_id"] = parent_id
-    r_child = client.post(f"{task_base_path}/parents", json=serialize_payload(child_payload))
+    r_child = client.post(f"{task_base_path}/", json=serialize_payload(child_payload))
     assert r_child.status_code == 201
     child_id = r_child.json()["id"]
 
