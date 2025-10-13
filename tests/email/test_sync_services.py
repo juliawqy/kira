@@ -1,5 +1,5 @@
 """
-Test script to verify synchronous notification services
+Test script to verify synchronous email and notification services
 """
 import sys
 import os
@@ -10,25 +10,23 @@ sys.path.append(project_root)
 
 from backend.src.services.notification_service import get_notification_service
 from backend.src.services.email_service import get_email_service
-from backend.src.services.task_notification_service import get_task_notification_service
 
 
 def test_service_imports():
-    """Test that all services can be imported and instantiated"""
+    """Test that both email and notification services can be imported and instantiated"""
     print("🧪 Testing service imports...")
     
     try:
         # Test email service
         email_service = get_email_service()
         print("✅ Email service imported successfully")
+        print(f"   📧 SMTP Host: {email_service.settings.fastmail_smtp_host}")
+        print(f"   📧 SMTP Port: {email_service.settings.fastmail_smtp_port}")
         
         # Test notification service
         notification_service = get_notification_service()
         print("✅ Notification service imported successfully")
-        
-        # Test task notification service
-        task_notification_service = get_task_notification_service()
-        print("✅ Task notification service imported successfully")
+        print(f"   🔔 Email service connected: {notification_service.email_service is not None}")
         
         return True
         
@@ -38,13 +36,14 @@ def test_service_imports():
 
 
 def test_synchronous_behavior():
-    """Test that services are truly synchronous"""
+    """Test that notification service is truly synchronous (no await needed)"""
     print("\n🔄 Testing synchronous behavior...")
     
     try:
         notification_service = get_notification_service()
         
         # This should work without await since it's now synchronous
+        print("   📤 Sending test notification...")
         response = notification_service.notify_task_updated(
             task_id=999,
             task_title="Sync Test Task",
@@ -55,8 +54,9 @@ def test_synchronous_behavior():
         )
         
         print("✅ Synchronous call completed successfully")
-        print(f"📊 Response type: {type(response)}")
-        print(f"📊 Response success: {response.success}")
+        print(f"   📊 Response type: {type(response).__name__}")
+        print(f"   📊 Response success: {response.success}")
+        print(f"   📊 Response message: {response.message}")
         
         return True
         
@@ -67,8 +67,8 @@ def test_synchronous_behavior():
 
 def main():
     """Main test function"""
-    print("🎯 Synchronous Services Test")
-    print("="*50)
+    print("🎯 Email & Notification Services Test")
+    print("="*55)
     
     # Test imports
     import_success = test_service_imports()
@@ -76,13 +76,16 @@ def main():
     # Test synchronous behavior  
     sync_success = test_synchronous_behavior()
     
-    print("\n" + "="*50)
+    print("\n" + "="*55)
     if import_success and sync_success:
-        print("🎉 All tests passed! Services are now synchronous.")
+        print("🎉 All tests passed! Email services are synchronous and ready!")
+        print("\n📋 Available services:")
+        print("   • EmailService - Direct SMTP email sending")
+        print("   • NotificationService - Task notification orchestration")
     else:
         print("❌ Some tests failed. Check the errors above.")
     
-    print("\n💡 Services are now ready for real-time notifications!")
+    print("\n💡 Services are ready for real-time email notifications!")
 
 
 if __name__ == "__main__":
