@@ -30,23 +30,7 @@ class NotificationService:
         new_values: Optional[Dict[str, Any]] = None,
         task_url: Optional[str] = None
     ) -> EmailResponse:
-        """
-        Send notification when a task is updated
         
-        Args:
-            task_id: ID of the updated task
-            task_title: Title of the task
-            updated_by: Name/email of the person who updated the task
-            updated_fields: List of field names that were updated
-            assignee_email: Email of the task assignee
-            assignee_name: Name of the task assignee
-            previous_values: Previous values of updated fields
-            new_values: New values of updated fields
-            task_url: Direct URL to the task (optional)
-        
-        Returns:
-            EmailResponse: Result of the email sending operation
-        """
         try:
             logger.info(f"Sending task update notification for task {task_id} to {assignee_email}")
             
