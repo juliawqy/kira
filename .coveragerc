@@ -10,6 +10,7 @@ omit =
     backend/src/api/v1/__init__.py
     backend/src/api/v1/routes/__init__.py
     backend/src/services/__init__.py
+    backend/src/enums
 
 [report]
 show_missing = True
