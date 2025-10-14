@@ -164,6 +164,8 @@ SORT_PARAMETERS = [
     "priority_desc", "priority_asc", "start_date_asc", "start_date_desc", "deadline_asc","deadline_desc", "status"
 ]
 
+INVALID_DATA_SORT = "invalid_sort"
+
 FILTER_PARAMETERS = [
     json.dumps({"priority_range": [3, 7]}),
     json.dumps({"status": TaskStatus.TO_DO.value}),

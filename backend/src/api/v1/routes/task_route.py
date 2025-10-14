@@ -160,8 +160,6 @@ def list_parent_tasks(
 
     except (ValueError, json.JSONDecodeError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid filter parameters: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{task_id}", response_model=TaskWithSubTasks, name="get_task")
 def get_task(task_id: int):

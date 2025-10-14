@@ -328,39 +328,6 @@ def test_list_tasks_with_status_filter(mock_session_local):
 
 # UNI-002/008
 @patch("backend.src.services.task.SessionLocal")
-def test_list_tasks_with_compound_filter_raises_error(mock_session_local):
-    """Combining non-date filters with date filters raises ValueError"""
-    from backend.src.services import task as task_service
-    
-    mock_session = MagicMock()
-    mock_session_local.return_value.__enter__.return_value = mock_session
-
-    with pytest.raises(ValueError) as exc:
-        task_service.list_parent_tasks(filter_by={
-            "status": "IN_PROGRESS",
-            "deadline_range": [date.today(), date.today() + timedelta(days=5)]
-        })
-    
-    assert "Date filters cannot be combined with other filter types" in str(exc.value)
-
-    with pytest.raises(ValueError) as exc:
-        task_service.list_parent_tasks(filter_by={
-            "priority_range": [5, 8],
-            "start_date_range": [date.today() - timedelta(days=5), date.today()]
-        })
-    
-    assert "Date filters cannot be combined with other filter types" in str(exc.value)
-
-    with pytest.raises(ValueError) as exc:
-        task_service.list_parent_tasks(filter_by={
-            "status": "IN_PROGRESS",
-            "priority_range": [5, 8]
-        })
-    
-    assert "Only one non-date filter allowed" in str(exc.value)
-
-# UNI-002/009
-@patch("backend.src.services.task.SessionLocal")
 def test_list_tasks_with_start_date_sort(mock_session_local):
     """Sort by start_date_asc orders tasks correctly, with priority as secondary sort for same dates"""
     from backend.src.services import task as task_service
@@ -420,7 +387,7 @@ def test_list_tasks_with_start_date_sort(mock_session_local):
     assert result[2].title == VALID_TASK_IN_PROGRESS["title"] # 2 days ago
     assert result[3].title == VALID_TASK_TODO["title"]       # 1 day from now
 
-# UNI-002/011
+# UNI-002/009
 @patch("backend.src.services.task.SessionLocal")
 def test_list_tasks_with_due_deadline_sort(mock_session_local):
     """Sort by deadline_asc orders tasks correctly, with priority as secondary sort for same dates"""
@@ -480,7 +447,7 @@ def test_list_tasks_with_due_deadline_sort(mock_session_local):
     assert result[2].title == VALID_TASK_IN_PROGRESS["title"] # 14 days from now, priority 9
     assert result[3].title == VALID_TASK_BLOCKED["title"]     # 14 days from now, priority 5
 
-# UNI-002/012
+# UNI-002/010
 @patch("backend.src.services.task.SessionLocal")
 def test_list_tasks_with_status_sort(mock_session_local):
     """Sort by status orders tasks correctly with all status types"""
@@ -545,7 +512,7 @@ def test_list_tasks_with_status_sort(mock_session_local):
     assert result[2].title == VALID_TASK_COMPLETED["title"]
     assert result[3].title == VALID_TASK_BLOCKED["title"]
 
-# UNI-002/013
+# UNI-002/011
 @patch("backend.src.services.task.SessionLocal")
 def test_list_tasks_with_invalid_sort_raises_error(mock_session_local):
     """Invalid sort parameter raises ValueError"""
@@ -559,7 +526,7 @@ def test_list_tasks_with_invalid_sort_raises_error(mock_session_local):
     
     assert "Invalid sort_by parameter" in str(exc.value)
 
-# UNI-002/014
+# UNI-002/012
 @patch("backend.src.services.task.SessionLocal")
 def test_list_tasks_with_deadline_filter_and_status_sort(mock_session_local):
     """Combine deadline filter with status sorting using all task types"""
@@ -636,7 +603,7 @@ def test_list_tasks_with_deadline_filter_and_status_sort(mock_session_local):
     result_statuses = {t.status for t in result}
     assert VALID_TASK_COMPLETED["status"] not in result_statuses
 
-# UNI-002/015
+# UNI-002/013
 @patch("backend.src.services.task.SessionLocal")
 def test_list_tasks_by_project(mock_session_local):
     """List parent tasks for a specific project with subtasks loaded"""
@@ -690,7 +657,7 @@ def test_list_tasks_by_project(mock_session_local):
     assert VALID_TASK_EXPLICIT_PRIORITY["title"] in result_titles
     assert VALID_TASK_FULL["title"] not in result_titles
 
-# UNI-002/016
+# UNI-002/014
 @patch("backend.src.services.task.SessionLocal")
 def test_list_tasks_by_empty_project(mock_session_local):
     """List tasks by project returns empty list when project has no tasks"""
@@ -716,7 +683,7 @@ def test_list_tasks_by_empty_project(mock_session_local):
     assert len(result) == 0
     assert result == []
 
-# UNI-002/017
+# UNI-002/015
 @patch("backend.src.services.task.SessionLocal")
 def test_list_tasks_by_project_default_exclude_inactive(mock_session_local):
     """List tasks by project excludes inactive tasks by default"""
@@ -772,7 +739,7 @@ def test_list_tasks_by_project_default_exclude_inactive(mock_session_local):
     assert result[0].title == VALID_TASK_EXPLICIT_PRIORITY["title"]
     assert result[0].project_id == VALID_TASK_EXPLICIT_PRIORITY["project_id"]
 
-# UNI-002/018
+# UNI-002/016
 @patch("backend.src.services.task.SessionLocal")
 def test_list_tasks_by_project_include_inactive(mock_session_local):
     """List tasks by project includes inactive tasks when active_only=False"""
@@ -832,7 +799,7 @@ def test_list_tasks_by_project_include_inactive(mock_session_local):
     assert True in active_statuses
     assert False in active_statuses
 
-# UNI-002/019
+# UNI-002/017
 @patch("backend.src.services.task.SessionLocal")
 def test_get_task_by_id(mock_session_local):
     """Get task by ID returns task"""
@@ -871,7 +838,7 @@ def test_get_task_by_id(mock_session_local):
     assert result.project_id == VALID_DEFAULT_TASK["project_id"]
     assert result.active == VALID_DEFAULT_TASK["active"]
 
-# UNI-002/020
+# UNI-002/018
 @patch("backend.src.services.task.SessionLocal")
 def test_get_task_by_invalid_id(mock_session_local):
     """Get task by invalid ID returns None"""
@@ -896,7 +863,7 @@ def test_get_task_by_invalid_id(mock_session_local):
     
     assert result is None
 
-# UNI-002/021
+# UNI-002/019
 @pytest.mark.parametrize("invalid_id", INVALID_TASK_ID_TYPE)
 @patch("backend.src.services.task.SessionLocal")
 def test_get_task_by_invalid_id_type(mock_session_local, invalid_id):

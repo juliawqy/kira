@@ -186,28 +186,13 @@ def list_tasks(
         stmt = (
             select(Task)
             .where(not_a_subtask)
+            .where(Task.active.is_(active_only))
             .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
         )
-        
-        # Apply basic filters
-        if active_only:
-            stmt = stmt.where(Task.active.is_(True))
-        if project_id is not None:
-            stmt = stmt.where(Task.project_id == project_id)
             
         # Apply filters if provided
         if filter_by:
-            # Validate filter combinations
-            date_filters = set(filter_by.keys()) & {"deadline_range", "start_date_range"}
-            non_date_filters = set(filter_by.keys()) & {"priority_range", "status"}
-            
-            # Date filters can be combined with each other, but not with non-date filters
-            if len(non_date_filters) > 1:
-                raise ValueError(f"Only one non-date filter allowed. Found: {list(non_date_filters)}")
-            if len(non_date_filters) >= 1 and len(date_filters) >= 1:
-                raise ValueError(f"Date filters cannot be combined with other filter types. Found date filters: {list(date_filters)}, other filters: {list(non_date_filters)}")
-            
-            # Apply filters
+
             if "priority_range" in filter_by:
                 min_p, max_p = filter_by["priority_range"]
                 stmt = stmt.where(Task.priority >= min_p, Task.priority <= max_p)
@@ -367,27 +352,12 @@ def list_parent_tasks(
         stmt = (
             select(Task)
             .where(not_a_subtask)
+            .where(Task.active.is_(active_only))
         )
-        
-        # Apply basic filters
-        if active_only:
-            stmt = stmt.where(Task.active.is_(True))
-        if project_id is not None:
-            stmt = stmt.where(Task.project_id == project_id)
             
         # Apply filters if provided
-        if filter_by:
-            # Validate filter combinations
-            date_filters = set(filter_by.keys()) & {"deadline_range", "start_date_range"}
-            non_date_filters = set(filter_by.keys()) & {"priority_range", "status"}
-            
-            # Date filters can be combined with each other, but not with non-date filters
-            if len(non_date_filters) > 1:
-                raise ValueError(f"Only one non-date filter allowed. Found: {list(non_date_filters)}")
-            if len(non_date_filters) >= 1 and len(date_filters) >= 1:
-                raise ValueError(f"Date filters cannot be combined with other filter types. Found date filters: {list(date_filters)}, other filters: {list(non_date_filters)}")
-            
-            # Apply filters
+        if filter_by:           
+
             if "priority_range" in filter_by:
                 min_p, max_p = filter_by["priority_range"]
                 stmt = stmt.where(Task.priority >= min_p, Task.priority <= max_p)

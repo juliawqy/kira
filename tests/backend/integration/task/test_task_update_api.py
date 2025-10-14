@@ -5,7 +5,7 @@
 # from backend.src.enums.task_status import TaskStatus
 
 # from tests.mock_data.task.integration_data import (
-#     TASK_CREATE_FULL,
+#     TASK_CREATE_PAYLOAD,
 #     TASK_UPDATE_BASIC,
 #     TASK_UPDATE_PARTIAL_TITLE_ONLY,
 #     TASK_UPDATE_PARTIAL_PRIORITY,
@@ -30,7 +30,7 @@
 # # INT-003/001
 # def test_update_task_full_success(client, task_base_path):
 
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
+#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_PAYLOAD)
 #     assert create_resp.status_code == 201
 #     task_id = create_resp.json()["id"]
 
@@ -57,7 +57,7 @@
 #     ],
 # )
 # def test_update_task_partial_fields(client, task_base_path, payload, expected_fields):
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
+#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_PAYLOAD)
 #     assert create_resp.status_code == 201
 #     task_id = create_resp.json()["id"]
 
@@ -79,7 +79,7 @@
 #     ],
 # )
 # def test_invalid_updates(client, task_base_path, payload):
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
+#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_PAYLOAD)
 #     task_id = create_resp.json()["id"]
 
 #     resp = client.patch(f"{task_base_path}/{task_id}", json=payload)
@@ -92,7 +92,7 @@
 #     [(INVALID_TASK_ID_NONEXISTENT, 404)],
 # )
 # def test_update_nonexistent_or_inactive_task(client, task_base_path, task_id_override, expected_status):
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
+#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_PAYLOAD)
 #     assert create_resp.status_code == 201
 
 #     resp = client.patch(f"{task_base_path}/{task_id_override}", json=TASK_UPDATE_BASIC)
@@ -112,7 +112,7 @@
 #     INT-003/006
 #     Verify that priority boundary values (1, 10) are accepted.
 #     """
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
+#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_PAYLOAD)
 #     task_id = create_resp.json()["id"]
 
 #     update_resp = client.patch(f"{task_base_path}/{task_id}", json=payload)
@@ -122,7 +122,7 @@
 # # INT-003/007
 # def test_update_long_text_fields(client, task_base_path):
 
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
+#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_PAYLOAD)
 #     task_id = create_resp.json()["id"]
 
 #     resp = client.patch(f"{task_base_path}/{task_id}", json=TASK_UPDATE_LONG_TEXT)
@@ -134,7 +134,7 @@
 
 # # INT-022/001
 # def test_transition_to_in_progress(client, task_base_path):
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
+#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_PAYLOAD)
 #     task_id = create_resp.json()["id"]
 
 #     start_resp = client.post(f"{task_base_path}/{task_id}/status/{TaskStatus.IN_PROGRESS.value}")
@@ -143,7 +143,7 @@
 
 # # INT-022/002
 # def test_transition_to_completed(client, task_base_path):
-#     task = TASK_CREATE_FULL.copy()
+#     task = TASK_CREATE_PAYLOAD.copy()
 #     task["status"] = TaskStatus.IN_PROGRESS.value
 #     create_resp = client.post(f"{task_base_path}/", json=task)
 #     task_id = create_resp.json()["id"]
@@ -155,7 +155,7 @@
 # # INT-022/003
 # def test_transition_to_blocked(client, task_base_path):
 
-#     task = TASK_CREATE_FULL.copy()
+#     task = TASK_CREATE_PAYLOAD.copy()
 #     task["status"] = TaskStatus.IN_PROGRESS.value
 #     create_resp = client.post(f"{task_base_path}/", json=task)
 #     task_id = create_resp.json()["id"]
