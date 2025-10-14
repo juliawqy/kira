@@ -100,57 +100,8 @@ def list_tasks_by_project(project_id: int):
     
     return parent_tasks
 
-@router.get("/{task_id}", response_model=TaskWithSubTasks, name="get_task")
-def get_task(task_id: int):
-    """Get a task by id; return it with its subtasks."""
-    task = task_service.get_task_with_subtasks(task_id)
-    if not task:
-        raise HTTPException(404, "Task not found")
-    return task
-
-@router.patch("/{task_id}", response_model=TaskRead, name="update_task")
-def update_task(task_id: int, payload: TaskUpdate):
-    """
-    Update details of a task.
-
-    Return the updated task.
-
-    Use delete_task for setting active=False.
-    Use set_task_status for status transitions.
-    """
-    try:
-        updated = task_service.update_task(task_id, **payload.model_dump(exclude_unset=True))
-        return updated
-    except ValueError as e:
-        msg = str(e).lower()
-        # Treat "not found" as 404; everything else remains 400
-        if "not found" in msg:
-            raise HTTPException(status_code=404, detail=str(e))
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.post("/{task_id}/status/{new_status}", response_model=TaskRead, name="set_task_status")
-def set_task_status(task_id: int, new_status: str):
-    """Set a task's status."""
-    try:
-        return task_service.set_task_status(task_id, new_status)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    
-@router.post(
-    "/{task_id}/delete",
-    response_model=TaskRead,
-    name="delete_task",
-)
-def delete_task(task_id: int, detach_links: bool = Query(True, description="Detach parent/subtask links while deleting")):
-    """Soft-delete a task (active=False). Optionally detach all links; return updated task."""
-    try:
-        return task_service.delete_task(task_id, detach_links=detach_links)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-# ---------- Subtask Handlers ----------
 @router.get("/parents", response_model=List[TaskRead], name="list_parent_tasks")
-def list_parent_tasks_only(
+def list_parent_tasks(
     # checking for "?sort_by=...&filters=..." in the URL
     sort_by: str = Query("priority_desc", description="Sort criteria"),
     filters: str = Query(None, description="JSON string with filter criteria. Date ranges (deadline_range, start_date_range) can be combined. Other filters (priority_range, status) must be used separately.")
@@ -212,13 +163,61 @@ def list_parent_tasks_only(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/{task_id}", response_model=TaskWithSubTasks, name="get_task")
+def get_task(task_id: int):
+    """Get a task by id; return it with its subtasks."""
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    return task
 
+@router.patch("/{task_id}", response_model=TaskRead, name="update_task")
+def update_task(task_id: int, payload: TaskUpdate):
+    """
+    Update details of a task.
+
+    Return the updated task.
+
+    Use delete_task for setting active=False.
+    Use set_task_status for status transitions.
+    """
+    try:
+        updated = task_service.update_task(task_id, **payload.model_dump(exclude_unset=True))
+        return updated
+    except ValueError as e:
+        msg = str(e).lower()
+        # Treat "not found" as 404; everything else remains 400
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/{task_id}/status/{new_status}", response_model=TaskRead, name="set_task_status")
+def set_task_status(task_id: int, new_status: str):
+    """Set a task's status."""
+    try:
+        return task_service.set_task_status(task_id, new_status)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    
+@router.post(
+    "/{task_id}/delete",
+    response_model=TaskRead,
+    name="delete_task",
+)
+def delete_task(task_id: int, detach_links: bool = Query(True, description="Detach parent/subtask links while deleting")):
+    """Soft-delete a task (active=False). Optionally detach all links; return updated task."""
+    try:
+        return task_service.delete_task(task_id, detach_links=detach_links)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+# ---------- Subtask Handlers ----------
 
 @router.get("/{task_id}/subtasks", response_model=List[TaskRead], name="list_subtasks")
 def list_subtasks(task_id: int):
     """Return direct subtasks of the given task."""
     t = task_service.get_task_with_subtasks(task_id)
-    if not t:
+    if not t or (hasattr(t, "active") and not t.active):
         raise HTTPException(404, "Task not found")
     return t.subtasks
 
