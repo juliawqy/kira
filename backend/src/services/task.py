@@ -285,7 +285,7 @@ def list_tasks_by_project(project_id: int, *, active_only: bool = True) -> list[
         return tasks
 
 # Soft Delete
-def delete_task(task_id: int, *, detach_links: bool = True) -> Task:
+def delete_task(task_id: int) -> Task:
     """
     Soft-delete a task by setting active=False.
     By default, detach all links so archived tasks are not part of any hierarchy.
@@ -299,15 +299,14 @@ def delete_task(task_id: int, *, detach_links: bool = True) -> Task:
 
         if task.active is False:
             raise ValueError("Task not found")
-        
-        if detach_links:
-            # Remove links where this task is parent or subtask
-            session.query(ParentAssignment).filter(
-                ParentAssignment.parent_id == task_id
-            ).delete()
-            session.query(ParentAssignment).filter(
-                ParentAssignment.subtask_id == task_id
-            ).delete()
+
+        # Remove links where this task is parent or subtask
+        session.query(ParentAssignment).filter(
+            ParentAssignment.parent_id == task_id
+        ).delete()
+        session.query(ParentAssignment).filter(
+            ParentAssignment.subtask_id == task_id
+        ).delete()
 
         task.active = False
         session.add(task)

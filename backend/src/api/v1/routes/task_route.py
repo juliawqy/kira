@@ -198,10 +198,10 @@ def set_task_status(task_id: int, new_status: str):
     response_model=TaskRead,
     name="delete_task",
 )
-def delete_task(task_id: int, detach_links: bool = Query(True, description="Detach parent/subtask links while deleting")):
+def delete_task(task_id: int):
     """Soft-delete a task (active=False). Optionally detach all links; return updated task."""
     try:
-        return task_service.delete_task(task_id, detach_links=detach_links)
+        return task_service.delete_task(task_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -238,10 +238,7 @@ def detach_subtask(parent_id: int, subtask_id: int):
         task_service.detach_subtask(parent_id, subtask_id)
         return
     except ValueError as e:
-        msg = str(e).lower()
-        if "not found" in msg:
-            raise HTTPException(status_code=404, detail=str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 

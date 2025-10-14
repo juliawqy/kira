@@ -11,7 +11,6 @@ from tests.mock_data.task.integration_data import (
     TASK_3_PAYLOAD,
     TASK_4_PAYLOAD,
     INACTIVE_TASK_PAYLOAD,
-    TASK_CREATE_PARENT,
     EXPECTED_TASK_RESPONSE,
     EXPECTED_RESPONSE_FIELDS,
     INVALID_TASK_ID_NONEXISTENT,
@@ -348,7 +347,7 @@ def test_list_task_by_project(client, task_base_path):
 # INT-013/007
 def test_list_parent_tasks_excludes_subtasks(client, task_base_path):
     """Children created with parent_id should not appear in parent list endpoint."""
-    r_parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PARENT))
+    r_parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     assert r_parent.status_code == 201
     parent_id = r_parent.json()["id"]
 
@@ -368,7 +367,7 @@ def test_list_parent_tasks_excludes_subtasks(client, task_base_path):
 @pytest.mark.parametrize("sort_param", SORT_PARAMETERS)
 def test_list_parent_tasks_with_sort(client, task_base_path, sort_param):
     """Create several tasks and list them via API; verify count and according to sorting criteria."""
-    r_parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PARENT))
+    r_parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     assert r_parent.status_code == 201
     parent_id = r_parent.json()["id"]
 

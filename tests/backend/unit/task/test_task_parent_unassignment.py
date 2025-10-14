@@ -153,16 +153,6 @@ def test_detach_inactive_subtask_raises_error(mock_session_local):
     with pytest.raises(ValueError, match=r"Link not found|not found"):
         task_service.detach_subtask(VALID_PARENT_TASK["id"], INACTIVE_TASK["id"])
 
-
-
-
-
-
-
-
-
-
-
 # UNI-023/009
 @patch("backend.src.services.task.SessionLocal")
 def test_delete_parent_task_with_detach_links_preserves_children(mock_session_local):
@@ -182,7 +172,7 @@ def test_delete_parent_task_with_detach_links_preserves_children(mock_session_lo
     mock_query.filter.return_value = mock_query
     mock_session.query.return_value = mock_query
     
-    result = task_service.delete_task(VALID_PARENT_TASK["id"], detach_links=True)
+    result = task_service.delete_task(VALID_PARENT_TASK["id"])
     
     assert mock_session.query.call_count == 2
     assert mock_query.filter.call_count == 2

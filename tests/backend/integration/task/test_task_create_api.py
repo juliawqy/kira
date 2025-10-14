@@ -5,7 +5,6 @@ import pytest
 from sqlalchemy import text
 from datetime import date, datetime
 
-from backend.src.enums.task_status import TaskStatus
 from tests.mock_data.task.integration_data import (
     TASK_CREATE_PAYLOAD,
     INVALID_TASK_CREATE,
@@ -191,9 +190,8 @@ def test_create_parent_assignment_nonexistent_parent(client, task_base_path, tes
     assert final_count == initial_count + 1
 
 # INT-013/003
-def test_create_parent_assignment_inactive_parent(client, task_base_path, test_db_session, verify_database_state):
+def test_create_parent_assignment_inactive_parent(client, task_base_path, test_db_session):
     """Attaching a child to an inactive parent should return 400 and no DB row created."""
-    initial_count = verify_database_state()
 
     parent_resp = client.post(f"{task_base_path}/", json=serialize_payload(INACTIVE_TASK_PAYLOAD))
     parent_task = parent_resp.json()
@@ -213,7 +211,6 @@ def test_create_parent_assignment_inactive_parent(client, task_base_path, test_d
         {"cid": child_task["id"]}
     ).scalar()
     assert db_assignment == 0
-
 
 # INT-013/004
 def test_create_parent_assignment_duplicate(client, task_base_path, test_db_session):
@@ -237,7 +234,6 @@ def test_create_parent_assignment_duplicate(client, task_base_path, test_db_sess
     ).fetchall()
     assert len(assignments) == 1
     assert assignments[0][0] == parent1["id"]
-
 
 # INT-013/005
 def test_create_parent_assignment_cycle(client, task_base_path, test_db_session):

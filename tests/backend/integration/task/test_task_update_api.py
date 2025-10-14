@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from datetime import date, timedelta, datetime
+from datetime import date, datetime
 
 from backend.src.enums.task_status import TaskStatus
 from tests.mock_data.task.integration_data import (
@@ -15,26 +15,7 @@ from tests.mock_data.task.integration_data import (
     TASK_UPDATE_PARTIAL_DATES,
     TASK_UPDATE_EMPTY,
     INVALID_STATUS,
-
-    TASK_2_PAYLOAD,
-    TASK_3_PAYLOAD,
-    TASK_4_PAYLOAD,
-    INACTIVE_TASK_PAYLOAD,
-    TASK_CREATE_PARENT,
-    
-    INACTIVE_TASK,
-    EXPECTED_RESPONSE_FIELDS,
-    INVALID_TASK_ID_NONEXISTENT,
-    SORT_PARAMETERS,
-    INVALID_DATA_SORT,
-    FILTER_PARAMETERS,
-    MULTI_DATA_FILTER,
-    INVALID_DATA_FILTER,
-    INVALID_DATA_FILTER_COMBI,
-    FILTER_AND_SORT_QUERY,
-    VALID_PROJECT_ID,
-    VALID_PROJECT_ID_INACTIVE_TASK,
-    TASK_CREATE_CHILD
+    INVALID_TASK_ID_NONEXISTENT
 )
 
 def serialize_payload(payload: dict) -> dict:
