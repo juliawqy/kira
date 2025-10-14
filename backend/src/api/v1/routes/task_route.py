@@ -183,11 +183,7 @@ def update_task(task_id: int, payload: TaskUpdate):
         updated = task_service.update_task(task_id, **payload.model_dump(exclude_unset=True))
         return updated
     except ValueError as e:
-        msg = str(e).lower()
-        # Treat "not found" as 404; everything else remains 400
-        if "not found" in msg:
-            raise HTTPException(status_code=404, detail=str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.post("/{task_id}/status/{new_status}", response_model=TaskRead, name="set_task_status")
 def set_task_status(task_id: int, new_status: str):

@@ -13,7 +13,6 @@ from tests.mock_data.task.integration_data import (
     INACTIVE_TASK_PAYLOAD,
     TASK_CREATE_PARENT,
     EXPECTED_TASK_RESPONSE,
-    INACTIVE_TASK,
     EXPECTED_RESPONSE_FIELDS,
     INVALID_TASK_ID_NONEXISTENT,
     SORT_PARAMETERS,
@@ -42,7 +41,7 @@ def serialize_payload(payload: dict) -> dict:
     return {k: convert(v) for k, v in payload.items()}
 
 
-# INT-003/001
+# INT-002/001
 def test_list_tasks_success(client, task_base_path):
     """Create several tasks and list them via API; verify count and default sorting."""
     for payload in (
@@ -63,7 +62,7 @@ def test_list_tasks_success(client, task_base_path):
     for i in range(len(data) - 1):
         assert data[i]["priority"] >= data[i + 1]["priority"]
 
-# INT-003/002
+# INT-002/002
 @pytest.mark.parametrize("sort_param", SORT_PARAMETERS)
 def test_list_task_with_sort(client, task_base_path, sort_param):
     """Create several tasks and list them via API; verify count and according to sorting criteria."""
@@ -129,7 +128,7 @@ def test_list_task_with_sort(client, task_base_path, sort_param):
             if data[i]["status"] == data[i + 1]["status"]:
                 assert data[i]["priority"] >= data[i + 1]["priority"]
 
-# INT-003/003
+# INT-002/003
 def test_list_task_with_invalid_sort(client, task_base_path):
     """Create several tasks and list them via API; verify count and according to sorting criteria."""
     for payload in (
@@ -144,7 +143,7 @@ def test_list_task_with_invalid_sort(client, task_base_path):
     response = client.get(f"{task_base_path}/filter?sort_by={INVALID_DATA_SORT}")
     assert response.status_code == 400
 
-# INT-003/004
+# INT-002/004
 @pytest.mark.parametrize("filter_param", FILTER_PARAMETERS)
 def test_list_task_with_one_filter(client, task_base_path, filter_param):
     """Create several tasks and list them via API; verify count and according to filter criteria."""
@@ -180,7 +179,7 @@ def test_list_task_with_one_filter(client, task_base_path, filter_param):
         for item in data:
             assert item["status"] == TaskStatus.TO_DO.value
 
-# INT-003/005
+# INT-002/005
 def test_list_task_with_multi_filter(client, task_base_path):
     """Create several tasks and list them via API; verify count and according to multi filter criteria."""
     for payload in (
@@ -203,7 +202,7 @@ def test_list_task_with_multi_filter(client, task_base_path):
         deadline = datetime.strptime(item["deadline"], "%Y-%m-%d").date()
         assert date.today() - timedelta(days=5) <= deadline <= date.today() + timedelta(days=8)
 
-# INT-003/006
+# INT-002/006
 def test_list_task_invalid_filter(client, task_base_path):
     """Test invalid filter return 400 Bad Request."""
     for payload in (
@@ -218,7 +217,7 @@ def test_list_task_invalid_filter(client, task_base_path):
     response = client.get(f"{task_base_path}/filter?filters={INVALID_DATA_FILTER}")
     assert response.status_code == 400
 
-# INT-003/007
+# INT-002/007
 @pytest.mark.parametrize("invalid_combi", INVALID_DATA_FILTER_COMBI)
 def test_list_task_invalid_filter_combi(client, task_base_path, invalid_combi):
     """Test invalid filter combinations return 400 Bad Request."""
@@ -234,7 +233,7 @@ def test_list_task_invalid_filter_combi(client, task_base_path, invalid_combi):
     response = client.get(f"{task_base_path}/filter?filters={invalid_combi}")
     assert response.status_code == 400
 
-# INT-003/008
+# INT-002/008
 @pytest.mark.parametrize("filter_param", FILTER_PARAMETERS)
 def test_list_task_filter_and_sort(client, task_base_path, filter_param):
     """Test list task with filter and sort criteria."""
@@ -287,7 +286,7 @@ def test_list_task_filter_and_sort(client, task_base_path, filter_param):
     for item in data:
         assert 3 <= item["priority"] <= 7
 
-# INT-003/009
+# INT-002/009
 def test_get_task_successful(client, task_base_path):
     """Retrieve a single task by ID"""
     response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
@@ -302,13 +301,13 @@ def test_get_task_successful(client, task_base_path):
     assert data["id"] == task_id
     assert data["title"] == EXPECTED_TASK_RESPONSE["title"]
 
-# # INT-003/010
+# # INT-002/010
 def test_get_task_not_found(client, task_base_path):
     """Retrieve task with non-existent ID returns 404"""
     response = client.get(f"{task_base_path}/{INVALID_TASK_ID_NONEXISTENT}")
     assert response.status_code == 404
 
-# INT-003/011
+# INT-002/011
 def test_list_tasks_excludes_inactive(client, task_base_path):
     """Inactive tasks should not appear in list."""
 
@@ -324,7 +323,7 @@ def test_list_tasks_excludes_inactive(client, task_base_path):
     data = response.json()
     assert len(data) == 1
     
-# INT-003/012
+# INT-002/012
 def test_list_task_by_project(client, task_base_path): 
     for payload in (
         TASK_CREATE_PAYLOAD,

@@ -143,6 +143,11 @@ TASK_CREATE_CHILD = {
     "project_id": 123,
 }
 
+TASK_CREATE_PARENT = {
+    "title": "Parent Task",
+    "project_id": 100
+}
+
 EXPECTED_TASK_CHILD_RESPONSE = {
     "id": 2,
     "title": "Task First Child",
@@ -212,251 +217,28 @@ INVALID_DATA_FILTER_COMBI = [
 
 FILTER_AND_SORT_QUERY =  "sort_by=status&filters=" + json.dumps({"priority_range": [3, 7]})
 
-
-
-
-
-
-
-
-TASK_CREATE_EMPTY_TITLE = {
-    "title": "",
-    "project_id": 123
-}
-
-TASK_CREATE_PARENT = {
-    "title": "Parent Task",
-    "project_id": 100
-}
-
-
-TASK_CREATE_NONEXISTENT_PARENT = {
-    "title": "Complete user authentication",
-    "project_id": 100,
-    "parent_id": 99999
-}
-
-TASK_CREATE_INACTIVE_PARENT_CHILD = {
-    "title": "Performance optimization",
-    "project_id": 100,
-    "parent_id": None
-}
-
-TASK_CREATE_VALID_DATES = {
-    "title": "Setup CI/CD pipeline",
-    "project_id": 101,
-    "start_date": (date.today() + timedelta(days=1)),
-    "deadline": (date.today() + timedelta(days=7))
-}
-
-TASK_CREATE_INVALID_DATE = {
-    "title": "Complete user authentication",
-    "project_id": 100,
-    "start_date": "invalid-date"
-}
-
-TASK_CREATE_STATUS_TODO = {
-    "title": "Complete user authentication",
-    "project_id": 100,
-    "status": TaskStatus.TO_DO.value
-}
-
-TASK_CREATE_STATUS_IN_PROGRESS = {
-    "title": "Database migration",
-    "project_id": 100,
-    "status": TaskStatus.IN_PROGRESS.value
-}
-
-
-
-ALL_VALID_STATUSES = [
-    TaskStatus.TO_DO.value,
-    TaskStatus.IN_PROGRESS.value,
-    TaskStatus.COMPLETED.value,
-    TaskStatus.BLOCKED.value
-]
-
-
-
-VALID_PROJECT_ID = 123
-VALID_PROJECT_ID_INACTIVE_TASK = 100
-
-INVALID_PRIORITIES = [-1, 0, 11, "High", None]
-INVALID_PRIORITY_VALUES = [-1, 0, 11, 999]  
-INVALID_PRIORITY_TYPES = ["High", 3.14, [], {}] 
-INVALID_STATUSES = ["In progress", "DONE", "Todo", None, "", 123]
-INVALID_TASK_ID_TYPE = ["123", 3.14, None]
-INVALID_TASK_ID_NONEXISTENT = 99999
-EMPTY_PROJECT_ID = 99999
-
-EDGE_CASE_PRIORITY_BOUNDARY_LOW = {"priority": 1}
-EDGE_CASE_PRIORITY_BOUNDARY_HIGH = {"priority": 10}
-
-VALID_PARENT_TASK = {
-    "id": 10,
-    "title": "Parent Task",
-    "description": "Main task with subtasks",
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.TO_DO.value,
-    "priority": 6,
-    "project_id": 100,
-    "active": True,
-}
-
-INACTIVE_PARENT_TASK = {
-    "id": 11,
-    "title": "Inactive Parent",
-    "description": "Parent task that is archived",
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.TO_DO.value,
-    "priority": 7,
-    "project_id": 100,
-    "active": False,
-}
-
-INVALID_PARENT_IDS = [0, -1]
-
-EXPECTED_TASK_MINIMAL_RESPONSE = {
-    "id": 1,
-    "title": "Default Task",
-    "project_id": 123,
-    "status": TaskStatus.TO_DO.value,
-    "priority": 5,
-    "active": True,
-    "description": None,
-    "start_date": None,
-    "deadline": None
-}
-
-EXPECTED_TASK_EXPLICIT_PRIORITY_RESPONSE = {
-    "id": 1,
-    "title": "Task with Explicit Priority",
-    "description": None,
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.TO_DO.value,
-    "priority": 8,
-    "project_id": 100,
-    "active": True
-}
-
-EXPECTED_TASK_FULL_RESPONSE = {
-    "id": 1,
-    "title": "Full Task Details",
-    "description": "Complete task with all fields",
-    "status": TaskStatus.IN_PROGRESS.value,
-    "priority": 9,
-    "project_id": 123,
-    "active": True,
-    "start_date": date.today(),
-    "deadline": (date.today() + timedelta(days=7))
-}
-
-EXPECTED_PARENT_TASK_RESPONSE = {
-    "id": 1,
-    "title": "Parent Task",
-    "description": None,
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.TO_DO.value,
-    "priority": 5,
-    "project_id": 100,
-    "active": True
-}
-
-EXPECTED_CHILD_TASK_RESPONSE = {
-    "id": 2,
-    "title": "Default Task",
-    "project_id": 123,
-    "description": None,
-    "priority": 5,
-    "status": TaskStatus.TO_DO.value,
-    "active": True
-}
-
-EXPECTED_EMPTY_TITLE_RESPONSE = {
-    "id": 1,
-    "title": "",
-    "description": None,
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.TO_DO.value,
-    "priority": 5,
-    "project_id": 123,
-    "active": True
-}
-
-EXPECTED_VALID_DATES_RESPONSE = {
-    "id": 1,
-    "title": "Setup CI/CD pipeline",
-    "description": None,
-    "start_date": (date.today() + timedelta(days=1)),
-    "deadline": (date.today() + timedelta(days=7)),
-    "status": TaskStatus.TO_DO.value,
-    "priority": 5,
-    "project_id": 101,
-    "active": True
-}
-
-EXPECTED_TASK_TODO_RESPONSE = {
-    "id": 1,
-    "title": "Complete user authentication",
-    "description": None,
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.TO_DO.value,
-    "priority": 5,
-    "project_id": 100,
-    "active": True
-}
-
-EXPECTED_TASK_IN_PROGRESS_RESPONSE = {
-    "id": 1,
-    "title": "Database migration",
-    "description": None,
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.IN_PROGRESS.value,
-    "priority": 5,
-    "project_id": 100,
-    "active": True
-}
-
-EXPECTED_TASK_COMPLETED_RESPONSE = {
-    "id": 1,
-    "title": "Setup CI/CD pipeline",
-    "description": None,
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.COMPLETED.value,
-    "priority": 5,
-    "project_id": 101,
-    "active": True
-}
-
-EXPECTED_TASK_BLOCKED_RESPONSE = {
-    "id": 1,
-    "title": "Performance optimization",
-    "description": None,
-    "start_date": None,
-    "deadline": None,
-    "status": TaskStatus.BLOCKED.value,
-    "priority": 5,
-    "project_id": 102,
-    "active": True
-}
-
-TASK_UPDATE_BASIC = {
+TASK_UPDATE_PAYLOAD = {
     "title": "Updated Task Title",
-    "description": "Updated description",
+    "description": "Updated Task Description",
+    "start_date": (date.today() + timedelta(days=2)),
+    "deadline": (date.today() + timedelta(days=11)),
     "priority": 8,
-    "start_date": (date.today() + timedelta(days=1)),
-    "deadline": (date.today() + timedelta(days=14)),
+    "project_id": 100,
 }
 
-TASK_UPDATE_PARTIAL_TITLE_ONLY = {
+EXPECTED_TASK_UPDATED = {
+    "id": 1,
+    "title": "Updated Task Title",
+    "description": "Updated Task Description",
+    "start_date": (date.today() + timedelta(days=2)),
+    "deadline": (date.today() + timedelta(days=11)),
+    "status": TaskStatus.TO_DO.value,
+    "priority": 8,
+    "project_id": 100,
+    "active": True
+}
+
+TASK_UPDATE_PARTIAL_TITLE = {
     "title": "Only Title Updated"
 }
 
@@ -469,62 +251,26 @@ TASK_UPDATE_PARTIAL_DATES = {
     "deadline": (date.today() + timedelta(days=10))
 }
 
-TASK_UPDATE_CLEAR_OPTIONAL_FIELDS = {
+TASK_UPDATE_EMPTY = {
+    "title": None,
     "description": None,
     "start_date": None,
-    "deadline": None
+    "deadline": None,
+    "priority": None,
+    "project_id": None
 }
 
-TASK_UPDATE_INVALID_PRIORITY_LOW = {
-    "title": "Updated Task Title",
-    "priority": 0
-}
 
-TASK_UPDATE_INVALID_PRIORITY_HIGH = {
-    "title": "Updated Task Title", 
-    "priority": 11
-}
+VALID_PROJECT_ID = 123
+VALID_PROJECT_ID_INACTIVE_TASK = 100
 
-TASK_UPDATE_INVALID_PRIORITY_TYPE = {
-    "title": "Updated Task Title",
-    "priority": "High"
-}
+INVALID_STATUS = "INVALID_STATUS"
+INVALID_TASK_ID_NONEXISTENT = 99999
+EMPTY_PROJECT_ID = 99999
 
-TASK_UPDATE_INVALID_DATE_FORMAT = {
-    "title": "Updated Task Title",
-    "start_date": "invalid-date-format"
-}
 
-TASK_UPDATE_EMPTY_TITLE = {
-    "title": ""
-}
 
-TASK_UPDATE_INVALID_WITH_STATUS = {
-    "title": "Updated Task Title",
-    "description": "Updated description",
-    "priority": 8,
-    "status": TaskStatus.COMPLETED.value
-}
 
-TASK_UPDATE_INVALID_WITH_ACTIVE = {
-    "title": "Updated Task Title",
-    "description": "Updated description", 
-    "priority": 8,
-    "active": False
-}
-
-TASK_UPDATE_LONG_TEXT = {
-    "title": "C" * 255,
-    "description": "D" * 1000
-}
-
-TASK_UPDATE_PRIORITY_MIN = {
-    "priority": 1
-}
-
-TASK_UPDATE_PRIORITY_MAX = {
-    "priority": 10
-}
 
 STATUS_TRANSITION_TODO_TO_PROGRESS = {
     "initial_status": TaskStatus.TO_DO.value,
