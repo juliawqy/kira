@@ -41,6 +41,7 @@ def test_add_task_minimal_uses_default_priority_5(mock_session_local):
         deadline=None,     
         status=TaskStatus.TO_DO.value,  # Should default to TO_DO
         priority=5,        # Should default to 5
+        recurring=0,
         project_id=VALID_CREATE_PAYLOAD_MINIMAL["project_id"],
         active=True,       # Should default to True
     )
@@ -71,7 +72,8 @@ def test_add_task_with_explicit_priority(mock_session_local):
         start_date=None,    
         deadline=None,      
         status=TaskStatus.TO_DO.value,
-        priority=8,         
+        priority=8,  
+        recurring=0,       
         project_id=VALID_CREATE_PAYLOAD_WITH_EXPLICIT_PRIORITY["project_id"],
         active=True,        
     )
@@ -103,6 +105,7 @@ def test_add_task_full_fields(mock_session_local):
         deadline=VALID_CREATE_PAYLOAD_FULL["deadline"],
         status=VALID_CREATE_PAYLOAD_FULL["status"],
         priority=VALID_CREATE_PAYLOAD_FULL["priority"],
+        recurring=VALID_CREATE_PAYLOAD_FULL["recurring"],
         project_id=VALID_CREATE_PAYLOAD_FULL["project_id"],
         active=VALID_CREATE_PAYLOAD_FULL["active"]
     )
