@@ -41,6 +41,7 @@ def test_add_task_minimal_uses_default_priority_5(mock_session_local):
         deadline=None,     
         status=TaskStatus.TO_DO.value,  # Should default to TO_DO
         priority=5,        # Should default to 5
+        recurring=0,
         project_id=VALID_CREATE_PAYLOAD_MINIMAL["project_id"],
         active=True,       # Should default to True
     )

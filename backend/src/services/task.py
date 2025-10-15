@@ -183,6 +183,8 @@ def set_task_status(task_id: int, new_status: str) -> Task:
             session.add(new_task)
         
         task.status = new_status
+        session.add(task)
+        session.flush()
         
         return task
 
