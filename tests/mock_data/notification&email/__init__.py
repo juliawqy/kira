@@ -1,0 +1,1 @@
+# Mock data for notification and email tests
