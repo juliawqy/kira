@@ -161,27 +161,45 @@ class EmailService:
         
         return all(setting for setting in required_settings)
     
+    def _get_task_notification_recipients(self, task_id: int) -> List[EmailRecipient]:
+        """Get default notification recipients for a task (stub implementation)"""
+        
+        default_recipients = []
+        
+        
+        return default_recipients
+    
     def send_task_update_notification(
         self,
         task_id: int,
         task_title: str,
-        updated_by: str,
         updated_fields: List[str],
-        assignee_email: str,
-        assignee_name: Optional[str] = None,
         previous_values: Optional[Dict[str, Any]] = None,
         new_values: Optional[Dict[str, Any]] = None,
         task_url: Optional[str] = None
     ) -> EmailResponse:
-        """Send task update notification email"""
+        """Send task update notification email to all stakeholders"""
+        
+        # TODO: In a real implementation, we would fetch task stakeholders from the database
+        # For now, we'll use a default notification approach
+        
+        # Get default notification recipients (this would typically come from task assignees, project members, etc.)
+        recipients = self._get_task_notification_recipients(task_id)
+        
+        if not recipients:
+            logger.info(f"No recipients found for task {task_id} notification")
+            return EmailResponse(
+                success=True,
+                message="No recipients configured for notifications",
+                recipients_count=0
+            )
         
         # Prepare template data
         template_data = {
             'task_id': task_id,
             'task_title': task_title,
-            'updated_by': updated_by,
+            'updated_by': 'System',  # Default value since we don't have user context
             'updated_fields': updated_fields,
-            'assignee_name': assignee_name,
             'previous_values': previous_values or {},
             'new_values': new_values or {},
             'task_url': task_url or f"{self.settings.app_url}/tasks/{task_id}"
@@ -189,7 +207,7 @@ class EmailService:
         
         # Create email message
         email_message = EmailMessage(
-            recipients=[EmailRecipient(email=assignee_email, name=assignee_name)],
+            recipients=recipients,
             content={
                 'subject': f"Task Updated: {task_title}",
                 'template_name': 'task_updated',

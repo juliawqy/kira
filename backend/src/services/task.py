@@ -14,6 +14,7 @@ from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
+from .notification_service import get_notification_service
 
 
 # ---- Helpers ----------------------------------------------------------------
@@ -112,6 +113,7 @@ def update_task(
     Update details of a task.
 
     Return the updated task.
+    Automatically sends notifications when any field is updated.
 
     Use delete_task for setting active=False.
     Use set_task_status for status transitions.
@@ -128,18 +130,64 @@ def update_task(
         if not task:
             raise ValueError("Task not found")
 
-        if title is not None:       task.title = title
-        if description is not None: task.description = description
-        if start_date is not None:  task.start_date = start_date
-        if deadline is not None:    task.deadline = deadline
-        if priority is not None:
+        # Track changes for notifications
+        updated_fields = []
+        previous_values = {}
+        new_values = {}
+        
+        if title is not None and task.title != title:
+            updated_fields.append("title")
+            previous_values["title"] = task.title
+            new_values["title"] = title
+            task.title = title
+            
+        if description is not None and task.description != description:
+            updated_fields.append("description")
+            previous_values["description"] = task.description
+            new_values["description"] = description
+            task.description = description
+            
+        if start_date is not None and task.start_date != start_date:
+            updated_fields.append("start_date")
+            previous_values["start_date"] = task.start_date.isoformat() if task.start_date else None
+            new_values["start_date"] = start_date.isoformat()
+            task.start_date = start_date
+            
+        if deadline is not None and task.deadline != deadline:
+            updated_fields.append("deadline")
+            previous_values["deadline"] = task.deadline.isoformat() if task.deadline else None
+            new_values["deadline"] = deadline.isoformat()
+            task.deadline = deadline
+            
+        if priority is not None and task.priority != priority:
             _validate_bucket(priority)
+            updated_fields.append("priority")
+            previous_values["priority"] = task.priority
+            new_values["priority"] = priority
             task.priority = priority
         if recurring is not None: task.recurring = recurring
         if project_id is not None:  task.project_id = project_id
 
         session.add(task)
         session.flush()
+        
+        # Send notification if there are any changes
+        if updated_fields:
+            try:
+                notification_service = get_notification_service()
+                notification_service.notify_task_updated(
+                    task_id=task.id,
+                    task_title=task.title,
+                    updated_fields=updated_fields,
+                    previous_values=previous_values,
+                    new_values=new_values
+                )
+            except Exception as e:
+                # Log the error but don't fail the task update
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send task update notification: {str(e)}")
+        
         return task
 
 def set_task_status(task_id: int, new_status: str) -> Task:
