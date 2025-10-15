@@ -9,6 +9,7 @@ VALID_DEFAULT_TASK = {
     "deadline": None,
     "status": TaskStatus.TO_DO.value,
     "priority": 5,
+    "recurring": 0,
     "project_id": 123,
     "active": True,
 }
@@ -17,10 +18,11 @@ VALID_TASK_EXPLICIT_PRIORITY = {
     "id": 2,
     "title": "Task with Explicit Priority",
     "description": None,
-    "start_date": None,
+    "start_date": None, 
     "deadline": None,
     "status": TaskStatus.TO_DO.value,
     "priority": 8,
+    "recurring": 0,
     "project_id": 100,
     "active": True,
 }
@@ -33,6 +35,7 @@ VALID_TASK_FULL = {
     "deadline": date.today() + timedelta(days=7),
     "status": TaskStatus.IN_PROGRESS.value,
     "priority": 9,
+    "recurring": 0,
     "project_id": 123,
     "active": True,
 }
@@ -45,6 +48,7 @@ INACTIVE_TASK = {
     "deadline": None,
     "status": TaskStatus.TO_DO.value,
     "priority": 5,
+    "recurring": 0,
     "project_id": 100,
     "active": False,
 }
@@ -57,6 +61,7 @@ VALID_TASK_TODO = {
     "deadline": date.today() + timedelta(days=7),
     "status": TaskStatus.TO_DO.value,
     "priority": 8,
+    "recurring": 0,
     "project_id": 100,
     "active": True,
 }
@@ -69,6 +74,7 @@ VALID_TASK_IN_PROGRESS = {
     "deadline": date.today() + timedelta(days=14),
     "status": TaskStatus.IN_PROGRESS.value,
     "priority": 9,
+    "recurring": 0,
     "project_id": 100,
     "active": True,
 }
@@ -81,6 +87,7 @@ VALID_TASK_COMPLETED = {
     "deadline": date.today() - timedelta(days=3),
     "status": TaskStatus.COMPLETED.value,
     "priority": 6,
+    "recurring": 0,
     "project_id": 101,
     "active": True,
 }
@@ -93,6 +100,7 @@ VALID_TASK_BLOCKED = {
     "deadline": date.today() + timedelta(days=14),
     "status": TaskStatus.BLOCKED.value,
     "priority": 5,
+    "recurring": 0,
     "project_id": 102,
     "active": True,
 }
@@ -117,6 +125,7 @@ VALID_CREATE_PAYLOAD_FULL = {
     "deadline": date.today() + timedelta(days=7),
     "status": TaskStatus.IN_PROGRESS.value,
     "priority": 9,
+    "recurring": 0,
     "project_id": 123,
     "active": True,
 }
@@ -131,6 +140,7 @@ VALID_UPDATE_DEFAULT_TASK = {
     "deadline": date.today() + timedelta(days=14),
     "status": TaskStatus.TO_DO.value,
     "priority": 8,
+    "recurring": 0,
     "project_id": 123,
     "active": True,
 }
@@ -205,6 +215,7 @@ VALID_PARENT_TASK = {
     "deadline": None,
     "status": TaskStatus.TO_DO.value,
     "priority": 6,
+    "recurring": 0,
     "project_id": 100,
     "active": True,
 }
@@ -217,6 +228,7 @@ INACTIVE_PARENT_TASK = {
     "deadline": None,
     "status": TaskStatus.TO_DO.value,
     "priority": 7,
+    "recurring": 0,
     "project_id": 100,
     "active": False,
 }

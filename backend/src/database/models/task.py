@@ -18,6 +18,7 @@ class Task(Base):
     deadline    = Column(Date)
     status      = Column(String, nullable=False, default=TaskStatus.TO_DO.value)
     priority = Column(Integer, nullable=False, default=5)
+    recurring = Column(Integer, nullable=False, default=0)
 
     #Link FK to Project table later: ForeignKey("project.id", ondelete="SET NULL")
     project_id  = Column(Integer, nullable=False, index=True)
