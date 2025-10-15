@@ -22,33 +22,27 @@ class NotificationService:
         self,
         task_id: int,
         task_title: str,
-        updated_by: str,
         updated_fields: List[str],
-        assignee_email: str,
-        assignee_name: Optional[str] = None,
         previous_values: Optional[Dict[str, Any]] = None,
         new_values: Optional[Dict[str, Any]] = None,
         task_url: Optional[str] = None
     ) -> EmailResponse:
         
         try:
-            logger.info(f"Sending task update notification for task {task_id} to {assignee_email}")
+            logger.info(f"Processing task update notification for task {task_id}")
             
-            # Send email notification
+            # Send email notification to all relevant stakeholders
             email_response = self.email_service.send_task_update_notification(
                 task_id=task_id,
                 task_title=task_title,
-                updated_by=updated_by,
                 updated_fields=updated_fields,
-                assignee_email=assignee_email,
-                assignee_name=assignee_name,
                 previous_values=previous_values,
                 new_values=new_values,
                 task_url=task_url
             )
             
             if email_response.success:
-                logger.info(f"Task update notification sent successfully to {assignee_email}")
+                logger.info(f"Task update notification sent successfully for task {task_id}")
             else:
                 logger.error(f"Failed to send task update notification: {email_response.message}")
             
@@ -62,58 +56,7 @@ class NotificationService:
                 recipients_count=0
             )
     
-    def notify_multiple_users_task_updated(
-        self,
-        task_id: int,
-        task_title: str,
-        updated_by: str,
-        updated_fields: List[str],
-        recipients: List[Dict[str, str]],  # [{"email": "...", "name": "..."}]
-        previous_values: Optional[Dict[str, Any]] = None,
-        new_values: Optional[Dict[str, Any]] = None,
-        task_url: Optional[str] = None
-    ) -> List[EmailResponse]:
-        """
-        Send notification to multiple users when a task is updated
-        
-        Args:
-            task_id: ID of the updated task
-            task_title: Title of the task
-            updated_by: Name/email of the person who updated the task
-            updated_fields: List of field names that were updated
-            recipients: List of recipients with email and name
-            previous_values: Previous values of updated fields
-            new_values: New values of updated fields
-            task_url: Direct URL to the task (optional)
-        
-        Returns:
-            List[EmailResponse]: Results of all email sending operations
-        """
-        responses = []
-        
-        for recipient in recipients:
-            try:
-                response = self.notify_task_updated(
-                    task_id=task_id,
-                    task_title=task_title,
-                    updated_by=updated_by,
-                    updated_fields=updated_fields,
-                    assignee_email=recipient.get("email"),
-                    assignee_name=recipient.get("name"),
-                    previous_values=previous_values,
-                    new_values=new_values,
-                    task_url=task_url
-                )
-                responses.append(response)
-            except Exception as e:
-                logger.error(f"Failed to notify {recipient.get('email')}: {str(e)}")
-                responses.append(EmailResponse(
-                    success=False,
-                    message=f"Failed to notify {recipient.get('email')}: {str(e)}",
-                    recipients_count=0
-                ))
-        
-        return responses
+
 
 
 # Global notification service instance
