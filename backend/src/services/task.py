@@ -52,7 +52,7 @@ def add_task(
     deadline: Optional[date] = None,
     priority: int = 5,
     status: str = TaskStatus.TO_DO.value,
-    recurring: int = 0,
+    recurring: Optional[int] = 0,
     project_id: int,
     active: bool = True,
     parent_id: Optional[int] = None,
