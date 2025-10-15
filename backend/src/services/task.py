@@ -52,6 +52,7 @@ def add_task(
     deadline: Optional[date] = None,
     priority: int = 5,
     status: str = TaskStatus.TO_DO.value,
+    recurring: int = 0,
     project_id: int,
     active: bool = True,
     parent_id: Optional[int] = None,
@@ -74,6 +75,7 @@ def add_task(
             deadline=deadline,
             status=status,
             priority=priority,
+            recurring=recurring,
             project_id=project_id,
             active=active,
         )
@@ -102,6 +104,7 @@ def update_task(
     start_date: Optional[date] = None,
     deadline: Optional[date] = None,
     priority: Optional[int] = None,
+    recurring: Optional[int] = None,
     project_id: Optional[int] = None,
     **kwargs
 ) -> Task:
@@ -132,6 +135,7 @@ def update_task(
         if priority is not None:
             _validate_bucket(priority)
             task.priority = priority
+        if recurring is not None: task.recurring = recurring
         if project_id is not None:  task.project_id = project_id
 
         session.add(task)
@@ -160,7 +164,7 @@ def set_task_status(task_id: int, new_status: str) -> Task:
 
         if new_status == TaskStatus.COMPLETED.value and recurring > 0:
             if task.deadline:
-                next_deadline = task.deadline + timedelta(days=task.recurring)
+                next_deadline = task.deadline + timedelta(days=recurring)
             else:
                 raise ValueError("Cannot create next occurrence of recurring task without a deadline")
 
@@ -177,11 +181,8 @@ def set_task_status(task_id: int, new_status: str) -> Task:
             )
 
             session.add(new_task)
-            session.flush()
         
         task.status = new_status
-        session.add(task)
-        session.flush()
         
         return task
 
