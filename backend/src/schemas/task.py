@@ -17,6 +17,7 @@ class TaskRead(BaseModel):
     deadline: Optional[date] = None
     status: Literal["To-do", "In-progress", "Completed", "Blocked"]
     priority: int
+    recurring: Optional[int] = 0
     project_id: Optional[int] = None
     active: bool
 
@@ -40,6 +41,7 @@ class TaskCreate(BaseModel):
     deadline: Optional[date] = None
     status: Literal["To-do", "In-progress", "Completed", "Blocked"] = TaskStatus.TO_DO.value
     priority: Annotated[int, Field(ge=1, le=10, description="1 = least important, 10 = most important")] = 5
+    recurring: Annotated[int, Field(ge=0, description="0 = non-recurring, n > 0 = recurs every n days")] = 0
     project_id: int
     active: bool = True
     parent_id: Optional[int] = None      
@@ -52,4 +54,5 @@ class TaskUpdate(BaseModel):
     start_date: Optional[date] = None
     deadline: Optional[date] = None
     priority: Optional[Annotated[int, Field(ge=1, le=10)]] = None
+    recurring: Optional[Annotated[int, Field(ge=0)]] = None
     project_id: Optional[int] = None

@@ -1,7 +1,7 @@
 # backend/src/services/task.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from enum import Enum
 from operator import and_
 from token import OP
@@ -139,15 +139,50 @@ def update_task(
         return task
 
 def set_task_status(task_id: int, new_status: str) -> Task:
+    """
+    update the status of a task.
+
+    If marking a recurring task as "Completed",
+    automatically create the next occurrence with the same details and new deadline = old_deadline + recurring 
+
+    Returns the updated Task.
+
+    Raise ValueError if deadline is not set for a recurring Task.
+    """
     if new_status not in ALLOWED_STATUSES:
         raise ValueError(f"Invalid status '{new_status}'")
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
         if not task:
             raise ValueError("Task not found")
+
+        recurring = int(getattr(task, "recurring", 0) or 0)
+
+        if new_status == TaskStatus.COMPLETED.value and recurring > 0:
+            if task.deadline:
+                next_deadline = task.deadline + timedelta(days=task.recurring)
+            else:
+                raise ValueError("Cannot create next occurrence of recurring task without a deadline")
+
+            new_task = Task(
+                title = task.title,
+                description = task.description,
+                start_date = task.deadline,
+                deadline = next_deadline,
+                status = TaskStatus.TO_DO.value,
+                priority = task.priority,
+                recurring = task.recurring,
+                project_id = task.project_id,
+                active = True,
+            )
+
+            session.add(new_task)
+            session.flush()
+        
         task.status = new_status
         session.add(task)
         session.flush()
+        
         return task
 
 def list_tasks(
