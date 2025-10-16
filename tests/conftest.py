@@ -2,11 +2,15 @@
 Global test configuration and fixtures.
 """
 import os
+import os
 import tempfile
+import pytest
+from fastapi.testclient import TestClient
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from backend.src.main import app
 from backend.src.main import app
 from backend.src.database.db_setup import Base
 from backend.src.database.models.user import User
@@ -24,10 +28,30 @@ def test_db_path():
         if os.path.exists(path):
             os.remove(path)
 
+# ---------- Test DB engine (session scope) ----------
 @pytest.fixture(scope="session")
+def test_db_path():
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    try:
+        yield path
+    finally:
+        if os.path.exists(path):
+            os.remove(path)
+
+@pytest.fixture(scope="session")
+def test_engine(test_db_path):
 def test_engine(test_db_path):
     """
     Create a test database engine for the entire test session.
+    Use check_same_thread=False so FastAPI/TestClient can use the same file DB across threads.
+    """
+    engine = create_engine(
+        f"sqlite:///{test_db_path}",
+        echo=False,
+        future=True,
+        connect_args={"check_same_thread": False},
+    )
     Use check_same_thread=False so FastAPI/TestClient can use the same file DB across threads.
     """
     engine = create_engine(
@@ -42,7 +66,13 @@ def test_engine(test_db_path):
     finally:
         Base.metadata.drop_all(bind=engine)
 
+    try:
+        yield engine
+    finally:
+        Base.metadata.drop_all(bind=engine)
 
+
+# ---------- Per-test session & transaction ----------
 # ---------- Per-test session & transaction ----------
 @pytest.fixture
 def db_session(test_engine):
@@ -51,6 +81,14 @@ def db_session(test_engine):
     """
     connection = test_engine.connect()
     transaction = connection.begin()
+    SessionLocal = sessionmaker(bind=connection, autoflush=False, autocommit=False, future=True)
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+        transaction.rollback()
+        connection.close()
     SessionLocal = sessionmaker(bind=connection, autoflush=False, autocommit=False, future=True)
     session = SessionLocal()
     try:
@@ -74,9 +112,24 @@ def client():
 
 
 # ---------- Factories (aligned to your User model columns) ----------
+# ---------- FastAPI client for API testing ----------
+@pytest.fixture
+def client():
+    """
+    TestClient for API testing.
+    Since your app doesn't use dependency injection for DB sessions,
+    this provides a simple test client for API endpoint testing.
+    """
+    with TestClient(app) as c:
+        yield c
+
+
+# ---------- Factories (aligned to your User model columns) ----------
 @pytest.fixture
 def user_factory(db_session):
     """
+    Factory for creating test users directly via ORM (bypasses API).
+    Matches model fields: user_id, email, name, role (str), admin (bool), hashed_pw (str), department_id (int|None).
     Factory for creating test users directly via ORM (bypasses API).
     Matches model fields: user_id, email, name, role (str), admin (bool), hashed_pw (str), department_id (int|None).
     """
@@ -86,7 +139,15 @@ def user_factory(db_session):
         role_val = kwargs.pop("role", UserRole.STAFF)
         role_str = role_val.value 
         default = {
+
+        role_val = kwargs.pop("role", UserRole.STAFF)
+        role_str = role_val.value 
+        default = {
             "name": "Test User",
+            "email": "test@example.com",
+            "role": role_str,
+            "admin": False,
+            "hashed_pw": "hashed_password",   
             "email": "test@example.com",
             "role": role_str,
             "admin": False,
@@ -100,10 +161,18 @@ def user_factory(db_session):
             default["role"] = default["role"].value
 
         user = User(**default)
+        default.update(kwargs)
+
+        # Ensure final role is a string
+        if hasattr(default["role"], "value"):
+            default["role"] = default["role"].value
+
+        user = User(**default)
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
         return user
+
 
 
     return _create_user
@@ -113,10 +182,13 @@ def user_factory(db_session):
 def task_factory(db_session):
     """
     Factory for creating test tasks directly via ORM.
+    Factory for creating test tasks directly via ORM.
     """
     def _create_task(**kwargs):
         from backend.src.enums.task_status import TaskStatus
         from backend.src.enums.task_priority import TaskPriority
+
+        default = {
 
         default = {
             "title": "Test Task",
@@ -128,10 +200,14 @@ def task_factory(db_session):
         default.update(kwargs)
 
         task = Task(**default)
+        default.update(kwargs)
+
+        task = Task(**default)
         db_session.add(task)
         db_session.commit()
         db_session.refresh(task)
         return task
+
 
 
     return _create_task
