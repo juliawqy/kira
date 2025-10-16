@@ -25,6 +25,11 @@ class EmailSettings(BaseSettings):
     use_tls: bool = True
     use_ssl: bool = False
     timeout: int = 60
+
+    # Test/Dev convenience: force notification recipient for local runs
+    # Set via env TEST_RECIPIENT_EMAIL / TEST_RECIPIENT_NAME
+    test_recipient_email: Optional[str] = None
+    test_recipient_name: Optional[str] = None
     
     class Config:
         env_file = ".env"
