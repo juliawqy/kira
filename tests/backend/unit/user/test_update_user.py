@@ -118,5 +118,5 @@ def test_update_user_invalid_role_type(mock_session_local):
     mock_session.get.return_value = MagicMock(user_id=1, role=UserRole.STAFF.value)
 
     with pytest.raises(ValueError) as exc:
-        user_service.update_user(VALID_USER["user_id"], role=INVALID_ADMIN_TYPE)  # invalid string
+        user_service.update_user(VALID_USER["user_id"], role=INVALID_ADMIN_TYPE)  
     assert "role must be a valid UserRole" in str(exc.value)

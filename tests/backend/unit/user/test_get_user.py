@@ -1,4 +1,5 @@
 from unittest.mock import patch, MagicMock
+import pytest
 from tests.mock_data.user.unit_data import (
     VALID_USER_ADMIN, 
     VALID_USER, 
