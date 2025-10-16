@@ -137,8 +137,11 @@ def update_user(
         return user
 
 
-def delete_user(user_id: int) -> bool:
+def delete_user(user_id: int, is_admin: bool) -> bool:
     """Hard delete: remove a user permanently."""
+    if not is_admin:
+        raise PermissionError("Only admin users can delete accounts")
+
     with SessionLocal.begin() as session:
         user = session.get(User, user_id)
         if not user:
