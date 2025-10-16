@@ -1,4 +1,3 @@
-# tests/backend/unit/user/test_create_user.py
 import pytest
 from unittest.mock import patch, MagicMock
 from tests.mock_data.user.unit_data import (
@@ -7,22 +6,24 @@ from tests.mock_data.user.unit_data import (
     VALID_USER_ADMIN,
     INVALID_CREATE_SHORT_PASSWORD,
     INVALID_CREATE_NO_SPECIAL,
-    INVALID_ADMIN_TYPE
+    INVALID_CREATE_BAD_ROLE,
+    INVALID_CREATE_NO_NAME,
+    INVALID_CREATE_BAD_EMAIL,
+    INVALID_CREATE_BAD_ADMIN,
+    INVALID_CREATE_UNAUTHORISED
 )
 
-# UNI-052/008
+# UNI-052/001
 @patch("backend.src.services.user.SessionLocal")
 @patch("backend.src.services.user._hash_password", return_value="hashed_pw")
 def test_create_user_success(mock_hash, mock_session_local):
     from backend.src.services import user as user_service
 
-    # Mock session context manager
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
-    # Mock query to check existing email
     mock_execute_result = MagicMock()
-    mock_execute_result.scalar_one_or_none.return_value = None  # User does not exist
+    mock_execute_result.scalar_one_or_none.return_value = None
     mock_session.execute.return_value = mock_execute_result
 
     result = user_service.create_user(**VALID_CREATE_PAYLOAD_ADMIN)
@@ -33,7 +34,7 @@ def test_create_user_success(mock_hash, mock_session_local):
     mock_session.flush.assert_called()
     mock_session.refresh.assert_called_with(result)
 
-# UNI-052/009
+# UNI-052/002
 @patch("backend.src.services.user.SessionLocal")
 def test_create_user_duplicate_email(mock_session_local):
     from backend.src.services import user as user_service
@@ -49,54 +50,77 @@ def test_create_user_duplicate_email(mock_session_local):
         user_service.create_user(**VALID_CREATE_PAYLOAD_USER)
     assert "already exists" in str(exc.value)
 
-# UNI-052/010
-def test_create_user_password_validation_fail():
+# UNI-052/003
+@patch("backend.src.services.user.SessionLocal")
+def test_create_user_password_validation_fail(mock_session_local):
     from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
     with pytest.raises(ValueError):
         user_service.create_user(**INVALID_CREATE_SHORT_PASSWORD)
     with pytest.raises(ValueError):
         user_service.create_user(**INVALID_CREATE_NO_SPECIAL)
 
-# UNI-052/011
-def test_create_user_invalid_role_type():
+# UNI-052/004
+@patch("backend.src.services.user.SessionLocal")
+def test_create_user_invalid_role_type(mock_session_local):
     from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
 
     with pytest.raises(ValueError) as exc:
-        user_service.create_user(
-            name=VALID_CREATE_PAYLOAD_USER["name"],
-            email=VALID_CREATE_PAYLOAD_USER["email"],
-            role=INVALID_ADMIN_TYPE,  # invalid type, string instead of UserRole
-            password=VALID_CREATE_PAYLOAD_USER["password"],
-        )
+        user_service.create_user(**INVALID_CREATE_BAD_ROLE)
     assert "role must be a valid UserRole" in str(exc.value)
 
-# UNI-052/012
-def test_create_user_missing_name():
+# UNI-052/005
+@patch("backend.src.services.user.SessionLocal")
+def test_create_user_missing_name(mock_session_local):
     from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    mock_session.execute.return_value.scalar_one_or_none.return_value = None
 
     with pytest.raises(TypeError):
-        user_service.create_user(
-            name=None,
-            email=VALID_CREATE_PAYLOAD_USER["email"],
-            role=VALID_CREATE_PAYLOAD_USER["role"],
-            password=VALID_CREATE_PAYLOAD_USER["password"],
-        )
+        user_service.create_user(**INVALID_CREATE_NO_NAME)
 
-# UNI-052/013
-def test_create_user_missing_email():
+# UNI-052/006
+@patch("backend.src.services.user.SessionLocal")
+def test_create_user_missing_email(mock_session_local):
     from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    mock_session.execute.return_value.scalar_one_or_none.return_value = None
 
     with pytest.raises(TypeError):
-        user_service.create_user(
-            name=VALID_CREATE_PAYLOAD_USER["name"],
-            email=None,
-            role=VALID_CREATE_PAYLOAD_USER["role"],
-            password=VALID_CREATE_PAYLOAD_USER["password"],
-        )
+        user_service.create_user(**INVALID_CREATE_BAD_EMAIL)
 
-# UNI-052/014
-def test_create_user_non_admin():
+# UNI-052/007
+@patch("backend.src.services.user.SessionLocal")
+def test_create_user_invalid_admin_type(mock_session_local):
     from backend.src.services import user as user_service
-    # placeholder to fill in test for user creation with non admin account
-    pass
+
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+    mock_session.execute.return_value.scalar_one_or_none.return_value = None
+
+    with pytest.raises(TypeError):
+        user_service.create_user(**INVALID_CREATE_BAD_ADMIN)
+
+# UNI-052/008
+@patch("backend.src.services.user.SessionLocal")
+def test_create_user_non_admin(mock_session_local):
+    from backend.src.services import user as user_service
+
+    mock_session = MagicMock()
+    mock_session_local.begin.return_value.__enter__.return_value = mock_session
+
+    # Simulate a non-admin caller attempting to create user
+    with pytest.raises(PermissionError) as exc:
+        user_service.create_user(**INVALID_CREATE_UNAUTHORISED)
+
+    assert "Only admin users can create accounts" in str(exc.value)

@@ -27,6 +27,7 @@ VALID_CREATE_PAYLOAD_ADMIN = {
     "password": "Adm!nPass123",
     "department_id": 10,
     "admin": True,
+    "created_by_admin": True,  
 }
 
 VALID_CREATE_PAYLOAD_USER = {
@@ -36,6 +37,7 @@ VALID_CREATE_PAYLOAD_USER = {
     "password": "Empl@yee123",
     "department_id": 20,
     "admin": False,
+    "created_by_admin": True, 
 }
 
 # Invalid create payloads
@@ -46,6 +48,7 @@ INVALID_CREATE_SHORT_PASSWORD = {
     "password": "short",
     "department_id": None,
     "admin": False,
+    "created_by_admin": True,
 }
 
 INVALID_CREATE_NO_SPECIAL = {
@@ -55,15 +58,57 @@ INVALID_CREATE_NO_SPECIAL = {
     "password": "LongButNoSpecial1",
     "department_id": None,
     "admin": False,
+    "created_by_admin": True,
 }
 
 INVALID_CREATE_BAD_EMAIL = {
     "name": "Bad Email",
-    "email": "not-an-email",
+    "email": None,
     "role": UserRole.STAFF,
     "password": "Valid!Pass1",
     "department_id": None,
     "admin": False,
+    "created_by_admin": True,
+}
+
+INVALID_CREATE_BAD_ROLE = {
+    "name": "Bad Role",
+    "email": "bad.role@example.com",
+    "role": "not_a_valid_role",
+    "password": "Valid!Pass1",
+    "department_id": None,
+    "admin": False,
+    "created_by_admin": True,
+}
+
+INVALID_CREATE_NO_NAME = {
+    "name": None,
+    "email": "no.name@example.com",
+    "role": UserRole.STAFF,
+    "password": "Valid!Pass1",
+    "department_id": None,
+    "admin": False,
+    "created_by_admin": True,
+}
+
+INVALID_CREATE_BAD_ADMIN = {
+    "name": "Bad Admin",
+    "email": "bad.admin@example.com",
+    "role": UserRole.MANAGER,
+    "password": "Adm!nPass123",
+    "department_id": 10,
+    "admin": "yes",
+    "created_by_admin": True,
+}
+
+INVALID_CREATE_UNAUTHORISED = {
+    "name": "Unauth User",
+    "email": "unauth.user@example.com",
+    "role": UserRole.STAFF,
+    "password": "Unauth!Pass123",
+    "department_id": 20,
+    "admin": False,
+    "created_by_admin": False,
 }
 
 # Update payloads
