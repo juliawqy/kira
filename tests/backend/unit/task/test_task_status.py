@@ -35,6 +35,8 @@ def test_set_task_status_to_do_success(mock_session_local):
     )
     
     mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_called_once_with(mock_task)
+    mock_session.flush.assert_called_once()
     
     assert mock_task.status == TaskStatus.TO_DO.value
     assert result == mock_task
@@ -61,6 +63,8 @@ def test_set_task_status_in_progress_success(mock_session_local):
     )
     
     mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_called_once_with(mock_task)
+    mock_session.flush.assert_called_once()
     
     assert mock_task.status == TaskStatus.IN_PROGRESS.value
     assert result == mock_task
@@ -87,7 +91,9 @@ def test_set_task_status_completed_success(mock_session_local):
     )
     
     mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
-
+    assert mock_session.add.call_count == 2
+    mock_session.flush.assert_called_once()
+    
     assert mock_task.status == TaskStatus.COMPLETED.value
     assert result == mock_task
 
@@ -113,6 +119,8 @@ def test_set_task_status_blocked_success(mock_session_local):
     )
     
     mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_called_once_with(mock_task)
+    mock_session.flush.assert_called_once()
     
     assert mock_task.status == TaskStatus.BLOCKED.value
     assert result == mock_task
@@ -139,6 +147,8 @@ def test_set_task_status_same_status_idempotent(mock_session_local):
     )
     
     mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
+    mock_session.add.assert_called_once_with(mock_task)
+    mock_session.flush.assert_called_once()
     
     assert mock_task.status == TaskStatus.IN_PROGRESS.value
     assert result == mock_task
@@ -162,6 +172,8 @@ def test_set_task_status_nonexistent_task_raises_error(mock_session_local):
     
     assert "Task not found" in str(exc.value)
     mock_session.get.assert_called_once_with(task_service.Task, INVALID_TASK_ID_NONEXISTENT)
+    mock_session.add.assert_not_called()
+    mock_session.flush.assert_not_called()
 
 # UNI-022/007
 @pytest.mark.parametrize("invalid_status", INVALID_STATUSES)

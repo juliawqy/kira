@@ -183,6 +183,8 @@ def set_task_status(task_id: int, new_status: str) -> Task:
             session.add(new_task)
         
         task.status = new_status
+        session.add(task)
+        session.flush()
         
         return task
 
@@ -222,28 +224,13 @@ def list_tasks(
         stmt = (
             select(Task)
             .where(not_a_subtask)
+            .where(Task.active.is_(active_only))
             .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
         )
-        
-        # Apply basic filters
-        if active_only:
-            stmt = stmt.where(Task.active.is_(True))
-        if project_id is not None:
-            stmt = stmt.where(Task.project_id == project_id)
             
         # Apply filters if provided
         if filter_by:
-            # Validate filter combinations
-            date_filters = set(filter_by.keys()) & {"deadline_range", "start_date_range"}
-            non_date_filters = set(filter_by.keys()) & {"priority_range", "status"}
-            
-            # Date filters can be combined with each other, but not with non-date filters
-            if len(non_date_filters) > 1:
-                raise ValueError(f"Only one non-date filter allowed. Found: {list(non_date_filters)}")
-            if len(non_date_filters) >= 1 and len(date_filters) >= 1:
-                raise ValueError(f"Date filters cannot be combined with other filter types. Found date filters: {list(date_filters)}, other filters: {list(non_date_filters)}")
-            
-            # Apply filters
+
             if "priority_range" in filter_by:
                 min_p, max_p = filter_by["priority_range"]
                 stmt = stmt.where(Task.priority >= min_p, Task.priority <= max_p)
@@ -336,7 +323,7 @@ def list_tasks_by_project(project_id: int, *, active_only: bool = True) -> list[
         return tasks
 
 # Soft Delete
-def delete_task(task_id: int, *, detach_links: bool = True) -> Task:
+def delete_task(task_id: int) -> Task:
     """
     Soft-delete a task by setting active=False.
     By default, detach all links so archived tasks are not part of any hierarchy.
@@ -350,15 +337,14 @@ def delete_task(task_id: int, *, detach_links: bool = True) -> Task:
 
         if task.active is False:
             raise ValueError("Task not found")
-        
-        if detach_links:
-            # Remove links where this task is parent or subtask
-            session.query(ParentAssignment).filter(
-                ParentAssignment.parent_id == task_id
-            ).delete()
-            session.query(ParentAssignment).filter(
-                ParentAssignment.subtask_id == task_id
-            ).delete()
+
+        # Remove links where this task is parent or subtask
+        session.query(ParentAssignment).filter(
+            ParentAssignment.parent_id == task_id
+        ).delete()
+        session.query(ParentAssignment).filter(
+            ParentAssignment.subtask_id == task_id
+        ).delete()
 
         task.active = False
         session.add(task)
@@ -403,27 +389,12 @@ def list_parent_tasks(
         stmt = (
             select(Task)
             .where(not_a_subtask)
+            .where(Task.active.is_(active_only))
         )
-        
-        # Apply basic filters
-        if active_only:
-            stmt = stmt.where(Task.active.is_(True))
-        if project_id is not None:
-            stmt = stmt.where(Task.project_id == project_id)
             
         # Apply filters if provided
-        if filter_by:
-            # Validate filter combinations
-            date_filters = set(filter_by.keys()) & {"deadline_range", "start_date_range"}
-            non_date_filters = set(filter_by.keys()) & {"priority_range", "status"}
-            
-            # Date filters can be combined with each other, but not with non-date filters
-            if len(non_date_filters) > 1:
-                raise ValueError(f"Only one non-date filter allowed. Found: {list(non_date_filters)}")
-            if len(non_date_filters) >= 1 and len(date_filters) >= 1:
-                raise ValueError(f"Date filters cannot be combined with other filter types. Found date filters: {list(date_filters)}, other filters: {list(non_date_filters)}")
-            
-            # Apply filters
+        if filter_by:           
+
             if "priority_range" in filter_by:
                 min_p, max_p = filter_by["priority_range"]
                 stmt = stmt.where(Task.priority >= min_p, Task.priority <= max_p)

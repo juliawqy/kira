@@ -1,165 +1,131 @@
 # # tests/backend/integration/task/test_task_update_api.py
+from __future__ import annotations
 
-# import pytest
-# from datetime import date, timedelta
-# from backend.src.enums.task_status import TaskStatus
+import pytest
+from datetime import date, datetime
 
-# from tests.mock_data.task.integration_data import (
-#     TASK_CREATE_FULL,
-#     TASK_UPDATE_BASIC,
-#     TASK_UPDATE_PARTIAL_TITLE_ONLY,
-#     TASK_UPDATE_PARTIAL_PRIORITY,
-#     TASK_UPDATE_PARTIAL_DATES,
-#     TASK_UPDATE_INVALID_PRIORITY_LOW,
-#     TASK_UPDATE_INVALID_PRIORITY_HIGH,
-#     TASK_UPDATE_INVALID_PRIORITY_TYPE,
-#     TASK_UPDATE_INVALID_DATE_FORMAT,
-#     TASK_UPDATE_EMPTY_TITLE,
-#     TASK_UPDATE_LONG_TEXT,
-#     TASK_UPDATE_PRIORITY_MIN,
-#     TASK_UPDATE_PRIORITY_MAX,
-#     EXPECTED_TASK_FULL_RESPONSE,
-#     INVALID_TASK_ID_NONEXISTENT,
-#     VALID_PROJECT_ID_INACTIVE_TASK,
-#     INACTIVE_PARENT_TASK,
-# )
+from backend.src.enums.task_status import TaskStatus
+from tests.mock_data.task.integration_data import (
+    TASK_CREATE_PAYLOAD,
+    EXPECTED_TASK_RESPONSE,
+    TASK_UPDATE_PAYLOAD,
+    EXPECTED_TASK_UPDATED,
+    TASK_UPDATE_PARTIAL_TITLE,
+    TASK_UPDATE_PARTIAL_PRIORITY,
+    TASK_UPDATE_PARTIAL_DATES,
+    TASK_UPDATE_EMPTY,
+    INVALID_STATUS,
+    INVALID_TASK_ID_NONEXISTENT
+)
 
-# pytestmark = pytest.mark.integration
+def serialize_payload(payload: dict) -> dict:
+    """Convert date/datetime objects in payload to ISO strings for JSON serialization."""
+    def convert(value):
+        if isinstance(value, (date, datetime)):
+            return value.isoformat()
+        if isinstance(value, dict):
+            return {k: convert(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [convert(v) for v in value]
+        return value
 
-
-# # INT-003/001
-# def test_update_task_full_success(client, task_base_path):
-
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
-#     assert create_resp.status_code == 201
-#     task_id = create_resp.json()["id"]
-
-#     update_resp = client.patch(f"{task_base_path}/{task_id}", json=TASK_UPDATE_BASIC)
-#     assert update_resp.status_code == 200
-#     data = update_resp.json()
-#     assert data["title"] == TASK_UPDATE_BASIC["title"]
-#     assert data["priority"] == TASK_UPDATE_BASIC["priority"]
-
-#     get_resp = client.get(f"{task_base_path}/{task_id}")
-#     assert get_resp.status_code == 200
-#     fetched = get_resp.json()
-#     for field, value in TASK_UPDATE_BASIC.items():
-#         assert fetched[field] == value
+    return {k: convert(v) for k, v in payload.items()}
 
 
-# # INT-003/002
-# @pytest.mark.parametrize(
-#     "payload,expected_fields",
-#     [
-#         (TASK_UPDATE_PARTIAL_TITLE_ONLY, ["title"]),
-#         (TASK_UPDATE_PARTIAL_PRIORITY, ["priority"]),
-#         (TASK_UPDATE_PARTIAL_DATES, ["start_date", "deadline"]),
-#     ],
-# )
-# def test_update_task_partial_fields(client, task_base_path, payload, expected_fields):
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
-#     assert create_resp.status_code == 201
-#     task_id = create_resp.json()["id"]
+# INT-003/001
+def test_update_task_success(client, task_base_path):
+    """Verify task update."""
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
+    assert response.status_code == 201
+    task_id = EXPECTED_TASK_RESPONSE["id"]
 
-#     update_resp = client.patch(f"{task_base_path}/{task_id}", json=payload)
-#     assert update_resp.status_code == 200
-#     data = update_resp.json()
-#     for field in expected_fields:
-#         assert data[field] == payload[field]
+    response = client.patch(f"{task_base_path}/{task_id}", json=serialize_payload(TASK_UPDATE_PAYLOAD))
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data["id"] == EXPECTED_TASK_UPDATED["id"]
+    assert data["title"] == EXPECTED_TASK_UPDATED["title"]
+    assert data["description"] == EXPECTED_TASK_UPDATED["description"]
+    assert data["start_date"] == EXPECTED_TASK_UPDATED["start_date"].isoformat()
+    assert data["deadline"] == EXPECTED_TASK_UPDATED["deadline"].isoformat()
+    assert data["status"] == EXPECTED_TASK_UPDATED["status"]
 
+# INT-003/002
+@pytest.mark.parametrize("update_patch", [TASK_UPDATE_PARTIAL_TITLE, TASK_UPDATE_PARTIAL_PRIORITY, TASK_UPDATE_PARTIAL_DATES])
+def test_partial_update_task_success(client, task_base_path, update_patch):
+    """Verify partial task update works."""
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
+    assert response.status_code == 201
+    original_data = response.json()
+    task_id = original_data["id"]
+    response = client.patch(f"{task_base_path}/{task_id}", json=serialize_payload(update_patch))
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data["id"] == original_data["id"]
+    for key in data.keys():
+        if key in update_patch:
+            assert data[key] == update_patch[key].isoformat() if isinstance(update_patch[key], (date, datetime)) else update_patch[key]
+        else:
+            assert data[key] == original_data[key]
 
-# # INT-003/004
-# @pytest.mark.parametrize(
-#     "payload",
-#     [
-#         TASK_UPDATE_INVALID_PRIORITY_LOW,
-#         TASK_UPDATE_INVALID_PRIORITY_HIGH,
-#         TASK_UPDATE_INVALID_PRIORITY_TYPE,
-#         TASK_UPDATE_INVALID_DATE_FORMAT
-#     ],
-# )
-# def test_invalid_updates(client, task_base_path, payload):
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
-#     task_id = create_resp.json()["id"]
+# INT-003/003
+def test_update_task_invalid_id(client, task_base_path):
+    """Verify updating a non-existent task ID returns 404."""
+    response = client.patch(f"{task_base_path}/{INVALID_TASK_ID_NONEXISTENT}", json=serialize_payload(TASK_UPDATE_PAYLOAD))
+    assert response.status_code == 404
 
-#     resp = client.patch(f"{task_base_path}/{task_id}", json=payload)
-#     assert resp.status_code == 422
+# INT-003/004
+def test_update_task_empty_payload(client, task_base_path):
+    """Verify updating a task with empty payload updates fields to None."""
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
+    assert response.status_code == 201
+    task_id = EXPECTED_TASK_RESPONSE["id"]
+    original_data = response.json()
 
+    response = client.patch(f"{task_base_path}/{task_id}", json=TASK_UPDATE_EMPTY)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == original_data["id"]
+    assert data["title"] == original_data["title"]
+    assert data["description"] == original_data["description"]
+    assert data["start_date"] == original_data["start_date"]
+    assert data["deadline"] == original_data["deadline"]
+    assert data["priority"] == original_data["priority"]
+    assert data["project_id"] == original_data["project_id"]
+    assert data["status"] == original_data["status"]
 
-# # INT-003/005
-# @pytest.mark.parametrize(
-#     "task_id_override, expected_status",
-#     [(INVALID_TASK_ID_NONEXISTENT, 404)],
-# )
-# def test_update_nonexistent_or_inactive_task(client, task_base_path, task_id_override, expected_status):
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
-#     assert create_resp.status_code == 201
+# INT-022/001
+@pytest.mark.parametrize("valid_status", [status.value for status in TaskStatus])
+def test_update_task_status(client, task_base_path, valid_status):
+    """Verify 'status' field is updated."""
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
+    assert response.status_code == 201
+    task_id = EXPECTED_TASK_RESPONSE["id"]
+    original_status = response.json()["status"]
+    assert original_status == TaskStatus.TO_DO.value
+    if valid_status == original_status:
+        original_status = TaskStatus.IN_PROGRESS.value
 
-#     resp = client.patch(f"{task_base_path}/{task_id_override}", json=TASK_UPDATE_BASIC)
-#     assert resp.status_code == expected_status
+    response = client.post(f"{task_base_path}/{task_id}/status/{valid_status}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == task_id
+    assert data["status"] == valid_status
+    assert data["status"] != original_status
 
+# INT-022/002
+def test_update_task_status_invalid_status_value(client, task_base_path):
+    """Verify updating 'status' to invalid value returns 400."""
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
+    assert response.status_code == 201
+    task_id = EXPECTED_TASK_RESPONSE["id"]
 
-# # INT-003/006
-# @pytest.mark.parametrize(
-#     "payload,expected_priority",
-#     [   
-#         (TASK_UPDATE_PRIORITY_MIN, 1),
-#         (TASK_UPDATE_PRIORITY_MAX, 10),
-#     ],
-# )
-# def test_update_priority_boundaries(client, task_base_path, payload, expected_priority):
-#     """
-#     INT-003/006
-#     Verify that priority boundary values (1, 10) are accepted.
-#     """
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
-#     task_id = create_resp.json()["id"]
+    response = client.post(f"{task_base_path}/{task_id}/status/{INVALID_STATUS}")
+    assert response.status_code == 404
 
-#     update_resp = client.patch(f"{task_base_path}/{task_id}", json=payload)
-#     assert update_resp.status_code == 200
-#     assert update_resp.json()["priority"] == expected_priority
-
-# # INT-003/007
-# def test_update_long_text_fields(client, task_base_path):
-
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
-#     task_id = create_resp.json()["id"]
-
-#     resp = client.patch(f"{task_base_path}/{task_id}", json=TASK_UPDATE_LONG_TEXT)
-#     assert resp.status_code == 200
-#     data = resp.json()
-#     assert len(data["title"]) == len(TASK_UPDATE_LONG_TEXT["title"])
-#     assert len(data["description"]) == len(TASK_UPDATE_LONG_TEXT["description"])
-
-
-# # INT-022/001
-# def test_transition_to_in_progress(client, task_base_path):
-#     create_resp = client.post(f"{task_base_path}/", json=TASK_CREATE_FULL)
-#     task_id = create_resp.json()["id"]
-
-#     start_resp = client.post(f"{task_base_path}/{task_id}/status/{TaskStatus.IN_PROGRESS.value}")
-#     assert start_resp.status_code == 200
-#     assert start_resp.json()["status"] == TaskStatus.IN_PROGRESS.value
-
-# # INT-022/002
-# def test_transition_to_completed(client, task_base_path):
-#     task = TASK_CREATE_FULL.copy()
-#     task["status"] = TaskStatus.IN_PROGRESS.value
-#     create_resp = client.post(f"{task_base_path}/", json=task)
-#     task_id = create_resp.json()["id"]
-
-#     complete_resp = client.post(f"{task_base_path}/{task_id}/status/{TaskStatus.COMPLETED.value}")
-#     assert complete_resp.status_code == 200
-#     assert complete_resp.json()["status"] == TaskStatus.COMPLETED.value
-
-# # INT-022/003
-# def test_transition_to_blocked(client, task_base_path):
-
-#     task = TASK_CREATE_FULL.copy()
-#     task["status"] = TaskStatus.IN_PROGRESS.value
-#     create_resp = client.post(f"{task_base_path}/", json=task)
-#     task_id = create_resp.json()["id"]
-
-#     block_resp = client.post(f"{task_base_path}/{task_id}/status/{TaskStatus.BLOCKED.value}")
-#     assert block_resp.status_code == 200
-#     assert block_resp.json()["status"] == TaskStatus.BLOCKED.value
+# INT-022/003
+def test_update_task_status_invalid_id(client, task_base_path):
+    """Verify updating 'status' of non-existent task ID returns 404."""
+    response = client.post(f"{task_base_path}/{INVALID_TASK_ID_NONEXISTENT}/status/{TaskStatus.COMPLETED.value}")
+    assert response.status_code == 404

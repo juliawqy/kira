@@ -12,7 +12,7 @@
     `pip install -r requirements.txt`
 
 4. Create database and setup tables (SQLite)
-    `python -m database.db_setup_tables`
+    `python -m backend.src.database.db_setup_tables`
 
 5. run project 
     `uvicorn backend.src.main:app --reload`
@@ -20,10 +20,10 @@
 
 6. if you modify table structure (like `Task`), 
     a. delete old database
-        windows: `del backend/src/database/kira.db`
+        windows: `del backend\src\database\kira.db`
         mac: `rm backend/src/database/kira.db`
     b. rerun table creation 
-        `python -m database.db_setup_tables`
+        `python -m backend.src.database.db_setup_tables`
 
 ### Take note that the files in `.gitignore` are *NOT* to be pushed into git (venv, kira.db etc.)
 

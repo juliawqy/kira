@@ -1,55 +1,57 @@
+from __future__ import annotations
 import time
 import os
+from backend.src.database.db_setup import Base
 import pytest
 from selenium.webdriver.common.by import By
-from backend.src.enums.user_role import UserRole
+from sqlalchemy import create_engine, event, delete, text
 from tests.mock_data.user.e2e_data import E2E_USER_WORKFLOW, E2E_SELECTORS
-from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 
 @pytest.fixture(scope="session")
-def test_db_engine():
+def test_engine(tmp_path_factory):
     """
-    Create a test database engine for e2e tests.
+    Session-scoped file-backed SQLite engine with FK support.
+    Creates schema once, drops at the end.
     """
-    from backend.src.database.db_setup import Base
-    
-    # Use the same database but ensure clean state
-    engine = create_engine("sqlite:///backend/src/database/kira.db", echo=False)
-    yield engine
+    db_file = tmp_path_factory.mktemp("kira_integration") / "itest.db"
+    engine = create_engine(
+        f"sqlite:///{db_file}",
+        connect_args={"check_same_thread": False},
+        future=True,
+    )
+
+    @event.listens_for(engine, "connect")
+    def _fk_on(dbapi_connection, connection_record):  # pragma: no cover
+        cur = dbapi_connection.cursor()
+        cur.execute("PRAGMA foreign_keys=ON")
+        cur.close()
+
+    Base.metadata.create_all(bind=engine)
+    try:
+        yield engine
+    finally:
+        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
-def isolated_database(test_db_engine):
+def isolated_database(test_engine):
     """
     Enterprise-grade database isolation using transaction rollback.
     This ensures each test starts with a clean database state.
     """
-    # Create a connection and transaction
-    connection = test_db_engine.connect()
-    transaction = connection.begin()
-    
-    # Clear all existing data at start of test
-    try:
-        connection.execute(text("DELETE FROM users"))
-        connection.execute(text("DELETE FROM tasks"))
-        connection.commit()
-    except Exception:
-        pass
-    
-    yield connection
-    
-    # Rollback any changes made during the test
-    try:
-        connection.execute(text("DELETE FROM users"))
-        connection.execute(text("DELETE FROM tasks"))
-        connection.commit()
-    except Exception:
-        pass
-    finally:
-        connection.close()
 
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
+
+    with TestingSessionLocal() as session:
+        yield session
 
 @pytest.fixture 
 def test_user_data():

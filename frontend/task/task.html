@@ -1,590 +1,183 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="utf-8" />
-<title>Task Manager – Vanilla E2E Tester</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  :root {
-    --bg: #0b0e13;
-    --panel: #121722;
-    --muted: #1a2030;
-    --border: #263146;
-    --text: #e7ecf3;
-    --sub: #a7b2c6;
-    --accent: #6ea8fe;
-    --accent-2: #22c55e;
-    --warn: #f59e0b;
-    --danger: #ef4444;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
-    background: linear-gradient(180deg, #0b0e13 0%, #0e131c 100%);
-    color: var(--text);
-  }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 16px 80px; }
-  h1 { margin: 0 0 18px; font-size: 22px; }
-  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .panel {
-    background: linear-gradient(360deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
-  }
-  .panel h2 { margin: 0 0 12px; font-size: 16px; color: var(--sub); font-weight: 600;}
-  input, select, textarea {
-    background: var(--muted);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 10px;
-    outline: none;
-  }
-  textarea { resize: vertical; min-height: 70px; }
-  label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 6px; }
-  .grid { display: grid; gap: 12px; }
-  .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
-  .btn {
-    border: 1px solid var(--border);
-    background: #182034;
-    color: var(--text); padding: 8px 12px; border-radius: 8px; cursor: pointer;
-  }
-  .btn:hover { background: #1b2540; }
-  .btn.primary { background: #17305f; border-color: #2b4470; }
-  .btn.primary:hover { background: #1b3a73; }
-  .btn.success { background: #163825; border-color: #235c3b; }
-  .btn.success:hover { background: #18452c; }
-  .btn.warn { background: #3a2a12; border-color: #5f451f; }
-  .btn.warn:hover { background: #4b3417; }
-  .btn.danger { background: #3a1616; border-color: #5f2323; }
-  .btn.danger:hover { background: #4b1b1b; }
-  .btn.ghost { background: transparent; }
-  .tag { font-size: 12px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 999px; color: var(--sub); }
-  .task { padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.02); }
-  .muted { color: var(--sub); }
-  .hr { height: 1px; background: var(--border); margin: 10px 0; }
-  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
-  .console { max-height: 250px; overflow: auto; background: #0d1117; border-radius: 10px; padding: 10px; border: 1px solid var(--border); }
-  .subtasks { background: #0e1421; border-radius: 10px; padding: 10px; border: 1px dashed var(--border); }
-  .row-right { margin-left: auto; display: inline-flex; gap: 8px; align-items: center; }
-  .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
-  .pill.ok { border-color: #2e7d32; color: #8de2a0; }
-  .pill.bad { border-color: #9a3412; color: #f8c57a; }
-  .small { font-size: 12px; }
-  .flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .w-100 { width: 100%; }
-  .sr { display: none; }
-  @media (max-width: 860px) { .grid.two, .grid.three { grid-template-columns: 1fr; } }
-</style>
+  <title>Tasks</title>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const API_BASE = params.get('api') || "http://127.0.0.1:8000/kira/app/api/v1/task";
+
+    async function refreshTasks() {
+      const resp = await fetch(API_BASE + "/");
+      const tasks = await resp.json();
+      const list = document.getElementById("task-list");
+      list.innerHTML = "";
+      tasks.forEach(t => {
+        const item = document.createElement("div");
+        item.className = "task-item";
+        item.innerHTML = `
+          <div class="task-info" data-id="${t.id}"><strong>${t.title}</strong> <span class="muted">(ID: ${t.id})</span><br/>
+            <span class="muted">Status:</span> ${t.status} | <span class="muted">Priority:</span> ${t.priority ?? ''}
+          </div>
+          <div class="inline-edit">
+            <input id="update-title-${t.id}" placeholder="Title" />
+            <input id="update-desc-${t.id}" placeholder="Description" />
+            <input id="update-priority-${t.id}" type="number" placeholder="Priority" />
+            <button class="save-btn" onclick="saveTask(${t.id})">Save</button>
+          </div>
+          <div class="subtasks">
+            <div>
+              <input id="attach-input-${t.id}" placeholder="Subtask ID" />
+              <button class="attach-btn" onclick="attachSubtask(${t.id})">Attach</button>
+            </div>
+            <div class="subtask-list" id="subtasks-${t.id}"></div>
+          </div>
+          <div class="actions">
+            <button class="update-btn" onclick="prefillUpdate(${t.id}, '${(t.title||'').replace(/'/g, "\\'")}', '${(t.description||'').replace(/'/g, "\\'")}', ${t.priority||''})">Update</button>
+            <!-- Parent delete button now has its own class -->
+            <button class="delete-btn parent-delete-btn" onclick="deleteTask(${t.id})">Delete</button>
+          </div>
+        `;
+        list.appendChild(item);
+        // Render existing subtasks if present (subTasks key from API)
+        const subContainer = document.getElementById(`subtasks-${t.id}`);
+        const subs = (t.subTasks || []).map(st => ({ id: st.id, title: st.title }));
+        if (subs.length > 0) {
+          const ul = document.createElement('ul');
+          ul.className = 'subtask-ul';
+          subs.forEach(st => {
+            const li = document.createElement('li');
+            li.className = 'subtask-item';
+            li.innerHTML = `
+              <div class="subtask-info"><strong>${st.title}</strong> <span class="muted">(ID: ${st.id})</span></div>
+              <div class="subtask-inline-edit">
+                <input id="update-title-${st.id}" placeholder="Title" />
+                <input id="update-desc-${st.id}" placeholder="Description" />
+                <input id="update-priority-${st.id}" type="number" placeholder="Priority" />
+                <button class="save-btn" onclick="saveTask(${st.id})">Save</button>
+                <!-- Subtask delete button stays as plain delete-btn -->
+                <button class="delete-btn" onclick="deleteTask(${st.id})">Delete</button>
+              </div>
+              <div class="subtask-actions">
+                <button class="detach-btn" onclick="detachSubtask(${t.id}, ${st.id})">Detach</button>
+              </div>
+            `;
+            ul.appendChild(li);
+          });
+          subContainer.appendChild(ul);
+        }
+      });
+    }
+
+    async function createTask() {
+      const payload = {
+        title: document.getElementById("task-title").value,
+        description: document.getElementById("task-desc").value,
+        priority: parseInt(document.getElementById("task-priority").value),
+        status: document.getElementById("task-status").value,
+        project_id: parseInt(document.getElementById("task-project").value)
+      };
+      const resp = await fetch(API_BASE + "/", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      if (resp.ok) {
+        document.getElementById("status-msg").innerText = "task created";
+        await refreshTasks();
+      }
+    }
+
+    function prefillUpdate(id, title, desc, priority) {
+      document.getElementById(`update-title-${id}`).value = title || "";
+      document.getElementById(`update-desc-${id}`).value = desc || "";
+      document.getElementById(`update-priority-${id}`).value = priority || "";
+    }
+
+    async function saveTask(id) {
+      const payload = {
+        title: document.getElementById(`update-title-${id}`).value,
+        description: document.getElementById(`update-desc-${id}`).value,
+        priority: parseInt(document.getElementById(`update-priority-${id}`).value)
+      };
+      const resp = await fetch(API_BASE + "/" + id, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      if (resp.ok) {
+        document.getElementById("status-msg").innerText = "updated successfully";
+        await refreshTasks();
+      }
+    }
+
+    async function deleteTask(id) {
+      const resp = await fetch(API_BASE + "/" + id + "/delete", { method: "POST" });
+      if (resp.ok) {
+        document.getElementById("status-msg").innerText = "deleted successfully";
+        await refreshTasks();
+      }
+    }
+
+    async function attachSubtask(parentId) {
+      const input = document.getElementById(`attach-input-${parentId}`);
+      const id = parseInt(input.value);
+      const resp = await fetch(API_BASE + "/" + parentId + "/subtasks", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ subtask_ids: [id] })
+      });
+      if (resp.ok) {
+        document.getElementById("status-msg").innerText = "subtask added";
+        await refreshTasks();
+      }
+    }
+
+    async function detachSubtask(parentId, subtaskId) {
+      const resp = await fetch(API_BASE + "/" + parentId + "/subtasks/" + subtaskId, { method: "DELETE" });
+      if (resp.ok) {
+        document.getElementById("status-msg").innerText = "subtask detached";
+        await refreshTasks();
+      }
+    }
+
+    window.onload = refreshTasks;
+  </script>
 </head>
 <body>
-<div class="wrap">
-  <h1>Task Manager – Vanilla E2E</h1>
-
-  <!-- Controls -->
-  <div class="panel">
-    <div class="row">
-      <div class="grid" style="min-width: 280px; flex: 1">
-        <label for="baseUrl">Base URL</label>
-        <input id="baseUrl" placeholder="http://localhost:8000/kira/app/api/v1/task" />
-      </div>
-      <button class="btn" id="btnLoad">Load Parents</button>
-      <span class="muted small">Tip: if your backend mounts at <span class="mono">/kira/app/api/v1/task</span>, use that.</span>
-    </div>
+  <h1>Task List</h1>
+  <div id="create-form">
+    <input id="task-title" placeholder="Title" />
+    <input id="task-desc" placeholder="Description" />
+    <select id="task-priority">
+      <option value="" disabled selected>Priority</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+      <option value="8">8</option>
+      <option value="9">9</option>
+      <option value="10">10</option>
+    </select>
+    <select id="task-status">
+      <option value="" disabled selected>Status</option>
+      <option value="To-do">To-do</option>
+      <option value="In-progress">In-progress</option>
+      <option value="Completed">Completed</option>
+      <option value="Blocked">Blocked</option>
+    </select>
+    <select id="task-project">
+      <option value="" disabled selected>Project</option>
+      <option value="1">Project Alpha (1)</option>
+      <option value="100">Project Beta (100)</option>
+      <option value="123">Project Gamma (123)</option>
+    </select>
+    <button onclick="createTask()" id="create-task">Submit</button>
   </div>
-
-  <!-- Create -->
-  <div class="panel" style="margin-top: 12px;">
-    <h2>Create Task</h2>
-    <div class="grid three">
-      <div>
-        <label>Title</label>
-        <input id="c_title" />
-      </div>
-      <div>
-        <label>Description</label>
-        <input id="c_desc" />
-      </div>
-      <div>
-        <label>Priority Bucket (1–10)</label>
-        <input id="c_priority" type="number" min="1" max="10" value="5" />
-      </div>
-      <div>
-        <label>Status</label>
-        <select id="c_status">
-          <option selected>To-do</option><option>In-progress</option><option>Blocked</option><option>Completed</option>
-        </select>
-      </div>
-      <div>
-        <label>Start date (YYYY-MM-DD)</label>
-        <input id="c_start" placeholder="optional" />
-      </div>
-      <div>
-        <label>Deadline (YYYY-MM-DD)</label>
-        <input id="c_due" placeholder="optional" />
-      </div>
-      <div>
-        <label>Project ID (optional)</label>
-        <input id="c_project" type="number" />
-      </div>
-      <div>
-        <label>Active</label>
-        <select id="c_active"><option value="true" selected>true</option><option value="false">false</option></select>
-      </div>
-      <div>
-        <label>Parent ID (create as subtask)</label>
-        <input id="c_parent" type="number" placeholder="optional" />
-      </div>
-    </div>
-    <div class="row" style="margin-top: 10px;">
-      <button class="btn primary" id="btnCreate">Create</button>
-    </div>
-  </div>
-
-  <!-- Parents list -->
-  <div class="panel" style="margin-top: 12px;">
-    <h2>Parents (Top-level tasks)</h2>
-    <div id="parents"></div>
-  </div>
-
-  <!-- Console -->
-  <div class="panel" style="margin-top: 12px;">
-    <h2>Console</h2>
-    <div id="log" class="console mono small"></div>
-  </div>
-
-  <!-- Edit dialog -->
-  <dialog id="dlgEdit">
-    <form method="dialog" class="panel" style="min-width: 600px; background: var(--panel);">
-      <h2>Edit Task</h2>
-      <div class="grid three">
-        <div><label>Title</label><input id="e_title" /></div>
-        <div><label>Description</label><input id="e_desc" /></div>
-        <div>
-          <label>Priority Bucket (1–10)</label>
-          <input id="e_priority" type="number" min="1" max="10" />
-        </div>
-        <div><label>Start date</label><input id="e_start" placeholder="YYYY-MM-DD"/></div>
-        <div><label>Deadline</label><input id="e_due" placeholder="YYYY-MM-DD"/></div>
-        <div><label>Project ID</label><input id="e_project" type="number"/></div>
-        <div><label>Active</label>
-          <select id="e_active"><option value="true">true</option><option value="false">false</option></select>
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px;">
-        <div class="muted small" id="e_hint"></div>
-        <span class="row-right">
-          <button class="btn" value="cancel">Cancel</button>
-          <button class="btn success" id="btnSaveEdit" value="default">Save</button>
-        </span>
-      </div>
-    </form>
-  </dialog>
-
-</div>
-
-<script>
-(function () {
-  // -------------------- Configuration / State --------------------
-  const LS_KEY = "task_demo_base";
-  const baseInput = document.getElementById("baseUrl");
-  baseInput.value = localStorage.getItem(LS_KEY) || "http://localhost:8000/kira/app/api/v1/task";
-  baseInput.addEventListener("change", () => localStorage.setItem(LS_KEY, baseInput.value.trim()));
-
-  const parentsEl = document.getElementById("parents");
-  const logEl = document.getElementById("log");
-
-  // Edit dialog refs
-  const dlgEdit = document.getElementById("dlgEdit");
-  const e_title = document.getElementById("e_title");
-  const e_desc = document.getElementById("e_desc");
-  const e_priority = document.getElementById("e_priority");
-  const e_start = document.getElementById("e_start");
-  const e_due = document.getElementById("e_due");
-  const e_project = document.getElementById("e_project");
-  const e_active = document.getElementById("e_active");
-  const e_hint = document.getElementById("e_hint");
-  let editingTaskId = null;
-
-  // Create form refs
-  const c_title = document.getElementById("c_title");
-  const c_desc = document.getElementById("c_desc");
-  const c_priority = document.getElementById("c_priority");
-  const c_status = document.getElementById("c_status");
-  const c_start = document.getElementById("c_start");
-  const c_due = document.getElementById("c_due");
-  const c_project = document.getElementById("c_project");
-  const c_active = document.getElementById("c_active");
-  const c_parent = document.getElementById("c_parent");
-
-  // -------------------- Helpers --------------------
-  function log(label, payload) {
-    const line = `[${new Date().toLocaleTimeString()}] ${label}: ${typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)}`;
-    const div = document.createElement("div");
-    div.textContent = line;
-    logEl.prepend(div);
-  }
-
-  async function api(path, init) {
-    const url = baseInput.value.replace(/\/$/, "") + path;
-    const res = await fetch(url, {
-      headers: { "Content-Type": "application/json" },
-      ...init,
-    });
-    if (!res.ok) {
-      let detail = "";
-      try { detail = await res.text(); } catch {}
-      throw new Error(`${res.status} ${res.statusText} - ${detail}`);
-    }
-    if (res.status === 204) return null;
-    return res.json();
-  }
-
-  function field(labelText, valueText) {
-    const span = document.createElement("span");
-    span.className = "muted small";
-    span.innerHTML = `<strong class="muted">${labelText}:</strong> ${valueText}`;
-    return span;
-  }
-
-  function getPriorityDisplay(task) {
-    if (typeof task.priority === "number") return String(task.priority);
-    if (typeof task.priority === "string") return task.priority;
-    return "—";
-  }
-
-  function getSubtasks(task) {
-    return task.subTasks || task.subtasks || [];
-  }
-
-  // Debounced auto-reload of the parents list after any action
-  let _reloadTimer = null;
-  function autoReload(delay = 80) {
-    clearTimeout(_reloadTimer);
-    _reloadTimer = setTimeout(() => loadParents(), delay);
-  }
-
-  // -------------------- Render --------------------
-  async function loadParents() {
-    parentsEl.innerHTML = `<div class="muted">Loading…</div>`;
-    try {
-      const data = await api("/", { method: "GET" }); // List parents with subTasks
-      renderParents(Array.isArray(data) ? data : []);
-      log("GET /", data);
-    } catch (e) {
-      parentsEl.innerHTML = "";
-      log("GET / error", String(e));
-      alert("Failed to load parents:\n" + e.message);
-    }
-  }
-
-  function renderParents(list) {
-    parentsEl.innerHTML = "";
-    if (list.length === 0) {
-      parentsEl.innerHTML = `<div class="muted">No data. Click “Load Parents”.</div>`;
-      return;
-    }
-    list.forEach(t => parentsEl.appendChild(renderTaskCard(t)));
-  }
-
-  function renderTaskCard(task) {
-    const el = document.createElement("div");
-    el.className = "task";
-    el.dataset.id = task.id;
-
-    // Header row with basic info + actions
-    const row1 = document.createElement("div");
-    row1.className = "flex";
-    const title = document.createElement("div");
-    title.innerHTML = `<strong>#${task.id}</strong> &nbsp; ${escapeHtml(task.title)}`;
-    row1.appendChild(title);
-
-    row1.appendChild(field("Status", task.status));
-    row1.appendChild(field("Priority Bucket", getPriorityDisplay(task)));
-    row1.appendChild(field("Active", String(task.active)));
-    if (task.deadline) row1.appendChild(field("Due", task.deadline));
-    if (task.project_id != null) row1.appendChild(field("Project", task.project_id));
-
-    const actionRow = document.createElement("div");
-    actionRow.className = "row-right";
-    // Status buttons
-    actionRow.appendChild(btn("Start", "btn", () => setStatus(task.id, "start")));
-    actionRow.appendChild(btn("Block", "btn warn", () => setStatus(task.id, "block")));
-    actionRow.appendChild(btn("Complete", "btn success", () => setStatus(task.id, "complete")));
-    // Archive/Restore (include both to satisfy E2E flows)
-    actionRow.appendChild(btn("Delete", "btn", () => archive(task.id, true)));
-    // actionRow.appendChild(btn("Restore", "btn", () => restore(task.id)));
-    // Edit
-    actionRow.appendChild(btn("Edit", "btn primary", () => openEdit(task)));
-    row1.appendChild(actionRow);
-    el.appendChild(row1);
-
-    // Description / notes row
-    const row2 = document.createElement("div");
-    row2.className = "muted small";
-    row2.style.marginTop = "6px";
-    row2.textContent = task.description || "(no description)";
-    el.appendChild(row2);
-
-    // Attach form
-    const rowAttach = document.createElement("div");
-    rowAttach.className = "row";
-    rowAttach.style.marginTop = "10px";
-    const attachInput = document.createElement("input");
-    attachInput.placeholder = "Attach subtask IDs (comma-separated)";
-    attachInput.style.minWidth = "260px";
-    rowAttach.appendChild(attachInput);
-    rowAttach.appendChild(btn("Attach", "btn", async () => {
-      const ids = attachInput.value.split(",").map(s => Number(s.trim())).filter(n => !Number.isNaN(n));
-      try {
-        const res = await api(`/${task.id}/subtasks`, { method: "POST", body: JSON.stringify({ subtask_ids: ids }) });
-        log(`POST /${task.id}/subtasks`, res);
-        autoReload();
-      } catch (e) {
-        log("Attach error", String(e));
-        alert(e.message);
-      }
-    }));
-    // Expand/Collapse subtasks
-    const btnToggle = btn("Toggle subtasks", "btn ghost", () => {
-      subWrap.classList.toggle("sr");
-    });
-    rowAttach.appendChild(btnToggle);
-    el.appendChild(rowAttach);
-
-    // Subtasks area
-    const subWrap = document.createElement("div");
-    subWrap.className = "subtasks";
-    subWrap.style.marginTop = "8px";
-
-    const subs = getSubtasks(task);
-    if (Array.isArray(subs) && subs.length > 0) {
-      subs.forEach(st => subWrap.appendChild(renderSubtaskRow(task.id, st)));
-    } else {
-      const none = document.createElement("div");
-      none.className = "muted small";
-      none.textContent = "No subtasks.";
-      subWrap.appendChild(none);
-    }
-    el.appendChild(subWrap);
-
-    return el;
-  }
-
-  function renderSubtaskRow(parentId, st) {
-    const row = document.createElement("div");
-    row.className = "flex";
-    row.style.justifyContent = "space-between";
-    row.style.alignItems = "center";
-    row.style.padding = "6px 0";
-
-    // Left: basic info
-    const left = document.createElement("div");
-    const bits = [
-      `<strong>#${st.id}</strong>`,
-      escapeHtml(st.title),
-      `<span class="muted small">${st.status}</span>`,
-      `<span class="muted small">Active: ${String(st.active)}</span>`
-    ];
-    if (st.deadline) bits.push(`<span class="muted small">Due: ${st.deadline}</span>`);
-    left.innerHTML = bits.join(" &nbsp; ");
-    row.appendChild(left);
-
-    // Right: actions (mirror parent: Start / Block / Complete / Archive / Restore / Edit) + Detach
-    const right = document.createElement("div");
-    right.className = "row-right";
-
-    right.appendChild(btn("Start", "btn", async () => {
-      try {
-        await api(`/${st.id}/start`, { method: "POST" });
-        log(`POST /${st.id}/start`, "ok");
-        autoReload();
-      } catch (e) {
-        log("Subtask start error", String(e));
-        alert(e.message);
-      }
-    }));
-
-    right.appendChild(btn("Block", "btn warn", async () => {
-      try {
-        await api(`/${st.id}/block`, { method: "POST" });
-        log(`POST /${st.id}/block`, "ok");
-        autoReload();
-      } catch (e) {
-        log("Subtask block error", String(e));
-        alert(e.message);
-      }
-    }));
-
-    right.appendChild(btn("Complete", "btn success", async () => {
-      try {
-        await api(`/${st.id}/complete`, { method: "POST" });
-        log(`POST /${st.id}/complete`, "ok");
-        autoReload();
-      } catch (e) {
-        log("Subtask complete error", String(e));
-        alert(e.message);
-      }
-    }));
-
-    right.appendChild(btn("Delete", "btn", async () => {
-      try {
-        await api(`/${st.id}/archive`, { method: "POST" });
-        log(`POST /${st.id}/archive`, "ok");
-        autoReload();
-      } catch (e) {
-        log("Subtask archive error", String(e));
-        alert(e.message);
-      }
-    }));
-
-    // right.appendChild(btn("Restore", "btn", async () => {
-    //   try {
-    //     await api(`/${st.id}/restore`, { method: "POST" });
-    //     log(`POST /${st.id}/restore`, "ok");
-    //     autoReload();
-    //   } catch (e) {
-    //     log("Subtask restore error", String(e));
-    //     alert(e.message);
-    //   }
-    // }));
-
-    right.appendChild(btn("Edit", "btn primary", () => {
-      openEdit(st);
-    }));
-
-    right.appendChild(btn("Detach", "btn danger", async () => {
-      try {
-        await api(`/${parentId}/subtasks/${st.id}`, { method: "DELETE" });
-        log(`DELETE /${parentId}/subtasks/${st.id}`, "204");
-        autoReload();
-      } catch (e) {
-        log("Detach error", String(e));
-        alert(e.message);
-      }
-    }));
-
-    row.appendChild(right);
-    return row;
-  }
-
-  function btn(label, cls, onClick) {
-    const b = document.createElement("button");
-    b.className = cls + " small";
-    b.textContent = label;
-    b.addEventListener("click", (e) => { e.preventDefault(); onClick && onClick(); });
-    return b;
-  }
-
-  // -------------------- Actions --------------------
-  async function setStatus(id, action) {
-    try {
-      const res = await api(`/${id}/${action}`, { method: "POST" });
-      log(`POST /${id}/${action}`, res);
-      autoReload();
-    } catch (e) {
-      log("Status error", String(e));
-      alert(e.message);
-    }
-  }
-
-  async function archive(id, detach) {
-    try {
-      const res = await api(`/${id}/archive?detach_links=${detach ? "true" : "false"}`, { method: "POST" });
-      log(`POST /${id}/archive`, res);
-      autoReload();
-    } catch (e) {
-      log("Archive error", String(e));
-      alert(e.message);
-    }
-  }
-
-  async function restore(id) {
-    try {
-      const res = await api(`/${id}/restore`, { method: "POST" });
-      log(`POST /${id}/restore`, res);
-      autoReload();
-    } catch (e) {
-      log("Restore error", String(e));
-      alert(e.message);
-    }
-  }
-
-  function openEdit(task) {
-    editingTaskId = task.id;
-    e_title.value = task.title || "";
-    e_desc.value = task.description || "";
-    e_priority.value = (typeof task.priority === "number" ? task.priority : "") || "";
-    e_start.value = task.start_date || "";
-    e_due.value = task.deadline || "";
-    e_project.value = task.project_id ?? "";
-    e_active.value = task.active ? "true" : "false";
-    e_hint.textContent = `Editing #${task.id} (status updates are separate actions)`;
-    dlgEdit.showModal();
-  }
-
-  document.getElementById("btnSaveEdit").addEventListener("click", async (ev) => {
-    ev.preventDefault();
-    if (!editingTaskId) return;
-    const payload = {};
-    if (e_title.value !== "") payload.title = e_title.value;
-    if (e_desc.value !== "") payload.description = e_desc.value;
-    if (e_priority.value !== "") payload.priority = Number(e_priority.value);
-    if (e_start.value !== "") payload.start_date = e_start.value || null;
-    if (e_due.value !== "") payload.deadline = e_due.value || null;
-    if (e_project.value !== "") payload.project_id = Number(e_project.value);
-    payload.active = e_active.value === "true";
-
-    try {
-      const res = await api(`/${editingTaskId}`, { method: "PATCH", body: JSON.stringify(payload) });
-      log(`PATCH /${editingTaskId}`, res);
-      dlgEdit.close();
-      autoReload();
-    } catch (e) {
-      log("PATCH error", String(e));
-      alert(e.message);
-    }
-  });
-
-  // Create task
-  document.getElementById("btnCreate").addEventListener("click", async () => {
-    const pb = Number(c_priority.value);
-    const payload = {
-      title: c_title.value || "",
-      description: c_desc.value || null,
-      start_date: c_start.value || null,
-      deadline: c_due.value || null,
-      priority: Number.isNaN(pb) ? 5 : Math.min(10, Math.max(1, pb)),
-      status: c_status.value,
-      project_id: c_project.value === "" ? null : Number(c_project.value),
-      active: c_active.value === "true",
-      parent_id: c_parent.value === "" ? null : Number(c_parent.value),
-    };
-    try {
-      const res = await api("/", { method: "POST", body: JSON.stringify(payload) });
-      log("POST /", res);
-      // Clear fields
-      c_title.value = ""; c_desc.value = ""; c_start.value = ""; c_due.value = ""; c_project.value = ""; c_parent.value = "";
-      autoReload();
-    } catch (e) {
-      log("Create error", String(e));
-      alert(e.message);
-    }
-  });
-
-  // Load parents button
-  document.getElementById("btnLoad").addEventListener("click", loadParents);
-
-  // Utilities
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
-
-  // First load (optional)
-  loadParents();
-})();
-</script>
+  <div id="status-msg"></div>
+  <button id="refresh-btn" onclick="refreshTasks()">Refresh</button>
+  <div id="task-list"></div>
 </body>
 </html>
