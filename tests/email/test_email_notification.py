@@ -4,7 +4,6 @@ This aligns with services/task.update_task auto-notification and current email_s
 """
 import sys
 import os
-from datetime import date
 
 # Add the project root to Python path so we can import modules when running directly
 project_root = os.path.join(os.path.dirname(__file__), '..', '..')
