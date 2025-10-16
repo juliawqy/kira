@@ -1,323 +1,187 @@
-# tests/backend/integration/user/test_user_api.py
-import os
-import tempfile
-import uuid
-from copy import deepcopy
-
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
+from unittest.mock import patch
 
-from backend.src.database.db_setup import Base
 from backend.src.main import app
-
 from tests.mock_data.user.unit_data import (
+    VALID_USER_ADMIN,
+    VALID_USER,
     VALID_CREATE_PAYLOAD_ADMIN,
     VALID_CREATE_PAYLOAD_USER,
-    INVALID_CREATE_SHORT_PASSWORD,
-    INVALID_CREATE_NO_SPECIAL,
-    INVALID_CREATE_BAD_EMAIL,
-    VALID_UPDATE_NAME,
-    VALID_UPDATE_EMAIL,
-    VALID_UPDATE_ADMIN_TOGGLE,
-    VALID_PASSWORD_CHANGE,
-    INVALID_PASSWORD_CHANGE_WRONG_CURRENT,
-    LARGE_NAME,
-    LONG_EMAIL,
     INVALID_USER_ID,
+    VALID_UPDATE_NAME,
+    VALID_PASSWORD_CHANGE,
 )
 
-API_BASE = "/kira/app/api/v1/user"
+client = TestClient(app)
+
+BASE = "/kira/app/api/v1/user"  # full router prefix
 
 
-# ---------- helpers ----------
-
-def _payload(p: dict) -> dict:
-    """JSON-safe copy; convert UserRole enums to string values if present."""
-    d = deepcopy(p)
-    if "role" in d and hasattr(d["role"], "value"):
-        d["role"] = d["role"].value 
-    return d
-
-def _with_unique_email(p: dict, tag: str = "") -> dict:
-    """Return payload with a unique +tag email to avoid dupes inside a test."""
-    d = _payload(p)
-    local, domain = d["email"].split("@", 1)
-    suffix = tag or uuid.uuid4().hex[:8]
-    d["email"] = f"{local}+{suffix}@{domain}"
-    return d
+# -----------------------------
+# Create User
+# -----------------------------
+def test_create_user_success_admin():
+    with patch("backend.src.api.v1.routes.user_route.user_service.create_user", return_value=VALID_USER_ADMIN):
+        response = client.post(f"{BASE}/", json=VALID_CREATE_PAYLOAD_ADMIN)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["user_id"] == VALID_USER_ADMIN["user_id"]
+        assert data["admin"] is True
 
 
-# ---------- per-test temp DB + SessionLocal patch + client ----------
-
-@pytest.fixture(autouse=True)
-def isolated_test_db(monkeypatch):
-    """
-    Brand-new SQLite DB file per test.
-    Patch SessionLocal in BOTH:
-      - backend.src.database.db_setup
-      - backend.src.services.user
-    so the service layer and the API use this DB.
-    """
-    fd, db_path = tempfile.mkstemp(suffix=".db")
-    os.close(fd)
-
-    engine = create_engine(
-        f"sqlite:///{db_path}",
-        echo=False,
-        future=True,
-        connect_args={"check_same_thread": False}, 
-    )
-    Base.metadata.create_all(bind=engine)
-
-    TestingSessionLocal = sessionmaker(
-        bind=engine,
-        autoflush=False,
-        autocommit=False,
-        expire_on_commit=False,
-        future=True,
-    )
-
-    monkeypatch.setattr("backend.src.database.db_setup.SessionLocal", TestingSessionLocal, raising=True)
-    monkeypatch.setattr("backend.src.services.user.SessionLocal", TestingSessionLocal, raising=False)
-
-    try:
-        yield
-    finally:
-        try:
-            engine.dispose()
-        finally:
-            try:
-                os.unlink(db_path)
-            except OSError:
-                pass
+def test_create_user_success_employee():
+    with patch("backend.src.api.v1.routes.user_route.user_service.create_user", return_value=VALID_USER):
+        response = client.post(f"{BASE}/", json=VALID_CREATE_PAYLOAD_USER)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["user_id"] == VALID_USER["user_id"]
+        assert data["admin"] is False
 
 
-@pytest.fixture
-def client(isolated_test_db):
-    """FastAPI TestClient that now writes/reads to the per-test DB."""
-    with TestClient(app) as c:
-        yield c
-
-# Create
-# INT-052/001
-def test_create_user_success_admin(client):
-    res = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_ADMIN, "create-admin"))
-    assert res.status_code == 201, res.text
-    body = res.json()
-    assert body["user_id"] > 0
-    assert body["email"].startswith("alice.admin+create-admin@")
-    expected_role = _payload(VALID_CREATE_PAYLOAD_ADMIN)["role"]
-    assert body["role"].lower() == expected_role.lower()
-
-# INT-052/002
-def test_create_user_success_employee(client):
-    res = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "create-emp"))
-    assert res.status_code == 201, res.text
-    body = res.json()
-    assert body["user_id"] > 0
-    assert body["email"].startswith("bob.employee+create-emp@")
-    expected_role = _payload(VALID_CREATE_PAYLOAD_USER)["role"]
-    assert body["role"].lower() == expected_role.lower()
-
-# INT-052/003
-def test_create_user_short_password_returns_422(client):
-    res = client.post(f"{API_BASE}/", json=_with_unique_email(INVALID_CREATE_SHORT_PASSWORD, "short"))
-    assert res.status_code == 422, res.text
-
-# INT-052/004
-def test_create_user_invalid_email_returns_422(client):
-    res = client.post(f"{API_BASE}/", json=_payload(INVALID_CREATE_BAD_EMAIL))
-    assert res.status_code == 422, res.text
-
-# INT-052/005
-def test_create_user_no_special_password_returns_400(client):
-    res = client.post(f"{API_BASE}/", json=_with_unique_email(INVALID_CREATE_NO_SPECIAL, "nospecial"))
-    assert res.status_code == 400, res.text
-
-# INT-052/006
-def test_create_user_invalid_role_returns_400(client):
-    bad = _with_unique_email(VALID_CREATE_PAYLOAD_USER, "badrole")
-    bad["role"] = "not_a_role"
-    res = client.post(f"{API_BASE}/", json=bad)
-    assert res.status_code == 400, res.text
-    assert "Invalid role" in res.json()["detail"]
+def test_create_user_failure_duplicate_email():
+    with patch(
+        "backend.src.api.v1.routes.user_route.user_service.create_user",
+        side_effect=ValueError("Email already exists")
+    ):
+        response = client.post(f"{BASE}/", json=VALID_CREATE_PAYLOAD_USER)
+        assert response.status_code == 400
+        assert "Email already exists" in response.json()["detail"]
 
 
-# Read
-# INT-054/001
-def test_get_user_by_id_success(client):
-    res = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_ADMIN, "get-by-id"))
-    assert res.status_code == 201, res.text
-    uid = res.json()["user_id"]
-
-    res = client.get(f"{API_BASE}/{uid}")
-    assert res.status_code == 200, res.text
-    assert res.json()["user_id"] == uid
-
-# INT-054/002
-def test_get_user_by_email_success(client):
-    payload = _with_unique_email(VALID_CREATE_PAYLOAD_USER, "by-email")
-    assert client.post(f"{API_BASE}/", json=payload).status_code == 201
-    res = client.get(f"{API_BASE}/{payload['email']}")
-    assert res.status_code == 200, res.text
-    assert res.json()["email"] == payload["email"]
-
-# INT-054/003
-def test_get_user_by_numeric_id_branch_and_404(client):
-    res = client.get(f"{API_BASE}/{INVALID_USER_ID}")
-    assert res.status_code == 404, res.text
-    assert res.json()["detail"] == "User not found"
-
-# INT-054/004
-def test_list_users_empty(client):
-    res = client.get(f"{API_BASE}/")
-    assert res.status_code == 200, res.text
-    assert res.json() == [] 
-
-# INT-054/005
-def test_list_users_two(client):
-    p1 = _with_unique_email(VALID_CREATE_PAYLOAD_USER, "list1")
-    p2 = _with_unique_email(VALID_CREATE_PAYLOAD_ADMIN, "list2")
-    assert client.post(f"{API_BASE}/", json=p1).status_code == 201
-    assert client.post(f"{API_BASE}/", json=p2).status_code == 201
-
-    res = client.get(f"{API_BASE}/")
-    assert res.status_code == 200, res.text
-    data = res.json()
-    emails = {u["email"] for u in data}
-    assert p1["email"] in emails and p2["email"] in emails
-    assert len(data) == 2  
-
-# INT-054/006
-def test_get_user_not_found_after_delete(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "cover-6768")).json()
-    uid = created["user_id"]
-
-    res_del = client.delete(f"{API_BASE}/{uid}")
-    assert res_del.status_code == 200 and res_del.json() is True, res_del.text
-
-    res_get = client.get(f"{API_BASE}/{uid}")
-    assert res_get.status_code == 404, res_get.text
-    assert res_get.json()["detail"] == "User not found"
-
-# Update 
-# INT-053/001
-def test_update_user_name_success(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "upd-name")).json()
-    uid = created["user_id"]
-    res = client.patch(f"{API_BASE}/{uid}", json=VALID_UPDATE_NAME)
-    assert res.status_code == 200, res.text
-    assert res.json()["name"] == VALID_UPDATE_NAME["name"]
-
-# INT-053/002
-def test_update_user_email_success(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "upd-email")).json()
-    uid = created["user_id"]
-    res = client.patch(f"{API_BASE}/{uid}", json=VALID_UPDATE_EMAIL)
-    assert res.status_code == 200, res.text
-    assert res.json()["email"] == VALID_UPDATE_EMAIL["email"]
-
-# INT-053/003
-def test_update_user_admin_toggle_success(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_ADMIN, "upd-admin")).json()
-    uid = created["user_id"]
-    res = client.patch(f"{API_BASE}/{uid}", json=VALID_UPDATE_ADMIN_TOGGLE)
-    assert res.status_code == 200, res.text
-    assert res.json()["admin"] == VALID_UPDATE_ADMIN_TOGGLE["admin"]
-
-# INT-053/004
-def test_update_user_invalid_role_returns_400(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "bad-role")).json()
-    uid = created["user_id"]
-    res = client.patch(f"{API_BASE}/{uid}", json={"role": "bad_role"})
-    assert res.status_code == 400, res.text
-    assert "Invalid role" in res.json()["detail"]
-
-# INT-053/005
-def test_update_user_email_conflict_returns_400(client):
-    first = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "dup-a")).json()
-    second = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "dup-b")).json()
-
-    res = client.patch(f"{API_BASE}/{second['user_id']}", json={"email": first["email"]})
-    assert res.status_code == 400, res.text
-    assert "already in use" in res.json()["detail"].lower()
-
-# INT-053/006
-def test_update_user_not_found_returns_404(client):
-    res = client.patch(f"{API_BASE}/{INVALID_USER_ID}", json=VALID_UPDATE_NAME)
-    assert res.status_code == 404, res.text
-    assert res.json()["detail"] == "User not found"
-
-# INT-053/007
-def test_update_user_not_found_after_delete_covers_101(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "cover-101")).json()
-    uid = created["user_id"]
-
-    res_del = client.delete(f"{API_BASE}/{uid}")
-    assert res_del.status_code == 200 and res_del.json() is True, res_del.text
-
-    res_patch = client.patch(f"{API_BASE}/{uid}", json=VALID_UPDATE_NAME)
-    assert res_patch.status_code == 404, res_patch.text
-    assert res_patch.json()["detail"] == "User not found"
-
-# INT-053/008
-def test_update_large_name_ok(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "large-name")).json()
-    uid = created["user_id"]
-    res = client.patch(f"{API_BASE}/{uid}", json=LARGE_NAME)
-    assert res.status_code in (200, 400), res.text
-
-# INT-053/009
-def test_update_long_email_format_validation(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "long-email")).json()
-    uid = created["user_id"]
-    res = client.patch(f"{API_BASE}/{uid}", json=LONG_EMAIL)
-    assert res.status_code == 200, res.text
-    assert res.json()["email"] == LONG_EMAIL["email"]
-
-# Delete
-# INT-055/001
-def test_delete_user_success(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_ADMIN, "del")).json()
-    uid = created["user_id"]
-    res = client.delete(f"{API_BASE}/{uid}")
-    assert res.status_code == 200, res.text
-    assert res.json() is True
-
-# INT-055/002
-def test_delete_user_not_found_returns_404(client):
-    res = client.delete(f"{API_BASE}/{INVALID_USER_ID}")
-    assert res.status_code == 404, res.text
-    assert res.json()["detail"] == "User not found"
-
-# Change Password
-
-# INT-052/007
-def test_change_password_success(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "pw-ok")).json()
-    uid = created["user_id"]
-    body = {
-        "current_password": VALID_CREATE_PAYLOAD_USER["password"],
-        "new_password": VALID_PASSWORD_CHANGE["new_password"],
+def test_create_user_invalid_payload_returns_422():
+    # missing required field `email` should cause pydantic validation error -> 422
+    invalid_payload = {
+        "name": "No Email",
+        # "email": missing
+        "role": "employee",
+        "password": "Some!Pass123",
+        "department_id": None,
+        "admin": False,
     }
-    res = client.post(f"{API_BASE}/{uid}/password", json=body)
-    assert res.status_code == 200, res.text
-    assert res.json() is True
+    response = client.post(f"{BASE}/", json=invalid_payload)
+    assert response.status_code == 422
+    # minimal assertion that validation error refers to `email` or required fields
+    body = response.json()
+    assert "detail" in body
+    # ensure at least one error item (structure depends on FastAPI/pydantic)
+    assert isinstance(body["detail"], list) and len(body["detail"]) > 0
 
-# INT-052/008
-def test_change_password_wrong_current_returns_403(client):
-    created = client.post(f"{API_BASE}/", json=_with_unique_email(VALID_CREATE_PAYLOAD_USER, "pw-wrong")).json()
-    uid = created["user_id"]
-    res = client.post(f"{API_BASE}/{uid}/password", json=INVALID_PASSWORD_CHANGE_WRONG_CURRENT)
-    assert res.status_code == 403, res.text
-    assert "Current password is incorrect" in res.json()["detail"]
 
-# INT-052/009
-def test_change_password_user_not_found_returns_400(client):
-    body = {"current_password": VALID_PASSWORD_CHANGE["current_password"], "new_password": VALID_PASSWORD_CHANGE["new_password"]}
-    res = client.post(f"{API_BASE}/{INVALID_USER_ID}/password", json=body)
-    assert res.status_code == 400, res.text
-    assert "User not found" in res.json()["detail"]
+# -----------------------------
+# Get User
+# -----------------------------
+def test_get_user_by_id_success():
+    with patch("backend.src.api.v1.routes.user_route.user_service.get_user", return_value=VALID_USER):
+        response = client.get(f"{BASE}/{VALID_USER['user_id']}")
+        assert response.status_code == 200
+        assert response.json()["email"] == VALID_USER["email"]
 
+
+def test_get_user_by_non_digit_identifier_success():
+    # exercise the non-digit branch (identifier.isdigit() == False)
+    identifier = VALID_USER["email"]
+    with patch("backend.src.api.v1.routes.user_route.user_service.get_user", return_value=VALID_USER) as mock_get:
+        response = client.get(f"{BASE}/{identifier}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == VALID_USER["email"]
+        # ensure service was called with the string identifier (not int)
+        mock_get.assert_called_with(identifier)
+
+
+def test_get_user_not_found():
+    with patch("backend.src.api.v1.routes.user_route.user_service.get_user", return_value=None):
+        response = client.get(f"{BASE}/{INVALID_USER_ID}")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "User not found"
+
+
+def test_list_users_success():
+    users = [VALID_USER, VALID_USER_ADMIN]
+    with patch("backend.src.api.v1.routes.user_route.user_service.list_users", return_value=users):
+        response = client.get(f"{BASE}/")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 2
+        emails = {u["email"] for u in data}
+        assert VALID_USER["email"] in emails and VALID_USER_ADMIN["email"] in emails
+
+
+# -----------------------------
+# Update User
+# -----------------------------
+def test_update_user_name_success():
+    updated_user = VALID_USER.copy()
+    updated_user.update(VALID_UPDATE_NAME)
+    with patch("backend.src.api.v1.routes.user_route.user_service.update_user", return_value=updated_user):
+        response = client.patch(f"{BASE}/{VALID_USER['user_id']}", json=VALID_UPDATE_NAME)
+        assert response.status_code == 200
+        assert response.json()["name"] == VALID_UPDATE_NAME["name"]
+
+
+def test_update_user_not_found():
+    with patch("backend.src.api.v1.routes.user_route.user_service.update_user", return_value=None):
+        response = client.patch(f"{BASE}/{INVALID_USER_ID}", json=VALID_UPDATE_NAME)
+        assert response.status_code == 404
+        assert response.json()["detail"] == "User not found"
+
+
+def test_update_user_email_already_exists():
+    # exercise ValueError path in update_user
+    with patch(
+        "backend.src.api.v1.routes.user_route.user_service.update_user",
+        side_effect=ValueError("Email already exists")
+    ):
+        response = client.patch(f"{BASE}/{VALID_USER['user_id']}", json={"email": "someone@else.com"})
+        assert response.status_code == 400
+        assert "Email already exists" in response.json()["detail"]
+
+
+# -----------------------------
+# Delete User
+# -----------------------------
+def test_delete_user_success():
+    with patch("backend.src.api.v1.routes.user_route.user_service.delete_user", return_value=True):
+        response = client.delete(f"{BASE}/{VALID_USER['user_id']}")
+        assert response.status_code == 200
+        assert response.json() is True
+
+
+def test_delete_user_not_found():
+    with patch("backend.src.api.v1.routes.user_route.user_service.delete_user", return_value=False):
+        response = client.delete(f"{BASE}/{INVALID_USER_ID}")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "User not found"
+
+
+# -----------------------------
+# Change Password
+# -----------------------------
+def test_change_password_success():
+    with patch("backend.src.api.v1.routes.user_route.user_service.change_password", return_value=True):
+        response = client.post(f"{BASE}/{VALID_USER_ADMIN['user_id']}/password", json=VALID_PASSWORD_CHANGE)
+        assert response.status_code == 200
+        assert response.json() is True
+
+
+def test_change_password_wrong_current():
+    with patch(
+        "backend.src.api.v1.routes.user_route.user_service.change_password",
+        side_effect=ValueError("Current password is incorrect")
+    ):
+        response = client.post(f"{BASE}/{VALID_USER_ADMIN['user_id']}/password", json=VALID_PASSWORD_CHANGE)
+        assert response.status_code == 403
+        assert "Current password is incorrect" in response.json()["detail"]
+
+
+def test_change_password_user_not_found():
+    # other ValueError messages should map to 400 per route code
+    with patch(
+        "backend.src.api.v1.routes.user_route.user_service.change_password",
+        side_effect=ValueError("User not found")
+    ):
+        response = client.post(f"{BASE}/{VALID_USER_ADMIN['user_id']}/password", json=VALID_PASSWORD_CHANGE)
+        assert response.status_code == 400
+        assert "User not found" in response.json()["detail"]

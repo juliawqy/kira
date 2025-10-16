@@ -1,79 +1,87 @@
 """
 Global test configuration and fixtures.
 """
-import os
-import os
+import pytest
 import tempfile
-import pytest
-from fastapi.testclient import TestClient
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+import os
+import time
+import multiprocessing
+import requests
+
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
-from backend.src.main import app
-from backend.src.main import app
+
 from backend.src.database.db_setup import Base
 from backend.src.database.models.user import User
 from backend.src.database.models.task import Task
+from backend.src.main import app
+import uvicorn
+
+def _run_server():
+    uvicorn.run(
+        "backend.src.main:app",
+        host="127.0.0.1",
+        port=8001,
+        log_level="info",
+    )
 
 
-# ---------- Test DB engine (session scope) ----------
+@pytest.fixture(scope="session")
+def live_server(test_db_path):
+    """
+    Run FastAPI app in a subprocess, sharing the same DB file path.
+    """
+    proc = multiprocessing.Process(target=_run_server, daemon=True)
+    proc.start()
+
+    # wait until server is up
+    for _ in range(20):
+        try:
+            requests.get("http://127.0.0.1:8001/docs")
+            break
+        except Exception:
+            time.sleep(0.5)
+
+    yield "http://127.0.0.1:8001"
+
+    proc.terminate()
+    proc.join()
+
 @pytest.fixture(scope="session")
 def test_db_path():
-    fd, path = tempfile.mkstemp(suffix=".db")
-    os.close(fd)
-    try:
-        yield path
-    finally:
-        if os.path.exists(path):
-            os.remove(path)
+    """Create a temp DB file path shared between test + live server processes."""
+    db_fd, db_path = tempfile.mkstemp(suffix=".db")
+    os.close(db_fd)
+    yield db_path
+    # Cleanup after all processes are done
+    if os.path.exists(db_path):
+        os.remove(db_path)
 
-# ---------- Test DB engine (session scope) ----------
-@pytest.fixture(scope="session")
-def test_db_path():
-    fd, path = tempfile.mkstemp(suffix=".db")
-    os.close(fd)
-    try:
-        yield path
-    finally:
-        if os.path.exists(path):
-            os.remove(path)
 
 @pytest.fixture(scope="session")
 def test_engine(test_db_path):
-def test_engine(test_db_path):
     """
-    Create a test database engine for the entire test session.
-    Use check_same_thread=False so FastAPI/TestClient can use the same file DB across threads.
+    Each process creates its own engine bound to the same temp file.
     """
     engine = create_engine(
         f"sqlite:///{test_db_path}",
+        connect_args={"check_same_thread": False},
         echo=False,
         future=True,
-        connect_args={"check_same_thread": False},
     )
-    Use check_same_thread=False so FastAPI/TestClient can use the same file DB across threads.
-    """
-    engine = create_engine(
-        f"sqlite:///{test_db_path}",
-        echo=False,
-        future=True,
-        connect_args={"check_same_thread": False},
-    )
+
+    # Enforce foreign key constraints
+    @event.listens_for(engine, "connect")
+    def _fk_pragma(dbapi_connection, connection_record):  # pragma: no cover
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     Base.metadata.create_all(bind=engine)
-    try:
-        yield engine
-    finally:
-        Base.metadata.drop_all(bind=engine)
-
-    try:
-        yield engine
-    finally:
-        Base.metadata.drop_all(bind=engine)
+    yield engine
+    engine.dispose()
 
 
-# ---------- Per-test session & transaction ----------
-# ---------- Per-test session & transaction ----------
 @pytest.fixture
 def db_session(test_engine):
     """
@@ -81,99 +89,38 @@ def db_session(test_engine):
     """
     connection = test_engine.connect()
     transaction = connection.begin()
-    SessionLocal = sessionmaker(bind=connection, autoflush=False, autocommit=False, future=True)
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
-        transaction.rollback()
-        connection.close()
-    SessionLocal = sessionmaker(bind=connection, autoflush=False, autocommit=False, future=True)
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
-        transaction.rollback()
-        connection.close()
+    Session = sessionmaker(bind=connection, autoflush=False, autocommit=False)
+    session = Session()
+
+    yield session
+
+    session.close()
+    transaction.rollback()
+    connection.close()
 
 
-# ---------- FastAPI client for API testing ----------
-@pytest.fixture
-def client():
-    """
-    TestClient for API testing.
-    Since your app doesn't use dependency injection for DB sessions,
-    this provides a simple test client for API endpoint testing.
-    """
-    with TestClient(app) as c:
-        yield c
-
-
-# ---------- Factories (aligned to your User model columns) ----------
-# ---------- FastAPI client for API testing ----------
-@pytest.fixture
-def client():
-    """
-    TestClient for API testing.
-    Since your app doesn't use dependency injection for DB sessions,
-    this provides a simple test client for API endpoint testing.
-    """
-    with TestClient(app) as c:
-        yield c
-
-
-# ---------- Factories (aligned to your User model columns) ----------
 @pytest.fixture
 def user_factory(db_session):
     """
-    Factory for creating test users directly via ORM (bypasses API).
-    Matches model fields: user_id, email, name, role (str), admin (bool), hashed_pw (str), department_id (int|None).
-    Factory for creating test users directly via ORM (bypasses API).
-    Matches model fields: user_id, email, name, role (str), admin (bool), hashed_pw (str), department_id (int|None).
+    Factory for creating test users.
     """
     def _create_user(**kwargs):
         from backend.src.enums.user_role import UserRole
-
-        role_val = kwargs.pop("role", UserRole.STAFF)
-        role_str = role_val.value 
-        default = {
-
-        role_val = kwargs.pop("role", UserRole.STAFF)
-        role_str = role_val.value 
-        default = {
+        default_data = {
             "name": "Test User",
             "email": "test@example.com",
-            "role": role_str,
-            "admin": False,
-            "hashed_pw": "hashed_password",   
-            "email": "test@example.com",
-            "role": role_str,
-            "admin": False,
-            "hashed_pw": "hashed_password",   
+            "role": UserRole.STAFF,
+            "password_hash": "hashed_password",
             "department_id": 1,
+            "is_admin": False,
         }
-        default.update(kwargs)
+        default_data.update(kwargs)
 
-        # Ensure final role is a string
-        if hasattr(default["role"], "value"):
-            default["role"] = default["role"].value
-
-        user = User(**default)
-        default.update(kwargs)
-
-        # Ensure final role is a string
-        if hasattr(default["role"], "value"):
-            default["role"] = default["role"].value
-
-        user = User(**default)
+        user = User(**default_data)
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
         return user
-
-
 
     return _create_user
 
@@ -181,33 +128,24 @@ def user_factory(db_session):
 @pytest.fixture
 def task_factory(db_session):
     """
-    Factory for creating test tasks directly via ORM.
-    Factory for creating test tasks directly via ORM.
+    Factory for creating test tasks.
     """
     def _create_task(**kwargs):
         from backend.src.enums.task_status import TaskStatus
         from backend.src.enums.task_priority import TaskPriority
-
-        default = {
-
-        default = {
+        default_data = {
             "title": "Test Task",
             "description": "Test Description",
             "status": TaskStatus.TODO,
             "priority": TaskPriority.MEDIUM,
-            "assigned_user_id": None
+            "assigned_user_id": None,
         }
-        default.update(kwargs)
+        default_data.update(kwargs)
 
-        task = Task(**default)
-        default.update(kwargs)
-
-        task = Task(**default)
+        task = Task(**default_data)
         db_session.add(task)
         db_session.commit()
         db_session.refresh(task)
         return task
-
-
 
     return _create_task
