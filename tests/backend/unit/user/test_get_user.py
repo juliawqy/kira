@@ -1,5 +1,9 @@
 from unittest.mock import patch, MagicMock
-from tests.mock_data.user.unit_data import VALID_USER_ADMIN, VALID_USER, INVALID_EMAIL_DOESNT_EXIST
+from tests.mock_data.user.unit_data import (
+    VALID_USER_ADMIN, 
+    VALID_USER, 
+    INVALID_EMAIL_DOESNT_EXIST
+)
 
 # UNI-054/001
 @patch("backend.src.services.user.SessionLocal")
@@ -36,7 +40,6 @@ def test_get_user_by_identifier_found(mock_session_local):
     assert res is orm_user
     assert getattr(res, "name") == VALID_USER["name"]
     mock_session.execute.assert_called()
-
 
 # UNI-054/003
 @patch("backend.src.services.user.SessionLocal")
