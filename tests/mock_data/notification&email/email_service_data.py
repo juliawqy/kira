@@ -41,33 +41,33 @@ INVALID_EMAIL_SETTINGS_MISSING_PORT = {
 # Sample email recipients
 VALID_EMAIL_RECIPIENTS = [
     {
-        "email": "john.doe@example.com",
+        "email": "john.doe@fastmail.com",
         "name": "John Doe"
     },
     {
-        "email": "jane.smith@example.com",
+        "email": "jane.smith@fastmail.com",
         "name": "Jane Smith"
     },
     {
-        "email": "admin@example.com",
+        "email": "admin@fastmail.com",
         "name": "Admin User"
     }
 ]
 
 SINGLE_EMAIL_RECIPIENT = [
     {
-        "email": "user@example.com",
+        "email": "user@fastmail.com",
         "name": "Test User"
     }
 ]
 
 EMAIL_RECIPIENTS_NO_NAMES = [
     {
-        "email": "user1@example.com",
+        "email": "user1@fastmail.com",
         "name": None
     },
     {
-        "email": "user2@example.com", 
+        "email": "user2@fastmail.com", 
         "name": None
     }
 ]

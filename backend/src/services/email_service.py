@@ -163,11 +163,16 @@ class EmailService:
     
     def _get_task_notification_recipients(self, task_id: int) -> List[EmailRecipient]:
         """Get default notification recipients for a task (stub implementation)"""
-        
-        default_recipients = []
-        
-        
-        return default_recipients
+        recipients: List[EmailRecipient] = []
+        # Dev/test convenience: if explicitly configured, use the test recipient
+        if getattr(self.settings, 'test_recipient_email', None):
+            recipients.append(
+                EmailRecipient(
+                    email=self.settings.test_recipient_email, 
+                    name=self.settings.test_recipient_name or "Test Recipient"
+                )
+            )
+        return recipients
     
     def send_task_update_notification(
         self,
