@@ -53,6 +53,7 @@ def add_task(
     priority: int = 5,
     status: str = TaskStatus.TO_DO.value,
     recurring: Optional[int] = 0,
+    tag: Optional[str] = None,
     project_id: int,
     active: bool = True,
     parent_id: Optional[int] = None,
@@ -76,6 +77,7 @@ def add_task(
             status=status,
             priority=priority,
             recurring=recurring,
+            tag=tag,
             project_id=project_id,
             active=active,
         )
@@ -105,6 +107,7 @@ def update_task(
     deadline: Optional[date] = None,
     priority: Optional[int] = None,
     recurring: Optional[int] = None,
+    tag: Optional[str] = None,
     project_id: Optional[int] = None,
     **kwargs
 ) -> Task:
@@ -136,6 +139,7 @@ def update_task(
             _validate_bucket(priority)
             task.priority = priority
         if recurring is not None: task.recurring = recurring
+        if tag is not None: task.tag = tag
         if project_id is not None:  task.project_id = project_id
 
         session.add(task)
@@ -176,6 +180,7 @@ def set_task_status(task_id: int, new_status: str) -> Task:
                 status = TaskStatus.TO_DO.value,
                 priority = task.priority,
                 recurring = task.recurring,
+                tag = task.tag,
                 project_id = task.project_id,
                 active = True,
             )
