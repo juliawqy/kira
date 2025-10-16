@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Task (In-App Notifications Demo)</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.5; color: #222; margin: 20px; }
+    h1 { margin-bottom: 10px; }
+    .muted { color: #666; font-size: 12px; }
+    .task-item { border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin: 10px 0; background: #fafafa; }
+    .task-info { margin-bottom: 8px; }
+  .inline-edit { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 8px; align-items: center; }
+  .inline-edit .field { display: flex; flex-direction: column; gap: 4px; }
+  .inline-edit label { font-size: 12px; color: #555; }
+    .inline-edit input[type="text"], .inline-edit input[type="number"] { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; }
+    .save-btn { padding: 6px 10px; border: 0; border-radius: 4px; background: #007bff; color: white; cursor: pointer; }
+    .save-btn:disabled { background: #9dbdf3; cursor: not-allowed; }
+    #status-msg { margin: 10px 0; color: #006400; font-weight: bold; }
+    #refresh-btn { margin: 10px 0 18px; }
+
+    /* Toast notifications */
+    #toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast { min-width: 280px; max-width: 420px; padding: 10px 12px; border-radius: 6px; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transform: translateY(-10px); animation: slideIn 120ms ease-out forwards; }
+    .toast-info { background: #0d6efd; }
+    .toast-success { background: #198754; }
+    .toast-warn { background: #ffc107; color: #222; }
+    .toast-error { background: #dc3545; }
+    .toast small { display: block; opacity: 0.85; margin-top: 2px; }
+    @keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
+  </style>
+  <script>
+    // Toast helpers (in-app notifications)
+    function showToast(message, type = 'info', subtext = '') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `<div>${message}</div>${subtext ? `<small>${subtext}</small>` : ''}`;
+      container.appendChild(toast);
+      // Auto-dismiss after 3.5s
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => container.removeChild(toast), 180);
+      }, 3500);
+    }
+
+    // --- Static data (no API) -------------------------------------------------
+    function getDefaultTasks() {
+      return [
+        { id: 101, title: 'Finalize Q4 Roadmap', description: 'Consolidate feature requests and confirm priorities with stakeholders.', status: 'To-do', priority: 6, start_date: '2025-10-01', deadline: '2025-10-20', recurring: false, project_id: 1 },
+        { id: 102, title: 'Improve Task Update UX', description: 'Polish inline editing and error states for task updates.', status: 'In-progress', priority: 7, start_date: '2025-10-05', deadline: '2025-10-25', recurring: true, project_id: 100 }
+      ];
+    }
+    let tasks = getDefaultTasks();
+
+    function renderTasks(listData) {
+      const list = document.getElementById('task-list');
+      list.innerHTML = '';
+
+      listData.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'task-item';
+
+        // Cache originals for change detection
+        const orig = {
+          task_id: t.id,
+          task_title: t.title || '',
+          description: t.description || '',
+          start_date: t.start_date || '',
+          deadline: t.deadline || '',
+          priority: t.priority ?? '',
+          recurring: !!t.recurring,
+          project_id: t.project_id ?? ''
+        };
+
+        item.innerHTML = `
+          <div class="task-info" data-id="${t.id}">
+            <strong>${escapeHtml(t.title || '')}</strong>
+            <span class="muted">(ID: ${t.id})</span>
+          </div>
+          <div class="inline-edit">
+            <div class="field">
+              <label for="tid-${t.id}">Task ID</label>
+              <input id="tid-${t.id}" type="number" placeholder="Task ID" value="${orig.task_id}" disabled aria-disabled="true" title="Task ID cannot be edited" />
+            </div>
+            <div class="field">
+              <label for="title-${t.id}">Task Title</label>
+              <input id="title-${t.id}" type="text" placeholder="Title" value="${escapeAttr(orig.task_title)}" />
+            </div>
+            <div class="field">
+              <label for="desc-${t.id}">Description</label>
+              <input id="desc-${t.id}" type="text" placeholder="Description" value="${escapeAttr(orig.description)}" />
+            </div>
+            <div class="field">
+              <label for="start-${t.id}">Start Date</label>
+              <input id="start-${t.id}" type="date" value="${orig.start_date}" />
+            </div>
+            <div class="field">
+              <label for="due-${t.id}">Deadline</label>
+              <input id="due-${t.id}" type="date" value="${orig.deadline}" />
+            </div>
+            <div class="field">
+              <label for="prio-${t.id}">Priority</label>
+              <input id="prio-${t.id}" type="number" placeholder="Priority" value="${orig.priority}" min="1" max="10" />
+            </div>
+            <div class="field">
+              <label for="rec-${t.id}">Recurring</label>
+              <input id="rec-${t.id}" type="checkbox" ${orig.recurring ? 'checked' : ''} />
+            </div>
+            <div class="field">
+              <label for="proj-${t.id}">Project ID</label>
+              <input id="proj-${t.id}" type="number" placeholder="Project ID" value="${orig.project_id}" />
+            </div>
+            <div class="field" style="align-self:end">
+              <label>&nbsp;</label>
+              <button class="save-btn" id="save-${t.id}" onclick="saveTask(${t.id})">Save</button>
+            </div>
+          </div>
+        `;
+
+        list.appendChild(item);
+
+        // No per-field toasts; notification only appears after saving
+      });
+    }
+
+    function refreshTasks() {
+      renderTasks(tasks);
+    }
+
+    function buildPatchPayload(id) {
+      const payload = {};
+      const title = document.getElementById(`title-${id}`).value;
+      const description = document.getElementById(`desc-${id}`).value;
+      const prioRaw = document.getElementById(`prio-${id}`).value;
+      const start = document.getElementById(`start-${id}`).value;
+      const due = document.getElementById(`due-${id}`).value;
+      const rec = document.getElementById(`rec-${id}`).checked;
+      const projRaw = document.getElementById(`proj-${id}`).value;
+
+      if (title !== '') payload.title = title;
+      if (description !== '') payload.description = description;
+      if (prioRaw !== '') { const n = parseInt(prioRaw, 10); if (!isNaN(n)) payload.priority = n; }
+      if (start !== '') payload.start_date = start;
+      if (due !== '') payload.deadline = due;
+      payload.recurring = rec;
+      if (projRaw !== '') { const p = parseInt(projRaw, 10); if (!isNaN(p)) payload.project_id = p; }
+      return payload;
+    }
+
+    async function saveTask(id) {
+      const before = tasks.find(t => t.id === id);
+      const payload = buildPatchPayload(id);
+
+      // Compute change sets
+      const updated_fields = [];
+      const previous_values = {};
+      const new_values = {};
+      const diffs = [];
+      const toLabel = (f) => ({
+        title: 'Task Title', description: 'Description', start_date: 'Start Date', deadline: 'Deadline',
+        priority: 'Priority', recurring: 'Recurring', project_id: 'Project ID'
+      })[f] || f;
+      const fmt = (f, v) => (f === 'recurring' ? (v ? 'Yes' : 'No') : (v ?? '—'));
+
+      Object.entries(payload).forEach(([k, newVal]) => {
+        const oldVal = before[k];
+        if (String(oldVal ?? '') !== String(newVal ?? '')) {
+          updated_fields.push(k);
+          previous_values[k] = oldVal;
+          new_values[k] = newVal;
+          diffs.push(`${toLabel(k)}: ${fmt(k, oldVal)} → ${fmt(k, newVal)}`);
+        }
+      });
+
+      if (updated_fields.length === 0) {
+        showToast('No changes to save', 'info');
+        return;
+      }
+
+      // Apply changes locally
+      tasks = tasks.map(t => t.id === id ? { ...t, ...payload, id: before.id } : t);
+
+      // Attempt to send an email via backend helper endpoint
+      try {
+        const resp = await fetch('http://127.0.0.1:8000/kira/app/api/v1/notification/task-update-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            task_id: before.id,
+            task_title: before.title || '',
+            updated_fields,
+            previous_values,
+            new_values,
+            recipient_email: 'hoorakira@fastmail.com'
+          })
+        });
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || `HTTP ${resp.status}`);
+        }
+      } catch (e) {
+        // Non-blocking: log in console, still show toast
+        console.warn('Email notification failed:', e);
+      }
+
+      // Single info popup after save summarizing changes
+      showToast('Task updated', 'info', diffs.join('<br/>'));
+      refreshTasks();
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#39;');
+    }
+    function escapeAttr(s) { return escapeHtml(s).replace(/\n/g, ' '); }
+
+    window.onload = refreshTasks;
+  </script>
+</head>
+<body>
+  <h1>Task (In-App Notifications Demo)</h1>
+
+  <div id="status-msg"></div>
+  
+
+  <div id="task-list"></div>
+  <div id="toast-container"></div>
+</body>
+</html>

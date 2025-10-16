@@ -57,5 +57,5 @@ def test_priority_update():
 
 
 if __name__ == "__main__":
-    # Run the test
-    main()
+    # Run the test directly
+    test_priority_update()
