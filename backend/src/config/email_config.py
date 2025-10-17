@@ -36,10 +36,6 @@ class EmailSettings(BaseSettings):
         case_sensitive = False
 
 
-# Global email settings instance
-email_settings = EmailSettings()
-
-
 def get_email_settings() -> EmailSettings:
-    """Get email settings instance"""
-    return email_settings
+    """Create a fresh EmailSettings instance (reads current env)."""
+    return EmailSettings()

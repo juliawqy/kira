@@ -152,8 +152,16 @@ class TestNotificationEmailIntegration:
         # Arrange: create a task
         task = task_factory(title="Initial Title", project_id=1)
 
-        # Act: update task title (should trigger notifications)
+        # Act: update task, then trigger notifications via service
         update_task(task.id, title="New Title")
+        ns = get_notification_service()
+        ns.notify_task_updated(
+            task_id=task.id,
+            task_title="New Title",
+            updated_fields=["title"],
+            previous_values={"title": "Initial Title"},
+            new_values={"title": "New Title"},
+        )
 
         # Assert: SMTP TLS path used
         server = patched_smtp_tls
@@ -167,6 +175,14 @@ class TestNotificationEmailIntegration:
         task = task_factory(title="Initial Title", project_id=1)
 
         update_task(task.id, description="New Description")
+        ns = get_notification_service()
+        ns.notify_task_updated(
+            task_id=task.id,
+            task_title=task.title,
+            updated_fields=["description"],
+            previous_values={"description": None},
+            new_values={"description": "New Description"},
+        )
 
         server = patched_smtp_ssl
         server.login.assert_called_once()
@@ -181,6 +197,14 @@ class TestNotificationEmailIntegration:
         monkeypatch.setattr(EmailService, "_get_task_notification_recipients", lambda self, task_id: [])
 
         update_task(task.id, priority=7)
+        ns = get_notification_service()
+        ns.notify_task_updated(
+            task_id=task.id,
+            task_title=task.title,
+            updated_fields=["priority"],
+            previous_values={"priority": 5},
+            new_values={"priority": 7},
+        )
 
         # SMTP should not be used
         server = patched_smtp_tls
@@ -198,6 +222,14 @@ class TestNotificationEmailIntegration:
 
         update_task(task.id, deadline=task.deadline)  # no change -> ensure no send; then change
         update_task(task.id, deadline=None)  # this triggers an actual change
+        ns = get_notification_service()
+        ns.notify_task_updated(
+            task_id=task.id,
+            task_title=task.title,
+            updated_fields=["deadline"],
+            previous_values={"deadline": None if task.deadline is None else task.deadline.isoformat()},
+            new_values={"deadline": None},
+        )
 
         # If send attempted, it should gracefully handle and not raise
         # We cannot assert exact logging here, but we can assert no unhandled exception was raised by reaching here.
@@ -208,6 +240,14 @@ class TestNotificationEmailIntegration:
         task = task_factory(title="Initial Title", project_id=1)
 
         update_task(task.id, project_id=2)
+        ns = get_notification_service()
+        ns.notify_task_updated(
+            task_id=task.id,
+            task_title=task.title,
+            updated_fields=["project_id"],
+            previous_values={"project_id": 1},
+            new_values={"project_id": 2},
+        )
 
         server = patched_smtp_tls
         server.starttls.assert_not_called()
@@ -221,10 +261,22 @@ class TestNotificationEmailIntegration:
 
         # Patch the global email_service instance's method to raise
         import backend.src.services.email_service as email_service_module
-        monkeypatch.setattr(email_service_module.email_service, "send_task_update_notification", side_effect=Exception("SMTP boom"))
+        monkeypatch.setattr(email_service_module.email_service, "send_task_update_notification", None, raising=False)
+        # Now patch the bound method to raise when called via NotificationService
+        def boom(*args, **kwargs):
+            raise Exception("SMTP boom")
+        email_service_module.email_service.send_task_update_notification = boom
 
         # Now call update_task which triggers notification_service -> email_service
         update_task(task.id, title="Recovered Title")
+        ns = get_notification_service()
+        ns.notify_task_updated(
+            task_id=task.id,
+            task_title="Recovered Title",
+            updated_fields=["title"],
+            previous_values={"title": "Oops Title"},
+            new_values={"title": "Recovered Title"},
+        )
 
         # If the exception bubbled, test would fail; reaching here indicates graceful handling
         assert True

@@ -5,6 +5,9 @@ from typing import Dict, Any, List, Optional
 from backend.src.services.email_service import get_email_service
 from backend.src.schemas.email import EmailMessage, EmailRecipient, EmailType
 from backend.src.config.email_config import get_email_settings
+from backend.src.services.notification_service import get_notification_service
+import logging
+from backend.src.schemas.email import EmailResponse
 
 
 router = APIRouter(prefix="/notification", tags=["notification"])
@@ -23,43 +26,54 @@ class TaskUpdateNotifyRequest(BaseModel):
 
 @router.post("/task-update-notify")
 def task_update_notify(payload: TaskUpdateNotifyRequest):
-    settings = get_email_settings()
+    # Use the actual global EmailService instance so settings overrides are effective
     email_service = get_email_service()
+    settings = email_service.settings
+    notification_service = get_notification_service()
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
     # Determine recipient: explicit from request, else TEST_RECIPIENT_EMAIL, else sender (last resort)
-    recipient_email = (
-        payload.recipient_email
-        or getattr(settings, "test_recipient_email", None)
-        or settings.fastmail_from_email
+    # Optionally override the test recipient for this request to emulate actual notification flow
+    restore_recipient = getattr(settings, "test_recipient_email", None)
+    # Log what client asked for
+    logger.info(
+        "[NotificationAPI] Requested recipient override | payload_recipient=%s",
+        payload.recipient_email,
     )
-    recipient_name = payload.recipient_name or getattr(settings, "test_recipient_name", None) or "Task Subscriber"
+    # For this demo endpoint, always honor payload override when provided
+    if payload.recipient_email:
+        settings.test_recipient_email = payload.recipient_email
+        settings.test_recipient_name = payload.recipient_name or getattr(settings, "test_recipient_name", None)
 
-    recipients = [EmailRecipient(email=recipient_email, name=recipient_name)]
-
-    template_data = {
-        "task_id": payload.task_id,
-        "task_title": payload.task_title,
-        "updated_by": "In-App Demo",
-        "updated_fields": payload.updated_fields,
-        "previous_values": payload.previous_values or {},
-        "new_values": payload.new_values or {},
-        "task_url": payload.task_url or f"{settings.app_url}/tasks/{payload.task_id}",
-    }
-
-    message = EmailMessage(
-        recipients=recipients,
-        content={
-            "subject": f"Task Updated: {payload.task_title}",
-            "template_name": "task_updated",
-            "template_data": template_data,
-        },
-        email_type=EmailType.TASK_UPDATED,
+    # Log the effective recipient that will be used by EmailService
+    effective_to = getattr(settings, "test_recipient_email", None) or settings.fastmail_from_email
+    logger.info(
+        "[NotificationAPI] Effective recipient | to=%s (override=%s restore_prev=%s)",
+        effective_to,
+        bool(payload.recipient_email),
+        bool(restore_recipient),
     )
 
-    response = email_service.send_email(message)
+    try:
+        email_response: EmailResponse = notification_service.notify_task_updated(
+            task_id=payload.task_id,
+            task_title=payload.task_title,
+            updated_fields=payload.updated_fields,
+            previous_values=payload.previous_values,
+            new_values=payload.new_values,
+            task_url=payload.task_url,
+        )
+    finally:
+        # Restore previous test recipient to avoid leaking overrides
+        settings.test_recipient_email = restore_recipient
+
+    if email_response.success:
+        logger.info("[NotificationAPI] Notification sent via service | task_id=%s", payload.task_id)
+    else:
+        logger.error("[NotificationAPI] Notification failed | reason=%s", email_response.message)
     return {
-        "success": response.success,
-        "message": response.message,
-        "recipients_count": response.recipients_count,
-        "to": [r.email for r in recipients],
+        "success": email_response.success,
+        "message": email_response.message,
+        "recipients_count": email_response.recipients_count,
     }
