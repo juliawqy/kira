@@ -16,6 +16,7 @@ from ..templates.email_templates import EmailTemplates
 
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class EmailService:

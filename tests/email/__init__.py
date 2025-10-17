@@ -1,3 +1,0 @@
-"""
-Email notification tests
-"""
