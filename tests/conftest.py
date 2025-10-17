@@ -112,7 +112,8 @@ def user_factory(db_session):
             "role": UserRole.STAFF,
             "password_hash": "hashed_password",
             "department_id": 1,
-            "is_admin": False,
+            "admin": False,
+            "created_by_admin": True
         }
         default_data.update(kwargs)
 
@@ -132,12 +133,11 @@ def task_factory(db_session):
     """
     def _create_task(**kwargs):
         from backend.src.enums.task_status import TaskStatus
-        from backend.src.enums.task_priority import TaskPriority
         default_data = {
             "title": "Test Task",
             "description": "Test Description",
             "status": TaskStatus.TODO,
-            "priority": TaskPriority.MEDIUM,
+            "priority": 5,
             "assigned_user_id": None,
         }
         default_data.update(kwargs)

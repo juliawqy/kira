@@ -104,6 +104,7 @@ def app_server(test_engine):
 def test_task_data():
     return E2E_TASK_WORKFLOW
 
+# E2E-016/001
 def test_complete_task_crud_workflow(driver, isolated_database, app_server, test_task_data):
     workflow = test_task_data
     create_task = workflow["create"]
@@ -192,134 +193,7 @@ def test_complete_task_crud_workflow(driver, isolated_database, app_server, test
     page = driver.page_source
     assert update_task["title"] not in page
 
-def test_task_assignment_workflow(driver, isolated_database, app_server, test_task_data):
-    workflow = test_task_data
-    create_task = workflow["create"]
-    selectors = E2E_SELECTORS
-
-    html_file = os.path.join(os.getcwd(), "frontend", "task", "task.html")
-    from urllib.parse import quote
-    driver.get(f"file:///{html_file}?api={quote(app_server)}")
-    time.sleep(1)
-
-    # Create parent A and B
-    for title in ("Parent A", "Parent B"):
-        driver.find_element(By.ID, selectors["forms"]["title_input"]).clear()
-        driver.find_element(By.ID, selectors["forms"]["title_input"]).send_keys(title)
-        Select(driver.find_element(By.ID, selectors["forms"]["priority_input"]))\
-            .select_by_value(str(create_task["priority"]))
-        Select(driver.find_element(By.ID, selectors["forms"]["status_select"]))\
-            .select_by_value(create_task["status"])    
-        Select(driver.find_element(By.ID, selectors["forms"]["project_input"]))\
-            .select_by_value(str(create_task["project_id"]))
-        driver.find_element(By.CSS_SELECTOR, selectors["forms"]["submit_button"]).click()
-        time.sleep(0.5)
-
-    driver.find_element(By.ID, selectors["status"]["refresh_button"]).click()
-    time.sleep(1)
-
-    # Create child C
-    driver.find_element(By.ID, selectors["forms"]["title_input"]).clear()
-    driver.find_element(By.ID, selectors["forms"]["title_input"]).send_keys("Child C")
-    Select(driver.find_element(By.ID, selectors["forms"]["priority_input"]))\
-        .select_by_value(str(create_task["priority"]))
-    Select(driver.find_element(By.ID, selectors["forms"]["status_select"]))\
-        .select_by_value(create_task["status"])    
-    Select(driver.find_element(By.ID, selectors["forms"]["project_input"]))\
-        .select_by_value(str(create_task["project_id"]))
-    driver.find_element(By.CSS_SELECTOR, selectors["forms"]["submit_button"]).click()
-    time.sleep(0.5)
-
-    # Create child D
-    driver.find_element(By.ID, selectors["forms"]["title_input"]).clear()
-    driver.find_element(By.ID, selectors["forms"]["title_input"]).send_keys("Child D")   
-    Select(driver.find_element(By.ID, selectors["forms"]["priority_input"]))\
-        .select_by_value(str(create_task["priority"]))
-    Select(driver.find_element(By.ID, selectors["forms"]["status_select"]))\
-        .select_by_value(create_task["status"])    
-    Select(driver.find_element(By.ID, selectors["forms"]["project_input"]))\
-        .select_by_value(str(create_task["project_id"]))
-    driver.find_element(By.CSS_SELECTOR, selectors["forms"]["submit_button"]).click()    
-    time.sleep(0.5)
-
-    driver.find_element(By.ID, selectors["status"]["refresh_button"]).click()
-    time.sleep(1)
-
-    # Attach child C to Parent A, and child D to Parent B (use card-scoped attach inputs)
-    cards = driver.find_elements(By.CSS_SELECTOR, ".task-item")
-    def find_card(title):
-        for c in cards:
-            if title in c.text:
-                return c
-        return None
-    parent_a = find_card("Parent A")
-    parent_b = find_card("Parent B")
-    assert parent_a and parent_b
-
-    # get ids for children (last two created are C then D)
-    infos = driver.find_elements(By.CSS_SELECTOR, ".task-item .task-info")
-    child_c_id = next(el.get_attribute("data-id") for el in infos if "Child C" in el.text)
-    child_d_id = next(el.get_attribute("data-id") for el in infos if "Child D" in el.text)
-
-    # Attach C under A
-    a_attach = parent_a.find_element(By.CSS_SELECTOR, "[id^='attach-input-']")
-    a_attach.clear(); a_attach.send_keys(child_c_id)
-    parent_a.find_element(By.CSS_SELECTOR, selectors["list_view"]["attach_button"]).click()
-    time.sleep(1)
-    # Attach D under B (re-acquire elements to avoid staleness after DOM update)
-    cards = driver.find_elements(By.CSS_SELECTOR, ".task-item")
-    parent_b = next(c for c in cards if "Parent B" in c.text)
-    b_attach = parent_b.find_element(By.CSS_SELECTOR, "[id^='attach-input-']")
-    b_attach.clear(); b_attach.send_keys(child_d_id)
-    parent_b.find_element(By.CSS_SELECTOR, selectors["list_view"]["attach_button"]).click()
-    time.sleep(1)
-
-    # Verify subtasks appear under respective parents (re-acquire cards to avoid staleness)
-    for _ in range(6):
-        cards = driver.find_elements(By.CSS_SELECTOR, ".task-item")
-        try:
-            parent_a = next(c for c in cards if "Parent A" in c.text)
-            parent_b = next(c for c in cards if "Parent B" in c.text)
-            break
-        except StopIteration:
-            time.sleep(0.3)
-    parent_a_id = parent_a.find_element(By.CSS_SELECTOR, ".task-info").get_attribute("data-id")
-    parent_b_id = parent_b.find_element(By.CSS_SELECTOR, ".task-info").get_attribute("data-id")
-    assert "Child C" in driver.find_element(By.ID, f"subtasks-{parent_a_id}").get_attribute("innerHTML")
-    assert "Child D" in driver.find_element(By.ID, f"subtasks-{parent_b_id}").get_attribute("innerHTML")
-
-    # Delete Child C from nested controls under Parent A
-    subitems_a = driver.find_elements(By.CSS_SELECTOR, f"#subtasks-{parent_a_id} .subtask-item")
-    target = next(si for si in subitems_a if "Child C" in si.text)
-    target.find_element(By.CSS_SELECTOR, ".delete-btn").click()
-    time.sleep(1)
-    # Verify Parent A has no subtasks
-    assert "Child C" not in driver.find_element(By.ID, f"subtasks-{parent_a_id}").get_attribute("innerHTML")
-
-    # Delete Parent B; Child D should become standalone
-    parent_b.find_element(By.CSS_SELECTOR, ".delete-btn").click()
-    time.sleep(1)
-    # Child D should still be present but not nested (no subtask-item contains it)
-    assert any("Child D" in el.text for el in driver.find_elements(By.CSS_SELECTOR, ".task-item .task-info"))
-    assert all("Child D" not in el.text for el in driver.find_elements(By.CSS_SELECTOR, ".subtask-item"))
-
-    # Re-attach to Parent B and then delete parent B
-    attach_inputs = driver.find_elements(By.CSS_SELECTOR, "[id^='attach-input-']")
-    attach_inputs[1].clear()
-    attach_inputs[1].send_keys(child_id)
-    driver.find_elements(By.CSS_SELECTOR, selectors["list_view"]["attach_button"])[1].click()
-    time.sleep(1)
-
-    delete_buttons = driver.find_elements(By.CSS_SELECTOR, selectors["list_view"]["delete_button"])
-    delete_buttons[1].click()
-    time.sleep(1)
-
-    # Refresh and ensure child is no longer under deleted parent
-    driver.find_element(By.ID, selectors["status"]["refresh_button"]).click()
-    time.sleep(1)
-    page = driver.page_source
-    assert "Child C" not in page
-
+# E2E-016/002
 def test_task_assignment_workflow(driver, isolated_database, app_server, test_task_data):
     workflow = test_task_data
     create_task = workflow["create"]
