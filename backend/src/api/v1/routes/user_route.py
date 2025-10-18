@@ -108,7 +108,7 @@ def delete_user(user_id: int):
     """
     Hard delete a user.
     """
-    ok = user_service.delete_user(user_id)
+    ok = user_service.delete_user(user_id, True)
     if not ok:
         raise HTTPException(status_code=404, detail="User not found")
     return ok

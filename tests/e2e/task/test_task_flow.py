@@ -40,6 +40,7 @@ def test_engine(tmp_path_factory):
         yield engine
     finally:
         Base.metadata.drop_all(bind=engine)
+        engine.dispose()
 
 @pytest.fixture
 def isolated_database(test_engine):
@@ -57,7 +58,10 @@ def isolated_database(test_engine):
     )
 
     with TestingSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            session.close()
 
 @pytest.fixture(autouse=True)
 def reset_database_tables(test_engine):

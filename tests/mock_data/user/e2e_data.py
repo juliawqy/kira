@@ -18,7 +18,7 @@ E2E_USER_WORKFLOW = {
         "role": UserRole.STAFF,
         "password": "E2ETest@123",
         "department_id": "1",
-        "is_admin": True
+        "created_by_admin": True
     },
     "update": {
         "name": "Updated E2E User",
