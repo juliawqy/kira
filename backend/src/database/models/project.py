@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, UniqueConst
 from backend.src.database.db_setup import Base
 
 class Project(Base):
-    __tablename__ = "projects"
+    __tablename__ = "project"
 
     project_id = Column(Integer, primary_key=True, index=True)
     project_name = Column(String, nullable=False)
@@ -11,10 +11,10 @@ class Project(Base):
 
 
 class ProjectAssignment(Base):
-    __tablename__ = "project_assignments"
+    __tablename__ = "project_assignment"
 
-    project_id = Column(Integer, ForeignKey("projects.project_id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    project_id = Column(Integer, ForeignKey("project.project_id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.user_id"), nullable=False)
 
     __table_args__ = (
         PrimaryKeyConstraint("project_id", "user_id", name="pk_project_user"),
