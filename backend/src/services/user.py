@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.user import User
-from backend.src.enums.user_role import UserRole
+from backend.src.enums.user_role import UserRole, ALLOWED_ROLES
 
 # ---- Password Hashing -----------------------------------------------------
 
@@ -105,13 +105,13 @@ def update_user(
     *,
     name: Optional[str] = None,
     email: Optional[str] = None,
-    role: Optional[UserRole] = None,
+    role: Optional[str] = None,
     department_id: Optional[int] = None,
     admin: Optional[bool] = None,
 ) -> Optional[User]:
     """Update a user's details."""
-    if role is not None and not isinstance(role, UserRole):
-        raise ValueError(f"role must be a valid UserRole enum, received: {role}, which is invalid")
+    if role is not None and role not in ALLOWED_ROLES:
+        raise ValueError(f"Invalid role: {role}")
 
     with SessionLocal.begin() as session:
         user = session.get(User, user_id)

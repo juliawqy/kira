@@ -114,7 +114,6 @@ INVALID_CREATE_UNAUTHORISED = {
 # Update payloads
 VALID_UPDATE_NAME = {"name": "Alice A."}
 VALID_UPDATE_EMAIL = {"email": "alice.a@example.com"}
-VALID_UPDATE_ADMIN_TOGGLE = {"admin": False}
 VALID_UPDATE_DEPARTMENT = {"department_id": 30}
 
 # Delete payloads
@@ -147,10 +146,9 @@ INVALID_PASSWORD_CHANGE_WRONG_CURRENT = {
     "new_password": "Another!Pass1"
 }
 INVALID_PASSWORD_TYPE = 12345
+
+
 INVALID_ADMIN_TYPE = "yes"
 INVALID_EMAIL_DOESNT_EXIST = "notfound@example.com"
 
-# Edge cases
-LARGE_NAME = {"name": "A" * 1024}
-LONG_EMAIL = {"email": "user+" + "a"*200 + "@example.com"}
 INVALID_USER_ID = 9999
