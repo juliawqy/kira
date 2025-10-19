@@ -2,35 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Task Manager – Vanilla E2E Tester</title>
+<title>Task Manager – Vanilla E2E Tester (Light + Assignees)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   :root {
-    --bg: #0b0e13;
-    --panel: #121722;
-    --muted: #1a2030;
-    --border: #263146;
-    --text: #e7ecf3;
-    --sub: #a7b2c6;
-    --accent: #6ea8fe;
-    --accent-2: #22c55e;
-    --warn: #f59e0b;
-    --danger: #ef4444;
+    /* ------- Light theme palette ------- */
+    --bg: #f7f9fc;
+    --panel: #ffffff;
+    --muted: #f1f5f9;
+    --border: #d4dbe7;
+    --text: #0f172a;
+    --sub: #475569;
+    --accent: #1d4ed8;    /* blue-700 */
+    --accent-2: #16a34a;  /* green-600 */
+    --warn: #d97706;      /* amber-600 */
+    --danger: #dc2626;    /* red-600 */
   }
   * { box-sizing: border-box; }
   body {
     margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
-    background: linear-gradient(180deg, #0b0e13 0%, #0e131c 100%);
+    background: linear-gradient(180deg, var(--bg) 0%, #eef2f7 100%);
     color: var(--text);
   }
+  a { color: var(--accent); }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 16px 80px; }
   h1 { margin: 0 0 18px; font-size: 22px; }
   .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .panel {
-    background: linear-gradient(360deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    background: linear-gradient(360deg, rgba(255,255,255,0.96), rgba(255,255,255,0.98));
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 16px;
+    box-shadow: 0 1px 2px rgba(2,6,23,0.08);
   }
   .panel h2 { margin: 0 0 12px; font-size: 16px; color: var(--sub); font-weight: 600;}
   input, select, textarea {
@@ -48,30 +51,30 @@
   .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .btn {
     border: 1px solid var(--border);
-    background: #182034;
+    background: #e7eefb;
     color: var(--text); padding: 8px 12px; border-radius: 8px; cursor: pointer;
   }
-  .btn:hover { background: #1b2540; }
-  .btn.primary { background: #17305f; border-color: #2b4470; }
-  .btn.primary:hover { background: #1b3a73; }
-  .btn.success { background: #163825; border-color: #235c3b; }
-  .btn.success:hover { background: #18452c; }
-  .btn.warn { background: #3a2a12; border-color: #5f451f; }
-  .btn.warn:hover { background: #4b3417; }
-  .btn.danger { background: #3a1616; border-color: #5f2323; }
-  .btn.danger:hover { background: #4b1b1b; }
+  .btn:hover { background: #dce6fb; }
+  .btn.primary { background: #dbe7ff; border-color: #c8d8ff; }
+  .btn.primary:hover { background: #cfe0ff; }
+  .btn.success { background: #dcfce7; border-color: #b7f7cc; }
+  .btn.success:hover { background: #ccf7db; }
+  .btn.warn { background: #fef3c7; border-color: #fde68a; }
+  .btn.warn:hover { background: #fde9a4; }
+  .btn.danger { background: #fee2e2; border-color: #fecaca; }
+  .btn.danger:hover { background: #ffd9d9; }
   .btn.ghost { background: transparent; }
   .tag { font-size: 12px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 999px; color: var(--sub); }
-  .task { padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.02); }
+  .task { padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.9); }
   .muted { color: var(--sub); }
   .hr { height: 1px; background: var(--border); margin: 10px 0; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
-  .console { max-height: 250px; overflow: auto; background: #0d1117; border-radius: 10px; padding: 10px; border: 1px solid var(--border); }
-  .subtasks { background: #0e1421; border-radius: 10px; padding: 10px; border: 1px dashed var(--border); }
+  .console { max-height: 250px; overflow: auto; background: #fafafa; border-radius: 10px; padding: 10px; border: 1px solid var(--border); }
+  .subtasks { background: #f7fafc; border-radius: 10px; padding: 10px; border: 1px dashed var(--border); }
   .row-right { margin-left: auto; display: inline-flex; gap: 8px; align-items: center; }
   .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
-  .pill.ok { border-color: #2e7d32; color: #8de2a0; }
-  .pill.bad { border-color: #9a3412; color: #f8c57a; }
+  .pill.ok { border-color: #16a34a; color: #065f46; background: #ecfdf5; }
+  .pill.bad { border-color: #d97706; color: #92400e; background: #fffbeb; }
   .small { font-size: 12px; }
   .flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .w-100 { width: 100%; }
@@ -81,17 +84,21 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Task Manager – Vanilla E2E</h1>
+  <h1>Task Manager – Vanilla E2E (Light)</h1>
 
   <!-- Controls -->
   <div class="panel">
     <div class="row">
       <div class="grid" style="min-width: 280px; flex: 1">
-        <label for="baseUrl">Base URL</label>
+        <label for="baseUrl">Task API Base URL</label>
         <input id="baseUrl" placeholder="http://localhost:8000/kira/app/api/v1/task" />
       </div>
-      <button class="btn" id="btnLoad">Load Parents</button>
-      <span class="muted small">Tip: if your backend mounts at <span class="mono">/kira/app/api/v1/task</span>, use that.</span>
+      <div class="grid" style="min-width: 280px; flex: 1">
+        <label for="userBaseUrl">User API Base URL</label>
+        <input id="userBaseUrl" placeholder="http://localhost:8000/kira/app/api/v1/user" />
+      </div>
+      <button class="btn" id="btnLoad" type="button">Load Parents</button>
+      <span class="muted small">Users are read from <span class="mono">/user</span>; assignments post to <span class="mono">/task/{id}/assignees</span>.</span>
     </div>
   </div>
 
@@ -108,7 +115,7 @@
         <input id="c_desc" />
       </div>
       <div>
-        <label>Priority Bucket (1–10)</label>
+        <label>Priority (1–10)</label>
         <input id="c_priority" type="number" min="1" max="10" value="5" />
       </div>
       <div>
@@ -126,7 +133,7 @@
         <input id="c_due" placeholder="optional" />
       </div>
       <div>
-        <label>Project ID (optional)</label>
+        <label>Project ID (required)</label>
         <input id="c_project" type="number" />
       </div>
       <div>
@@ -137,9 +144,17 @@
         <label>Parent ID (create as subtask)</label>
         <input id="c_parent" type="number" placeholder="optional" />
       </div>
+      <div>
+        <label>Tag</label>
+        <input id="c_tag" placeholder="optional" />
+      </div>
+      <div>
+        <label>Recurring (times)</label>
+        <input id="c_recurring" type="number" min="0" value="0" />
+      </div>
     </div>
     <div class="row" style="margin-top: 10px;">
-      <button class="btn primary" id="btnCreate">Create</button>
+      <button class="btn primary" id="btnCreate" type="button">Create</button>
     </div>
   </div>
 
@@ -163,7 +178,7 @@
         <div><label>Title</label><input id="e_title" /></div>
         <div><label>Description</label><input id="e_desc" /></div>
         <div>
-          <label>Priority Bucket (1–10)</label>
+          <label>Priority (1–10)</label>
           <input id="e_priority" type="number" min="1" max="10" />
         </div>
         <div><label>Start date</label><input id="e_start" placeholder="YYYY-MM-DD"/></div>
@@ -171,6 +186,11 @@
         <div><label>Project ID</label><input id="e_project" type="number"/></div>
         <div><label>Active</label>
           <select id="e_active"><option value="true">true</option><option value="false">false</option></select>
+        </div>
+        <div><label>Tag</label><input id="e_tag" /></div>
+        <div>
+          <label>Recurring (times)</label>
+          <input id="e_recurring" type="number" min="0"/>
         </div>
       </div>
       <div class="row" style="margin-top:10px;">
@@ -188,10 +208,17 @@
 <script>
 (function () {
   // -------------------- Configuration / State --------------------
-  const LS_KEY = "task_demo_base";
+  const LS_KEY_TASK = "task_demo_base";
+  const LS_KEY_USER = "task_demo_user_base";
   const baseInput = document.getElementById("baseUrl");
-  baseInput.value = localStorage.getItem(LS_KEY) || "http://localhost:8000/kira/app/api/v1/task";
-  baseInput.addEventListener("change", () => localStorage.setItem(LS_KEY, baseInput.value.trim()));
+  const userBaseInput = document.getElementById("userBaseUrl");
+  baseInput.value = localStorage.getItem(LS_KEY_TASK) || "http://localhost:8000/kira/app/api/v1/task";
+  userBaseInput.value = localStorage.getItem(LS_KEY_USER) || inferUserBase(baseInput.value);
+  baseInput.addEventListener("change", () => {
+    localStorage.setItem(LS_KEY_TASK, baseInput.value.trim());
+    if (!localStorage.getItem(LS_KEY_USER)) userBaseInput.value = inferUserBase(baseInput.value);
+  });
+  userBaseInput.addEventListener("change", () => localStorage.setItem(LS_KEY_USER, userBaseInput.value.trim()));
 
   const parentsEl = document.getElementById("parents");
   const logEl = document.getElementById("log");
@@ -205,6 +232,8 @@
   const e_due = document.getElementById("e_due");
   const e_project = document.getElementById("e_project");
   const e_active = document.getElementById("e_active");
+  const e_tag = document.getElementById("e_tag");
+  const e_recurring = document.getElementById("e_recurring");
   const e_hint = document.getElementById("e_hint");
   let editingTaskId = null;
 
@@ -218,8 +247,19 @@
   const c_project = document.getElementById("c_project");
   const c_active = document.getElementById("c_active");
   const c_parent = document.getElementById("c_parent");
+  const c_tag = document.getElementById("c_tag");
+  const c_recurring = document.getElementById("c_recurring");
+
+  // Users cache
+  let USERS = [];
 
   // -------------------- Helpers --------------------
+  function inferUserBase(taskBase) {
+    const trimmed = (taskBase || '').replace(/\/$/, '');
+    if (trimmed.endsWith('/task')) return trimmed.replace(/\/task$/, '/user');
+    return 'http://localhost:8000/kira/app/api/v1/user';
+  }
+
   function log(label, payload) {
     const line = `[${new Date().toLocaleTimeString()}] ${label}: ${typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)}`;
     const div = document.createElement("div");
@@ -242,6 +282,18 @@
     return res.json();
   }
 
+  async function apiUsers(path, init) {
+    const url = userBaseInput.value.replace(/\/$/, "") + path;
+    const res = await fetch(url, { headers: { "Content-Type": "application/json" }, ...init });
+    if (!res.ok) {
+      let detail = "";
+      try { detail = await res.text(); } catch {}
+      throw new Error(`${res.status} ${res.statusText} - ${detail}`);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
   function field(labelText, valueText) {
     const span = document.createElement("span");
     span.className = "muted small";
@@ -255,28 +307,45 @@
     return "—";
   }
 
-  function getSubtasks(task) {
-    return task.subTasks || task.subtasks || [];
-  }
+  function getSubtasks(task) { return task.subTasks || task.subtasks || []; }
+  function getAssignees(task) { return task.assignees || task.users || []; }
 
   // Debounced auto-reload of the parents list after any action
   let _reloadTimer = null;
-  function autoReload(delay = 80) {
-    clearTimeout(_reloadTimer);
-    _reloadTimer = setTimeout(() => loadParents(), delay);
-  }
+  function autoReload(delay = 80) { clearTimeout(_reloadTimer); _reloadTimer = setTimeout(() => loadParents(), delay); }
 
   // -------------------- Render --------------------
   async function loadParents() {
     parentsEl.innerHTML = `<div class="muted">Loading…</div>`;
     try {
+      await loadUsers();
       const data = await api("/", { method: "GET" }); // List parents with subTasks
       renderParents(Array.isArray(data) ? data : []);
       log("GET /", data);
     } catch (e) {
       parentsEl.innerHTML = "";
       log("GET / error", String(e));
-      alert("Failed to load parents:\n" + e.message);
+      alert("Failed to load parents:" + e.message);
+    }
+  }
+
+  async function loadUsers() {
+    try {
+      const data = await apiUsers("/", { method: "GET" });
+      USERS = Array.isArray(data) ? data : (data.items || []);
+      log("GET /user/", USERS);
+    } catch (e) {
+      USERS = [];
+      log("GET users error", String(e));
+    }
+  }
+
+  async function loadAssigneesForTask(taskId) {
+    try {
+      return await api(`/${taskId}/assignees`, { method: "GET" });
+    } catch (e) {
+      log("GET assignees error", String(e));
+      return [];
     }
   }
 
@@ -302,21 +371,19 @@
     row1.appendChild(title);
 
     row1.appendChild(field("Status", task.status));
-    row1.appendChild(field("Priority Bucket", getPriorityDisplay(task)));
+    row1.appendChild(field("Priority", getPriorityDisplay(task)));
     row1.appendChild(field("Active", String(task.active)));
+    if (typeof task.recurring === "number") row1.appendChild(field("Recurring", String(task.recurring)));
+    if (task.tag) row1.appendChild(field("Tag", escapeHtml(task.tag)));
     if (task.deadline) row1.appendChild(field("Due", task.deadline));
     if (task.project_id != null) row1.appendChild(field("Project", task.project_id));
 
     const actionRow = document.createElement("div");
     actionRow.className = "row-right";
-    // Status buttons
     actionRow.appendChild(btn("Start", "btn", () => setStatus(task.id, "start")));
     actionRow.appendChild(btn("Block", "btn warn", () => setStatus(task.id, "block")));
     actionRow.appendChild(btn("Complete", "btn success", () => setStatus(task.id, "complete")));
-    // Archive/Restore (include both to satisfy E2E flows)
-    actionRow.appendChild(btn("Delete", "btn", () => archive(task.id, true)));
-    // actionRow.appendChild(btn("Restore", "btn", () => restore(task.id)));
-    // Edit
+    actionRow.appendChild(btn("Delete", "btn", () => deleteTask(task.id)));
     actionRow.appendChild(btn("Edit", "btn primary", () => openEdit(task)));
     row1.appendChild(actionRow);
     el.appendChild(row1);
@@ -328,7 +395,10 @@
     row2.textContent = task.description || "(no description)";
     el.appendChild(row2);
 
-    // Attach form
+    // Assignee controls (Task)
+    el.appendChild(renderAssigneeControls(task.id, getAssignees(task)));
+
+    // Attach subtask form
     const rowAttach = document.createElement("div");
     rowAttach.className = "row";
     rowAttach.style.marginTop = "10px";
@@ -342,45 +412,129 @@
         const res = await api(`/${task.id}/subtasks`, { method: "POST", body: JSON.stringify({ subtask_ids: ids }) });
         log(`POST /${task.id}/subtasks`, res);
         autoReload();
-      } catch (e) {
-        log("Attach error", String(e));
-        alert(e.message);
-      }
+      } catch (e) { log("Attach error", String(e)); alert(e.message); }
     }));
-    // Expand/Collapse subtasks
-    const btnToggle = btn("Toggle subtasks", "btn ghost", () => {
-      subWrap.classList.toggle("sr");
-    });
+    const subWrap = document.createElement("div");
+    const btnToggle = btn("Toggle subtasks", "btn ghost", () => { subWrap.classList.toggle("sr"); });
     rowAttach.appendChild(btnToggle);
     el.appendChild(rowAttach);
 
     // Subtasks area
-    const subWrap = document.createElement("div");
     subWrap.className = "subtasks";
     subWrap.style.marginTop = "8px";
-
     const subs = getSubtasks(task);
-    if (Array.isArray(subs) && subs.length > 0) {
-      subs.forEach(st => subWrap.appendChild(renderSubtaskRow(task.id, st)));
-    } else {
-      const none = document.createElement("div");
-      none.className = "muted small";
-      none.textContent = "No subtasks.";
-      subWrap.appendChild(none);
-    }
+    if (Array.isArray(subs) && subs.length > 0) { subs.forEach(st => subWrap.appendChild(renderSubtaskRow(task.id, st))); }
+    else { const none = document.createElement("div"); none.className = "muted small"; none.textContent = "No subtasks."; subWrap.appendChild(none); }
     el.appendChild(subWrap);
 
     return el;
   }
 
+  // Assignee controls component (task or subtask)
+  function renderAssigneeControls(entityId, initialAssignees) {
+    const assWrap = document.createElement("div");
+    assWrap.className = "row";
+    assWrap.style.marginTop = "10px";
+
+    const assSelect = document.createElement("select");
+    assSelect.multiple = true;
+    assSelect.size = Math.min(6, Math.max(3, USERS.length));
+    assSelect.style.minWidth = "260px";
+
+    const current = initialAssignees || [];
+    const assignedIds = new Set(current.map(a => String(a.user_id ?? a.id)));
+
+    USERS.forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = String(u.user_id ?? u.id);
+      opt.textContent = u.name || u.full_name || u.email || `user ${opt.value}`;
+      if (assignedIds.has(opt.value)) opt.selected = true;
+      assSelect.appendChild(opt);
+    });
+
+    assWrap.appendChild(assSelect);
+    assWrap.appendChild(btn("Assign selected", "btn", async () => {
+      const ids = Array.from(assSelect.selectedOptions).map(o => Number(o.value));
+      try {
+        const res = await api(`/${entityId}/assignees`, { method: "POST", body: JSON.stringify({ user_ids: ids }) });
+        log(`POST /${entityId}/assignees`, res);
+        autoReload();
+      } catch (e) { log("Assign error", String(e)); alert(e.message); }
+    }));
+    assWrap.appendChild(btn("Clear all", "btn danger", async () => {
+      try {
+        const res = await api(`/${entityId}/assignees/all`, { method: "DELETE" });
+        log(`DELETE /${entityId}/assignees/all`, res);
+        autoReload();
+      } catch (e) { log("Clear all error", String(e)); alert(e.message); }
+    }));
+
+    const currentEl = document.createElement("div");
+    currentEl.className = "flex";
+    const renderAssignees = (list) => {
+      currentEl.innerHTML = "";
+      if (!list || list.length === 0) {
+        const none = document.createElement("span");
+        none.className = "muted small";
+        none.textContent = "No assignees yet.";
+        currentEl.appendChild(none);
+        return;
+      }
+      list.forEach(a => {
+        const chip = document.createElement("span");
+        chip.className = "pill";
+        chip.textContent = a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`;
+        const remove = document.createElement("button");
+        remove.className = "btn danger small";
+        remove.style.marginLeft = "6px";
+        remove.textContent = "Remove";
+        remove.addEventListener("click", async (e) => {
+          e.preventDefault();
+          try {
+            const body = JSON.stringify({ user_ids: [Number(a.user_id ?? a.id)] });
+            await api(`/${entityId}/assignees`, { method: "DELETE", body });
+            log(`DELETE /${entityId}/assignees`, body);
+            autoReload();
+          } catch (err) { log("Unassign error", String(err)); alert(err.message); }
+        });
+        const wrap = document.createElement("span");
+        wrap.className = "flex";
+        wrap.appendChild(chip); wrap.appendChild(remove);
+        currentEl.appendChild(wrap);
+      });
+    };
+
+    if (current.length > 0) {
+      renderAssignees(current);
+    } else {
+      loadAssigneesForTask(entityId).then(list => renderAssignees(list || []));
+    }
+
+    const assBlock = document.createElement("div");
+    assBlock.className = "w-100";
+    const lbl = document.createElement("label");
+    lbl.className = "muted small";
+    lbl.textContent = "Assignees";
+    assBlock.appendChild(lbl);
+    assBlock.appendChild(currentEl);
+
+    assWrap.appendChild(assBlock);
+    return assWrap;
+  }
+
   function renderSubtaskRow(parentId, st) {
     const row = document.createElement("div");
     row.className = "flex";
-    row.style.justifyContent = "space-between";
-    row.style.alignItems = "center";
+    row.style.flexDirection = "column";
+    row.style.gap = "8px";
     row.style.padding = "6px 0";
 
-    // Left: basic info
+    // top line
+    const top = document.createElement("div");
+    top.className = "flex";
+    top.style.justifyContent = "space-between";
+    top.style.alignItems = "center";
+
     const left = document.createElement("div");
     const bits = [
       `<strong>#${st.id}</strong>`,
@@ -388,90 +542,44 @@
       `<span class="muted small">${st.status}</span>`,
       `<span class="muted small">Active: ${String(st.active)}</span>`
     ];
+    if (typeof st.recurring === "number") bits.push(`<span class="muted small">Recurring: ${st.recurring}</span>`);
+    if (st.tag) bits.push(`<span class="muted small">Tag: ${escapeHtml(st.tag)}</span>`);
     if (st.deadline) bits.push(`<span class="muted small">Due: ${st.deadline}</span>`);
     left.innerHTML = bits.join(" &nbsp; ");
-    row.appendChild(left);
+    top.appendChild(left);
 
-    // Right: actions (mirror parent: Start / Block / Complete / Archive / Restore / Edit) + Detach
     const right = document.createElement("div");
     right.className = "row-right";
-
-    right.appendChild(btn("Start", "btn", async () => {
-      try {
-        await api(`/${st.id}/start`, { method: "POST" });
-        log(`POST /${st.id}/start`, "ok");
-        autoReload();
-      } catch (e) {
-        log("Subtask start error", String(e));
-        alert(e.message);
-      }
-    }));
-
-    right.appendChild(btn("Block", "btn warn", async () => {
-      try {
-        await api(`/${st.id}/block`, { method: "POST" });
-        log(`POST /${st.id}/block`, "ok");
-        autoReload();
-      } catch (e) {
-        log("Subtask block error", String(e));
-        alert(e.message);
-      }
-    }));
-
-    right.appendChild(btn("Complete", "btn success", async () => {
-      try {
-        await api(`/${st.id}/complete`, { method: "POST" });
-        log(`POST /${st.id}/complete`, "ok");
-        autoReload();
-      } catch (e) {
-        log("Subtask complete error", String(e));
-        alert(e.message);
-      }
-    }));
-
+    right.appendChild(btn("Start", "btn", async () => { try { await setStatus(st.id, "start"); } catch (e) { alert(e.message);} }));
+    right.appendChild(btn("Block", "btn warn", async () => { try { await setStatus(st.id, "block"); } catch (e) { alert(e.message);} }));
+    right.appendChild(btn("Complete", "btn success", async () => { try { await setStatus(st.id, "complete"); } catch (e) { alert(e.message);} }));
     right.appendChild(btn("Delete", "btn", async () => {
       try {
-        await api(`/${st.id}/archive`, { method: "POST" });
-        log(`POST /${st.id}/archive`, "ok");
+        const res = await api(`/${st.id}/delete`, { method: "POST" });
+        log(`POST /${st.id}/delete`, res);
         autoReload();
-      } catch (e) {
-        log("Subtask archive error", String(e));
-        alert(e.message);
-      }
+      } catch (e) { log("Subtask delete error", String(e)); alert(e.message); }
     }));
-
-    // right.appendChild(btn("Restore", "btn", async () => {
-    //   try {
-    //     await api(`/${st.id}/restore`, { method: "POST" });
-    //     log(`POST /${st.id}/restore`, "ok");
-    //     autoReload();
-    //   } catch (e) {
-    //     log("Subtask restore error", String(e));
-    //     alert(e.message);
-    //   }
-    // }));
-
-    right.appendChild(btn("Edit", "btn primary", () => {
-      openEdit(st);
-    }));
-
+    right.appendChild(btn("Edit", "btn primary", () => { openEdit(st); }));
     right.appendChild(btn("Detach", "btn danger", async () => {
       try {
-        await api(`/${parentId}/subtasks/${st.id}`, { method: "DELETE" });
-        log(`DELETE /${parentId}/subtasks/${st.id}`, "204");
+        const res = await api(`/${parentId}/subtasks/${st.id}`, { method: "DELETE" });
+        log(`DELETE /${parentId}/subtasks/${st.id}`, res);
         autoReload();
-      } catch (e) {
-        log("Detach error", String(e));
-        alert(e.message);
-      }
+      } catch (e) { log("Detach error", String(e)); alert(e.message); }
     }));
+    top.appendChild(right);
+    row.appendChild(top);
 
-    row.appendChild(right);
+    // Assignee controls (Subtask)
+    row.appendChild(renderAssigneeControls(st.id, getAssignees(st)));
+
     return row;
   }
 
   function btn(label, cls, onClick) {
     const b = document.createElement("button");
+    b.type = "button";
     b.className = cls + " small";
     b.textContent = label;
     b.addEventListener("click", (e) => { e.preventDefault(); onClick && onClick(); });
@@ -479,35 +587,28 @@
   }
 
   // -------------------- Actions --------------------
+  function mapActionToStatus(action) {
+    switch (action) {
+      case "start": return "In-progress";
+      case "block": return "Blocked";
+      case "complete": return "Completed";
+      default: return "To-do";
+    }
+  }
+
   async function setStatus(id, action) {
-    try {
-      const res = await api(`/${id}/${action}`, { method: "POST" });
-      log(`POST /${id}/${action}`, res);
-      autoReload();
-    } catch (e) {
-      log("Status error", String(e));
-      alert(e.message);
-    }
+    const newStatus = mapActionToStatus(action);
+    try { const res = await api(`/${id}/status/${encodeURIComponent(newStatus)}`, { method: "POST" }); log(`POST /${id}/status/${newStatus}`, res); autoReload(); }
+    catch (e) { log("Status error", String(e)); alert(e.message); }
   }
 
-  async function archive(id, detach) {
+  async function deleteTask(id) {
     try {
-      const res = await api(`/${id}/archive?detach_links=${detach ? "true" : "false"}`, { method: "POST" });
-      log(`POST /${id}/archive`, res);
+      const res = await api(`/${id}/delete`, { method: "POST" });
+      log(`POST /${id}/delete`, res);
       autoReload();
     } catch (e) {
-      log("Archive error", String(e));
-      alert(e.message);
-    }
-  }
-
-  async function restore(id) {
-    try {
-      const res = await api(`/${id}/restore`, { method: "POST" });
-      log(`POST /${id}/restore`, res);
-      autoReload();
-    } catch (e) {
-      log("Restore error", String(e));
+      log("Delete error", String(e));
       alert(e.message);
     }
   }
@@ -521,6 +622,8 @@
     e_due.value = task.deadline || "";
     e_project.value = task.project_id ?? "";
     e_active.value = task.active ? "true" : "false";
+    e_tag.value = task.tag || "";
+    e_recurring.value = (typeof task.recurring === "number" ? task.recurring : "") || "";
     e_hint.textContent = `Editing #${task.id} (status updates are separate actions)`;
     dlgEdit.showModal();
   }
@@ -535,6 +638,8 @@
     if (e_start.value !== "") payload.start_date = e_start.value || null;
     if (e_due.value !== "") payload.deadline = e_due.value || null;
     if (e_project.value !== "") payload.project_id = Number(e_project.value);
+    if (e_tag.value !== "") payload.tag = e_tag.value;
+    if (e_recurring.value !== "") payload.recurring = Number(e_recurring.value);
     payload.active = e_active.value === "true";
 
     try {
@@ -542,15 +647,18 @@
       log(`PATCH /${editingTaskId}`, res);
       dlgEdit.close();
       autoReload();
-    } catch (e) {
-      log("PATCH error", String(e));
-      alert(e.message);
-    }
+    } catch (e) { log("PATCH error", String(e)); alert(e.message); }
   });
 
   // Create task
   document.getElementById("btnCreate").addEventListener("click", async () => {
     const pb = Number(c_priority.value);
+    const proj = c_project.value === "" ? null : Number(c_project.value);
+    if (proj == null || Number.isNaN(proj)) {
+      alert("Project ID is required.");
+      return;
+    }
+    const rec = c_recurring.value === "" ? 0 : Number(c_recurring.value);
     const payload = {
       title: c_title.value || "",
       description: c_desc.value || null,
@@ -558,29 +666,26 @@
       deadline: c_due.value || null,
       priority: Number.isNaN(pb) ? 5 : Math.min(10, Math.max(1, pb)),
       status: c_status.value,
-      project_id: c_project.value === "" ? null : Number(c_project.value),
+      project_id: proj,                     // required
       active: c_active.value === "true",
       parent_id: c_parent.value === "" ? null : Number(c_parent.value),
+      tag: c_tag.value || null,
+      recurring: Number.isNaN(rec) ? 0 : rec
     };
     try {
       const res = await api("/", { method: "POST", body: JSON.stringify(payload) });
       log("POST /", res);
-      // Clear fields
-      c_title.value = ""; c_desc.value = ""; c_start.value = ""; c_due.value = ""; c_project.value = ""; c_parent.value = "";
+      c_title.value = ""; c_desc.value = ""; c_start.value = ""; c_due.value = "";
+      c_project.value = ""; c_parent.value = ""; c_tag.value = ""; c_recurring.value = "0";
       autoReload();
-    } catch (e) {
-      log("Create error", String(e));
-      alert(e.message);
-    }
+    } catch (e) { log("Create error", String(e)); alert(e.message); }
   });
 
   // Load parents button
   document.getElementById("btnLoad").addEventListener("click", loadParents);
 
   // Utilities
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
 
   // First load (optional)
   loadParents();
