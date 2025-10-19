@@ -43,6 +43,10 @@ class Task(Base):
         passive_deletes=True,
     )
 
+    assigned_users = relationship(
+        "TaskAssignment", back_populates="task", cascade="all, delete-orphan"
+    )
+
     subtasks = association_proxy("subtask_links", "subtask")  
     parent   = association_proxy("parent_link",   "parent")   
 
