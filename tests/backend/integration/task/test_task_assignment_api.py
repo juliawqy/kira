@@ -105,7 +105,7 @@ def create_test_users(test_db_session):
 
 # ================================ assign_users API Tests ================================
 
-# INT-TA-001
+# INT-026/001
 def test_assign_users_api_success(client, task_base_path, create_test_task, create_test_users):
     """Assign multiple users to a task via API successfully."""
     task = create_test_task
@@ -119,7 +119,7 @@ def test_assign_users_api_success(client, task_base_path, create_test_task, crea
     assert result["created"] == 2
     assert "created" in result
 
-# INT-TA-002
+# INT-026/002
 def test_assign_users_api_single_user_success(client, task_base_path, create_test_task, create_test_users):
     """Assign single user to a task via API successfully."""
     task = create_test_task
@@ -132,7 +132,7 @@ def test_assign_users_api_single_user_success(client, task_base_path, create_tes
     result = response.json()
     assert result["created"] == 1
 
-# INT-TA-003
+# INT-026/003
 def test_assign_users_api_idempotent_behavior(client, task_base_path, create_test_task, create_test_users):
     """Assign same users multiple times returns 0 for second assignment (idempotent)."""
     task = create_test_task
@@ -150,7 +150,7 @@ def test_assign_users_api_idempotent_behavior(client, task_base_path, create_tes
     assert response2.status_code == 200
     assert response2.json()["created"] == 0
 
-# INT-TA-004
+# INT-026/004
 def test_assign_users_api_task_not_found(client, task_base_path, create_test_users):
     """Assign users to nonexistent task returns 404."""
     user_ids = create_test_users
@@ -161,7 +161,7 @@ def test_assign_users_api_task_not_found(client, task_base_path, create_test_use
     assert response.status_code == 404
     assert "Task not found" in response.json()["detail"]
 
-# INT-TA-005
+# INT-026/005
 def test_assign_users_api_user_not_found(client, task_base_path, create_test_task):
     """Assign nonexistent user to task returns 404."""
     task = create_test_task
@@ -172,7 +172,7 @@ def test_assign_users_api_user_not_found(client, task_base_path, create_test_tas
     assert response.status_code == 404
     assert "User" in response.json()["detail"] and "not found" in response.json()["detail"]
 
-# INT-TA-006
+# INT-026/006
 def test_assign_users_api_empty_payload_validation(client, task_base_path, create_test_task):
     """Assign users with empty user_ids list returns validation error."""
     task = create_test_task
@@ -184,7 +184,7 @@ def test_assign_users_api_empty_payload_validation(client, task_base_path, creat
 
 # ================================ unassign_users API Tests ================================
 
-# INT-TA-007
+# INT-026/007
 def test_unassign_users_api_success(client, task_base_path, create_test_task, create_test_users, test_db_session):
     """Remove multiple user assignments via API successfully."""
     task = create_test_task
@@ -208,7 +208,7 @@ def test_unassign_users_api_success(client, task_base_path, create_test_task, cr
     result = response.json()
     assert result["Removed"] == 2
 
-# INT-TA-008
+# INT-026/008
 def test_unassign_users_api_no_assignments(client, task_base_path, create_test_task, create_test_users):
     """Remove users with no existing assignments returns 0."""
     task = create_test_task
@@ -225,7 +225,7 @@ def test_unassign_users_api_no_assignments(client, task_base_path, create_test_t
     result = response.json()
     assert result["Removed"] == 0
 
-# INT-TA-009
+# INT-026/009
 def test_unassign_users_api_task_not_found(client, task_base_path, create_test_users):
     """Remove users from nonexistent task returns 404."""
     user_ids = create_test_users
@@ -240,7 +240,7 @@ def test_unassign_users_api_task_not_found(client, task_base_path, create_test_u
     assert response.status_code == 404
     assert "Task not found" in response.json()["detail"]
 
-# INT-TA-010
+# INT-026/010
 def test_unassign_users_api_user_not_found(client, task_base_path, create_test_task):
     """Remove nonexistent user from task returns 404."""
     task = create_test_task
@@ -257,7 +257,7 @@ def test_unassign_users_api_user_not_found(client, task_base_path, create_test_t
 
 # ================================ clear_task_assignees API Tests ================================
 
-# INT-TA-011
+# INT-026/011
 def test_clear_task_assignees_api_success(client, task_base_path, create_test_task, create_test_users, test_db_session):
     """Clear all user assignments from task via API successfully."""
     task = create_test_task
@@ -275,7 +275,7 @@ def test_clear_task_assignees_api_success(client, task_base_path, create_test_ta
     result = response.json()
     assert result["Removed"] == 2
 
-# INT-TA-012
+# INT-026/012
 def test_clear_task_assignees_api_no_assignments(client, task_base_path, create_test_task):
     """Clear assignments from task with no assignments returns 0."""
     task = create_test_task
@@ -286,7 +286,7 @@ def test_clear_task_assignees_api_no_assignments(client, task_base_path, create_
     result = response.json()
     assert result["Removed"] == 0
 
-# INT-TA-013
+# INT-026/013
 def test_clear_task_assignees_api_task_not_found(client, task_base_path):
     """Clear assignments from nonexistent task returns 404."""
     response = client.delete(f"{task_base_path}/{INVALID_TASK_ID_NONEXISTENT}/assignees/all")
@@ -296,7 +296,7 @@ def test_clear_task_assignees_api_task_not_found(client, task_base_path):
 
 # ================================ list_assignees API Tests ================================
 
-# INT-TA-014
+# INT-026/014
 def test_list_assignees_api_success(client, task_base_path, create_test_task, create_test_users, test_db_session):
     """List users assigned to a task via API successfully."""
     task = create_test_task
@@ -327,7 +327,7 @@ def test_list_assignees_api_success(client, task_base_path, create_test_task, cr
         assert "role" in assignee
         assert "admin" in assignee
 
-# INT-TA-015
+# INT-026/015
 def test_list_assignees_api_no_assignments(client, task_base_path, create_test_task):
     """List assignees for task with no assignments returns empty list."""
     task = create_test_task
@@ -338,7 +338,7 @@ def test_list_assignees_api_no_assignments(client, task_base_path, create_test_t
     assignees = response.json()
     assert assignees == []
 
-# INT-TA-016
+# INT-026/016
 def test_list_assignees_api_task_not_found(client, task_base_path):
     """List assignees for nonexistent task returns 404."""
     response = client.get(f"{task_base_path}/{INVALID_TASK_ID_NONEXISTENT}/assignees")
@@ -348,7 +348,7 @@ def test_list_assignees_api_task_not_found(client, task_base_path):
 
 # ================================ Database Persistence Tests ================================
 
-# INT-TA-017
+# INT-026/017
 def test_assign_users_database_persistence(client, task_base_path, create_test_task, create_test_users, test_db_session):
     """Verify that user assignments persist in the database."""
     task = create_test_task
@@ -370,7 +370,7 @@ def test_assign_users_database_persistence(client, task_base_path, create_test_t
     assert (task["id"], VALID_USER_ADMIN_TASK_ASSIGNMENT["user_id"]) in assignment_tuples
     assert (task["id"], VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"]) in assignment_tuples
 
-# INT-TA-018
+# INT-026/018
 def test_unassign_users_database_removal(client, task_base_path, create_test_task, create_test_users, test_db_session):
     """Verify that unassigning users removes records from the database."""
     task = create_test_task
@@ -400,7 +400,7 @@ def test_unassign_users_database_removal(client, task_base_path, create_test_tas
     ).scalar()
     assert db_assignments == 0
 
-# INT-TA-019
+# INT-026/019
 def test_clear_task_assignees_database_removal(client, task_base_path, create_test_task, create_test_users, test_db_session):
     """Verify that clearing task assignees removes all records from the database."""
     task = create_test_task
@@ -431,7 +431,7 @@ def test_clear_task_assignees_database_removal(client, task_base_path, create_te
 
 # ================================ Complete Workflow Tests ================================
 
-# INT-TA-020
+# INT-026/020
 def test_complete_assignment_workflow(client, task_base_path, create_test_task, create_test_users, test_db_session):
     """Test complete workflow: assign users, list assignees, unassign some, list again."""
     task = create_test_task
@@ -473,7 +473,7 @@ def test_complete_assignment_workflow(client, task_base_path, create_test_task, 
     assignees3 = list_response3.json()
     assert len(assignees3) == 0
 
-# INT-TA-021
+# INT-026/021
 def test_multiple_tasks_assignment_independence(client, task_base_path, create_test_users, test_db_session):
     """Test that assignments to different tasks are independent."""
     user_ids = create_test_users
