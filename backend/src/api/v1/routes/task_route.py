@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, validator
 
 from backend.src.schemas.task import TaskCreate, TaskUpdate, TaskRead, TaskWithSubTasks
+from backend.src.schemas.user import UserRead
 import backend.src.services.task as task_service
 import backend.src.services.task_assignment as assignment_service
 
@@ -251,7 +252,7 @@ class AssignUsersPayload(BaseModel):
             raise ValueError('user_ids must contain at least one user ID')
         return v
 
-@router.get("/{task_id}/assignees", name="list_assignees")
+@router.get("/{task_id}/assignees", response_model=List[UserRead], name="list_assignees")
 def list_assignees(task_id: int):
     """Return all users assigned to a given task."""
     try:
@@ -266,25 +267,28 @@ def assign_users(task_id: int, payload: AssignUsersPayload):
         created = assignment_service.assign_users(task_id, payload.user_ids)
         return {"created": created}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
-@router.delete("/{task_id}/assignees/{user_id}", status_code=204, name="unassign_user")
-def unassign_user(task_id: int, user_id: int):
-    """Unassign a single user from a task."""
+class UnassignUsersPayload(BaseModel):
+    user_ids: List[int]
+
+@router.delete("/{task_id}/assignees", name="unassign_users")
+def unassign_users(task_id: int, payload: UnassignUsersPayload):
+    """Unassign users from a task."""
     try:
-        assignment_service.unassign_user(task_id, user_id)
-        return
+        deleted = assignment_service.unassign_users(task_id, payload.user_ids)
+        return {"Removed": deleted}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-@router.delete("/{task_id}/assignees", name="clear_task_assignees")
+@router.delete("/{task_id}/assignees/all", name="clear_task_assignees")
 def clear_task_assignees(task_id: int):
     """Remove all users assigned to a task."""
     try:
         deleted = assignment_service.clear_task_assignees(task_id)
         return {"Removed": deleted}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 

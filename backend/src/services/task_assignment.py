@@ -8,6 +8,7 @@ from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 from backend.src.database.models.user import User
 from backend.src.database.models.task_assignment import TaskAssignment
+from backend.src.schemas.user import UserRead
 
 
 # -------------------------- Internal validators -------------------------------
@@ -24,8 +25,8 @@ def _ensure_users_exist(session, user_ids: list[int]) -> list[User]:
     """Ensure all user ids exist (no active/inactive concept)."""
     if not user_ids:
         return []
-    users = session.execute(select(User).where(User.id.in_(user_ids))).scalars().all()
-    found = {u.id for u in users}
+    users = session.execute(select(User).where(User.user_id.in_(user_ids))).scalars().all()
+    found = {u.user_id for u in users}
     missing = [uid for uid in user_ids if uid not in found]
     if missing:
         raise ValueError(f"User(s) not found: {missing}")
@@ -33,28 +34,6 @@ def _ensure_users_exist(session, user_ids: list[int]) -> list[User]:
 
 
 # ------------------------------ Core ops --------------------------------------
-
-def assign_user(task_id: int, user_id: int) -> bool:
-    """
-    Assign a single user to a task.
-    Idempotent: returns False if the link already exists; True if created.
-    """
-    with SessionLocal.begin() as session:
-        _ensure_task_active(session, task_id)
-        _ensure_users_exist(session, [user_id])
-
-        exists_link = session.execute(
-            select(TaskAssignment).where(
-                and_(TaskAssignment.task_id == task_id, TaskAssignment.user_id == user_id)
-            )
-        ).scalar_one_or_none()
-
-        if exists_link:
-            return False
-
-        session.add(TaskAssignment(task_id=task_id, user_id=user_id))
-        return True
-
 
 def assign_users(task_id: int, user_ids: Iterable[int]) -> int:
     """
@@ -83,18 +62,29 @@ def assign_users(task_id: int, user_ids: Iterable[int]) -> int:
         return len(to_create)
 
 
-def unassign_user(task_id: int, user_id: int) -> bool:
-    """Remove a single assignment link. Raises if the link does not exist."""
+def unassign_users(task_id: int, user_ids: list[int]) -> int:
+    """Remove multiple assignment links for a task. Returns number of assignments removed."""
+    ids = sorted({int(uid) for uid in (user_ids or [])})
+    if not ids:
+        return 0
+
     with SessionLocal.begin() as session:
-        link = session.execute(
+        _ensure_task_active(session, task_id)
+        _ensure_users_exist(session, ids)
+
+        links = session.execute(
             select(TaskAssignment).where(
-                and_(TaskAssignment.task_id == task_id, TaskAssignment.user_id == user_id)
+                and_(TaskAssignment.task_id == task_id, TaskAssignment.user_id.in_(ids))
             )
-        ).scalar_one_or_none()
-        if not link:
-            raise ValueError("Assignment not found")
-        session.delete(link)
-        return True
+        ).scalars().all()
+        
+        if not links:
+            return 0
+            
+        for link in links:
+            session.delete(link)
+            
+        return len(links)
 
 
 def clear_task_assignees(task_id: int) -> int:
@@ -107,36 +97,21 @@ def clear_task_assignees(task_id: int) -> int:
         return int(deleted)
 
 
-# ------------------------------ Queries ---------------------------------------
-
-def is_assigned(task_id: int, user_id: int) -> bool:
-    with SessionLocal() as session:
-        link = session.execute(
-            select(TaskAssignment.user_id).where(
-                and_(TaskAssignment.task_id == task_id, TaskAssignment.user_id == user_id)
-            )
-        ).scalar_one_or_none()
-        return link is not None
-
-
-def count_assignees(task_id: int) -> int:
-    with SessionLocal() as session:
-        return len(
-            session.execute(
-                select(TaskAssignment.user_id).where(TaskAssignment.task_id == task_id)
-            ).scalars().all()
-        )
-
-
-def list_assignees(task_id: int) -> list[User]:
+def list_assignees(task_id: int) -> list[UserRead]:
     """Return User rows assigned to the task."""
     with SessionLocal() as session:
+        # First check if task exists
+        task = session.get(Task, task_id)
+        if not task:
+            raise ValueError(f"Task with id {task_id} not found")
+        
         user_ids = session.execute(
             select(TaskAssignment.user_id).where(TaskAssignment.task_id == task_id)
         ).scalars().all()
         if not user_ids:
             return []
-        return session.execute(select(User).where(User.id.in_(user_ids))).scalars().all()
+        users = session.execute(select(User).where(User.user_id.in_(user_ids))).scalars().all()
+        return [UserRead.model_validate(user) for user in users]
 
 
 def list_tasks_for_user(
