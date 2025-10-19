@@ -10,6 +10,7 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8)
     department_id: Optional[int] = None
     admin: Optional[bool] = False
+    created_by_admin: bool = True
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None

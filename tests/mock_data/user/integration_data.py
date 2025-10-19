@@ -11,7 +11,7 @@ VALID_USER_ADMIN = {
 }
 
 VALID_USER = {
-    "user_id": 2,
+    "user_id": 1,
     "name": "Bob Employee",
     "email": "bob.employee@example.com",
     "role": UserRole.STAFF.value,
@@ -97,7 +97,7 @@ INVALID_CREATE_BAD_ADMIN = {
     "role": UserRole.MANAGER,
     "password": "Adm!nPass123",
     "department_id": 10,
-    "admin": "yes",
+    "admin": "not_a_boolean",
     "created_by_admin": True,
 }
 
@@ -111,44 +111,24 @@ INVALID_CREATE_UNAUTHORISED = {
     "created_by_admin": False,
 }
 
-# Update payloads
+INVALID_EMAIL_UPDATE = {
+    "email": "alice.admin@example.com"  # assuming this email already exists
+}
+
+INVALID_INVALID_ROLE_UPDATE = {
+    "role": "invalid_role"
+}
+
 VALID_UPDATE_NAME = {"name": "Alice A."}
-VALID_UPDATE_EMAIL = {"email": "alice.a@example.com"}
-VALID_UPDATE_DEPARTMENT = {"department_id": 30}
 
-# Delete payloads
-VALID_DELETE_PAYLOAD = {
-    "user_id": 1,
-    "is_admin": True
-}
-
-INVALID_DELETE_PAYLOAD_NONEXISTENT_USER = {
-    "user_id": 9999,
-    "is_admin": True
-}
-
-INVALID_DELETE_PAYLOAD_NOT_ADMIN = {
-    "user_id": 1,
-    "is_admin": False
-}
-
-# Password change payloads
 VALID_PASSWORD_CHANGE = {
-    "current_password": "Adm!nPass123",
+    "current_password": "Empl@yee123",
     "new_password": "NewP@ssword123"
 }
-INVALID_PASSWORD_CHANGE_WEAK = {
-    "current_password": "Adm!nPass123",
-    "new_password": "weak"
-}
+
 INVALID_PASSWORD_CHANGE_WRONG_CURRENT = {
-    "current_password": "wrongcurrent",
-    "new_password": "Another!Pass1"
+    "current_password": "WrongCurrent123",
+    "new_password": "NewP@ssword123"
 }
-INVALID_PASSWORD_TYPE = 12345
-
-
-INVALID_ADMIN_TYPE = "yes"
-INVALID_EMAIL_DOESNT_EXIST = "notfound@example.com"
 
 INVALID_USER_ID = 9999

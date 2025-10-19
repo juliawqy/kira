@@ -27,14 +27,19 @@ def create_user(payload: UserCreate):
                 status_code=400, 
                 detail=f"Invalid role '{payload.role}'. Valid roles are: {[r.value for r in UserRole]}"
             )
-            
+        if not payload.created_by_admin:
+            raise HTTPException(
+                status_code=403,
+                detail="Only admin users can create accounts"
+            )
+
         u = user_service.create_user(
             name=payload.name,
             email=str(payload.email),
             role=role_enum,
             password=payload.password,
             department_id=payload.department_id,
-            admin=bool(payload.admin),
+            admin=payload.admin,
         )
         return UserRead.model_validate(u, from_attributes=True)
     except ValueError as e:
@@ -76,28 +81,24 @@ def update_user(user_id: int, payload: UserUpdate):
     Update a user's details (name, email, role, department_id, admin).
     """
     try:
-        # Convert payload to dict and handle role conversion
         update_data = payload.model_dump(exclude_unset=True)
-        
-        # Convert string role to UserRole enum if role is provided
-        if 'role' in update_data and update_data['role'] is not None:
+
+        if "role" in update_data and update_data["role"] is not None:
             try:
-                update_data['role'] = UserRole(update_data['role'])
-            except ValueError as ve:
+                update_data["role"] = UserRole(update_data["role"])
+            except ValueError:
                 raise HTTPException(
-                    status_code=400, 
+                    status_code=400,
                     detail=f"Invalid role '{update_data['role']}'. Valid roles are: {[r.value for r in UserRole]}"
                 )
-        
-        updated = user_service.update_user(
-            user_id,
-            **update_data,
-        )
+
+        updated = user_service.update_user(user_id, **update_data)
         if not updated:
             raise HTTPException(status_code=404, detail="User not found")
+
         return UserRead.model_validate(updated, from_attributes=True)
+
     except ValueError as e:
-        # e.g., email already in use
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -108,7 +109,7 @@ def delete_user(user_id: int):
     """
     Hard delete a user.
     """
-    ok = user_service.delete_user(user_id)
+    ok = user_service.delete_user(user_id, True)
     if not ok:
         raise HTTPException(status_code=404, detail="User not found")
     return ok

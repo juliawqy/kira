@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.user import User
-from backend.src.enums.user_role import UserRole
+from backend.src.enums.user_role import UserRole, ALLOWED_ROLES
 
 # ---- Password Hashing -----------------------------------------------------
 
@@ -44,8 +44,12 @@ def create_user(
     password: str,
     department_id: Optional[int] = None,
     admin: bool = False,
+    created_by_admin: bool = True,  # <-- NEW param
 ) -> User:
     """Create a new user with enforced UserRole."""
+    if not created_by_admin:
+        raise PermissionError("Only admin users can create accounts")
+
     _validate_password(password)
     if not isinstance(role, UserRole):
         raise ValueError(f"role must be a valid UserRole enum, got {role}")
@@ -54,11 +58,20 @@ def create_user(
         existing = session.execute(select(User).where(User.email == email)).scalar_one_or_none()
         if existing:
             raise ValueError("User with this email already exists")
+        
+        if not name:
+            raise TypeError("name is required and cannot be None or empty")
+        
+        if not email:
+            raise TypeError("email is required and cannot be None or empty")
+        
+        if not isinstance(admin, bool):
+            raise TypeError("admin must be a boolean value")
 
         user = User(
             name=name,
             email=email,
-            role=role.value,  # store string representation
+            role=role.value,
             admin=admin,
             hashed_pw=_hash_password(password),
             department_id=department_id,
@@ -92,13 +105,13 @@ def update_user(
     *,
     name: Optional[str] = None,
     email: Optional[str] = None,
-    role: Optional[UserRole] = None,
+    role: Optional[str] = None,
     department_id: Optional[int] = None,
     admin: Optional[bool] = None,
 ) -> Optional[User]:
     """Update a user's details."""
-    if role is not None and not isinstance(role, UserRole):
-        raise ValueError(f"role must be a valid UserRole enum, received: {role}, which is invalid")
+    if role is not None and role not in ALLOWED_ROLES:
+        raise ValueError(f"Invalid role: {role}")
 
     with SessionLocal.begin() as session:
         user = session.get(User, user_id)
@@ -124,8 +137,11 @@ def update_user(
         return user
 
 
-def delete_user(user_id: int) -> bool:
+def delete_user(user_id: int, is_admin: bool) -> bool:
     """Hard delete: remove a user permanently."""
+    if not is_admin:
+        raise PermissionError("Only admin users can delete accounts")
+
     with SessionLocal.begin() as session:
         user = session.get(User, user_id)
         if not user:
