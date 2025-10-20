@@ -21,22 +21,26 @@ def isolated_database(test_db_engine):
     transaction = connection.begin()
 
     try:
-        # Clean up existing data
-        connection.execute(text("DELETE FROM comments"))
-        connection.execute(text("DELETE FROM tasks"))
-        connection.execute(text("DELETE FROM users"))
+        connection.execute(text("DELETE FROM comment"))
+        connection.execute(text("DELETE FROM task"))
+        connection.execute(text("DELETE FROM user"))
+        connection.execute(text("DELETE FROM project"))
 
-        # Insert a test user (user_id=2)
         connection.execute(text("""
-            INSERT INTO users (user_id, email, name, role, admin, hashed_pw, department_id)
+            INSERT INTO user (user_id, email, name, role, admin, hashed_pw, department_id)
             VALUES (2, 'testuser@example.com', 'Test User', 'STAFF', 0, 'hashed_pw_dummy', NULL)
         """))
 
-        # Insert a test task (task_id=1)
         connection.execute(text("""
-            INSERT INTO tasks (id, title, description, status, priority, parent_id)
-            VALUES (1, 'Test Task', 'Task used for comment testing', 'To-do', 'Medium', NULL)
+            INSERT INTO project (project_id, project_name, project_manager, active)
+            VALUES (1, 'UI Test Project', 2, 1)
         """))
+
+        connection.execute(text("""
+            INSERT INTO task (id, title, description, status, priority, project_id, active, recurring)
+            VALUES (1, 'Test Task', 'Task used for comment testing', 'To-do', 5, 1, 1, 0)
+        """))
+
 
         connection.commit()
     except Exception as e:
@@ -47,9 +51,10 @@ def isolated_database(test_db_engine):
 
     # Clean up after test
     try:
-        connection.execute(text("DELETE FROM comments"))
-        connection.execute(text("DELETE FROM tasks"))
-        connection.execute(text("DELETE FROM users"))
+        connection.execute(text("DELETE FROM comment"))
+        connection.execute(text("DELETE FROM task"))
+        connection.execute(text("DELETE FROM user"))
+        connection.execute(text("DELETE FROM project"))
         connection.commit()
     except Exception as e:
         print("Teardown failed:", e)
