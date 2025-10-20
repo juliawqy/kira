@@ -1,24 +1,12 @@
 from __future__ import annotations
-from typing import Optional, List
-from pydantic import BaseModel, ConfigDict, Field
-
-
+from pydantic import BaseModel, ConfigDict
 
 class DepartmentCreate(BaseModel):
-    name: str
-    manager_id: int 
-    department_id: int 
-
-
-
-class DepartmentRead(BaseModel):
-    id: int
-    name: str
+    department_name: str
     manager_id: int
 
-    class Config:
-        from_attributes = True
-
-
-
-
+class DepartmentRead(BaseModel):
+    department_id: int
+    department_name: str
+    manager_id: int
+    model_config = ConfigDict(from_attributes=True)  

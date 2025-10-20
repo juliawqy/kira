@@ -10,7 +10,24 @@ class Team(Base):
     manager_id = Column(Integer, nullable=False)
     department_id = Column(Integer, nullable=False)
     team_number = Column(Integer, nullable=False)
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
+from sqlalchemy.orm import relationship
+from backend.src.database.db_setup import Base
 
+class Team(Base):
+    __tablename__ = "team"
+
+    team_id = Column(Integer, primary_key=True, autoincrement=True)
+    team_name = Column(String, nullable=False)
+    manager_id = Column(Integer, nullable=False)
+
+    department_id = Column(
+        Integer,
+        ForeignKey("department.department_id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    department = relationship("Department", back_populates="teams")
 
 class TeamAssignment(Base):
     __tablename__ = "team_assignments"

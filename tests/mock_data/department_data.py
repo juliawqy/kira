@@ -1,41 +1,41 @@
 # tests/mock_data/department_data.py
+from backend.src.enums.user_role import UserRole
 
 VALID_ADD_DEPARTMENT = {
     "name": "Engineering",
-    "description": "Handles all product and infrastructure development.",
-    "manager": "Alice Tan",
-    "created_at": "2025-09-01",
+    "manager": 101,
+    "user_role": UserRole.HR, 
 }
 
 VALID_DEPARTMENT_1 = {
-    "id": 1,
-    "name": "Engineering",
-    "description": "Handles all product and infrastructure development.",
-    "manager": "Alice Tan",
-    "created_at": "2025-09-01",
+    "department_id": 1,
+    "department_name": "Engineering",
+    "manager_id": 101,
 }
 
 VALID_DEPARTMENT_2 = {
-    "id": 2,
-    "name": "Human Resources",
-    "description": "Manages hiring, onboarding, and employee welfare.",
-    "manager": "Benjamin Lee",
-    "created_at": "2025-08-20",
+    "department_id": 2,
+    "department_name": "Human Resources",
+    "manager_id": 202,
 }
 
 INVALID_DEPARTMENT_NO_NAME = {
     "name": None,
-    "description": "Missing name should trigger validation error.",
-    "manager": "Daphne Koh",
-    "created_at": "2025-09-10",
+    "manager": 303,
+    "user_role": UserRole.HR,
 }
 
 INVALID_DEPARTMENT_NO_MANAGER = {
     "name": "Finance",
-    "description": "Missing manager should trigger validation error.",
     "manager": None,
-    "created_at": "2025-09-10",
+    "user_role": UserRole.HR,
+}
+
+INVALID_DEPARTMENT_NON_HR = {
+    "name": "Engineering",
+    "manager": 404,
+    "user_role": UserRole.MANAGER, 
 }
 
 VALID_DEPARTMENT_ID = 1
-INVALID_DEPARTMENT_ID = 999  # Department ID that doesn't exist
+INVALID_DEPARTMENT_ID = 999
