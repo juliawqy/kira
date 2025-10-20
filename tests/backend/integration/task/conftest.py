@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Import service first so models register once under backend.src.*
 import backend.src.services.task as svc
+import backend.src.services.task_assignment as assignment_svc
 from backend.src.database.db_setup import Base
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
@@ -55,6 +56,7 @@ def client(test_engine):
     )
     # Point the service layer to the test DB
     svc.SessionLocal = TestingSessionLocal
+    assignment_svc.SessionLocal = TestingSessionLocal
 
     with TestClient(app) as c:
         yield c
@@ -78,8 +80,13 @@ def task_base_path() -> str:
 @pytest.fixture(autouse=True)
 def clean_db(test_engine):
     """Clean tables BEFORE each test: links first (FK), then tasks."""
+    from backend.src.database.models.task_assignment import TaskAssignment
+    from backend.src.database.models.user import User
+    
     TestingSession = sessionmaker(bind=test_engine, future=True)
     with TestingSession.begin() as s:
+        s.execute(delete(TaskAssignment))
         s.execute(delete(ParentAssignment))
         s.execute(delete(Task))
+        s.execute(delete(User))
     yield

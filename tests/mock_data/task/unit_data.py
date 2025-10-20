@@ -126,6 +126,7 @@ VALID_CREATE_PAYLOAD_FULL = {
     "status": TaskStatus.IN_PROGRESS.value,
     "priority": 9,
     "recurring": 0,
+    "tag": None,
     "project_id": 123,
     "active": True,
 }
