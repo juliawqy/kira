@@ -9,6 +9,7 @@ from tests.mock_data.task.integration_data import (
     TASK_2_PAYLOAD,
     TASK_3_PAYLOAD,
     INVALID_TASK_ID_NONEXISTENT,
+    QUERY_STRING
 )
 from tests.mock_data.user.integration_data import (
     VALID_USER_ADMIN_TASK_ASSIGNMENT,
@@ -78,12 +79,7 @@ def create_test_users(test_db_session):
     """Create test users in the database and return their IDs."""
     # Insert test users directly into the database
     test_db_session.execute(
-            text("""
-            INSERT INTO user (user_id, name, email, role, department_id, admin, hashed_pw)
-            VALUES 
-            (1, :name1, :email1, :role1, :dept1, :admin1, :hash1),
-            (2, :name2, :email2, :role2, :dept2, :admin2, :hash2)
-            """),
+            text(QUERY_STRING),
         {
             "name1": VALID_USER_ADMIN_TASK_ASSIGNMENT["name"],
             "email1": VALID_USER_ADMIN_TASK_ASSIGNMENT["email"],

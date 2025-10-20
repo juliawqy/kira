@@ -262,3 +262,10 @@ VALID_PROJECT_ID_INACTIVE_TASK = 100
 INVALID_STATUS = "INVALID_STATUS"
 INVALID_TASK_ID_NONEXISTENT = 99999
 EMPTY_PROJECT_ID = 99999
+
+QUERY_STRING = """
+            INSERT INTO user (user_id, name, email, role, department_id, admin, hashed_pw)
+            VALUES 
+            (1, :name1, :email1, :role1, :dept1, :admin1, :hash1),
+            (2, :name2, :email2, :role2, :dept2, :admin2, :hash2)
+            """
