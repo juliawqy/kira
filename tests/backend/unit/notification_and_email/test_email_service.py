@@ -267,6 +267,20 @@ class TestEmailService:
         assert isinstance(recipients, list)
         assert len(recipients) == 0
 
+    def test_get_task_notification_recipients_with_test_override(self, email_service_with_patches):
+        """When test_recipient_email is configured, service returns one default recipient (covers append branch)."""
+        svc = email_service_with_patches
+        # Configure test recipient on the existing settings to hit the append path
+        svc.settings.test_recipient_email = "unit+test@example.com"
+        svc.settings.test_recipient_name = "Unit Test"
+
+        recipients = svc._get_task_notification_recipients(task_id=42)
+
+        assert isinstance(recipients, list)
+        assert len(recipients) == 1
+        assert recipients[0].email == "unit+test@example.com"
+        assert recipients[0].name == "Unit Test"
+
     @patch.object(EmailService, '_get_task_notification_recipients')
     def test_send_task_update_notification_no_recipients(self, mock_get_recipients, email_service_with_patches):
         """Test task update notification with no recipients"""
