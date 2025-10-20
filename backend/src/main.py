@@ -7,6 +7,7 @@ from backend.src.database.models.team import Team
 from backend.src.api.v1.router import router as v1_router
 from fastapi.middleware.cors import CORSMiddleware
 from backend.src.database.models.project import Project, ProjectAssignment  
+from backend.src.database.models.comment import Comment
 
 Base.metadata.create_all(bind=engine)
 

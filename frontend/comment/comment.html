@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Task Comments</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    .comment-item {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    button {
+      margin-right: 5px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .btn-update { background-color: #007bff; color: #fff; }
+    .btn-delete { background-color: #dc3545; color: #fff; }
+    .btn-save { background-color: #28a745; color: #fff; }
+    .btn-refresh { background-color: #17a2b8; color: #fff; }
+    #status { margin-top: 20px; font-weight: bold; }
+    .success { color: green; }
+    .error { color: red; }
+    .update-section { display: none; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Comments for Task #1</h1>
+  <textarea id="commentInput" placeholder="Write a comment..." rows="3" cols="60"></textarea><br>
+  <button id="submitComment">Add Comment</button>
+  <button id="refresh" class="btn-refresh">Refresh</button>
+
+  <div id="commentList"></div>
+  <p id="status"></p>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000/kira/app/api/v1/task";
+    const TASK_ID = 1;
+    const USER_ID = 2;
+
+    function setStatus(msg, isError = false) {
+        const status = document.getElementById("status");
+        status.textContent = msg;
+        status.className = isError ? "error" : "success";
+    }
+
+    async function loadComments() {
+        try {
+        const resp = await fetch(`${API_BASE}/${TASK_ID}/comments`);
+        if (!resp.ok) throw new Error("Failed to load comments");
+        const comments = await resp.json();
+
+        const list = document.getElementById("commentList");
+        list.innerHTML = "";
+        comments.forEach(c => {
+            const div = document.createElement("div");
+            div.className = "comment-item";
+            div.innerHTML = `
+            <p><strong>ID:</strong> ${c.comment_id} | <strong>User:</strong> ${c.user_id}</p>
+            <p class="comment-text">${c.comment}</p>
+            <button class="btn-update" onclick="showUpdate(${c.comment_id}, \`${c.comment.replace(/`/g, "\\`")}\`)">Update</button>
+            <button class="btn-delete" onclick="deleteComment(${c.comment_id})">Delete</button>
+            <div id="update-${c.comment_id}" class="update-section">
+                <input type="text" id="update-input-${c.comment_id}" class="update-input" value="${c.comment}">
+                <button class="btn-save" onclick="saveUpdate(${c.comment_id})">Save</button>
+            </div>
+            `;
+            list.appendChild(div);
+        });
+        setStatus("Comments loaded successfully");
+        } catch (e) {
+        setStatus(e.message, true);
+        }
+    }
+
+    async function addComment() {
+        const text = document.getElementById("commentInput").value.trim();
+        if (!text) {
+        setStatus("Comment cannot be empty", true);
+        return;
+        }
+        try {
+        const resp = await fetch(`${API_BASE}/${TASK_ID}/comment`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: USER_ID, comment: text })
+        });
+        if (!resp.ok) throw new Error("Failed to add comment");
+        setStatus("Comment added successfully");
+        document.getElementById("commentInput").value = "";
+        setTimeout(loadComments, 1000);  // Delay here
+        } catch (e) {
+        setStatus(e.message, true);
+        }
+    }
+
+    function showUpdate(id, text) {
+        document.querySelectorAll(".update-section").forEach(s => s.style.display = "none");
+        document.getElementById(`update-${id}`).style.display = "block";
+    }
+
+    async function saveUpdate(id) {
+        const newText = document.getElementById(`update-input-${id}`).value.trim();
+        if (!newText) {
+        setStatus("Updated text cannot be empty", true);
+        return;
+        }
+        try {
+        const resp = await fetch(`${API_BASE}/comment/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ comment: newText })
+        });
+        if (!resp.ok) throw new Error("Failed to update comment");
+        setStatus("Comment updated successfully");
+        setTimeout(loadComments, 1000);  // Delay here
+        } catch (e) {
+        setStatus(e.message, true);
+        }
+    }
+
+    async function deleteComment(id) {
+        if (!confirm("Delete this comment?")) return;
+        try {
+        const resp = await fetch(`${API_BASE}/comment/${id}`, { method: "DELETE" });
+        if (!resp.ok) throw new Error("Failed to delete comment");
+        setStatus("Comment deleted successfully");
+        setTimeout(loadComments, 1000);  // Delay here
+        } catch (e) {
+        setStatus(e.message, true);
+        }
+    }
+
+    document.getElementById("submitComment").addEventListener("click", addComment);
+    document.getElementById("refresh").addEventListener("click", loadComments);
+    loadComments();
+    </script>
+
+</body>
+</html>
+

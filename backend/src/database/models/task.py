@@ -7,6 +7,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from backend.src.database.db_setup import Base
 from backend.src.database.models.parent_assignment import ParentAssignment  
 from backend.src.enums.task_status import TaskStatus
+from backend.src.database.models.comment import Comment
 
 class Task(Base):
     __tablename__ = "task"  
@@ -40,6 +41,14 @@ class Task(Base):
         back_populates="subtask",
         uselist=False,
         passive_deletes=True,
+    )
+
+    #comments = Column(String)
+    comments = relationship(
+    "Comment",
+    back_populates="task",
+    cascade="all, delete-orphan",
+    passive_deletes=True
     )
 
     subtasks = association_proxy("subtask_links", "subtask")  
