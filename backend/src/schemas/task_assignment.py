@@ -5,12 +5,12 @@ from typing import Optional, List
 from backend.src.schemas.user import UserRead
 
 
-class ParentAssignmentRead(BaseModel):
+class TaskAssignmentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     task_id: int
     user_id: int
 
-class ParentAssignmentCreate(ParentAssignmentRead):
+class TaskAssignmentCreate(TaskAssignmentRead):
     pass
 
