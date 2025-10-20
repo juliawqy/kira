@@ -39,12 +39,10 @@ def isolated_test_db():
 def test_create_and_get_department(isolated_test_db):
     dept_obj = dept_service.add_department(**VALID_ADD_DEPARTMENT)
 
-    # add_department returns the ORM object
     assert dept_obj.department_name == VALID_DEPARTMENT_1["department_name"]
     assert dept_obj.manager_id == VALID_DEPARTMENT_1["manager_id"]
     assert getattr(dept_obj, "department_id", None) is not None
 
-    # Now fetch via service
     fetched = dept_service.get_department_by_id(dept_obj.department_id)
     assert fetched is not None
     assert fetched["department_id"] == dept_obj.department_id
