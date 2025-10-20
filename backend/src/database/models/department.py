@@ -9,10 +9,3 @@ class Department(Base):
     department_name = Column(String, nullable=False, index=True)
     manager_id = Column(Integer, nullable=False)
 
-    teams = relationship(
-        "Team",
-        back_populates="department",
-        cascade="all, delete-orphan",   
-        passive_deletes=True,           
-    )
-
