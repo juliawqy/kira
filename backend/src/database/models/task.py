@@ -18,8 +18,9 @@ class Task(Base):
     start_date  = Column(Date)
     deadline    = Column(Date)
     status      = Column(String, nullable=False, default=TaskStatus.TO_DO.value)
-    priority = Column(Integer, nullable=False, default=5)
-    recurring = Column(Integer, nullable=False, default=0)
+    priority    = Column(Integer, nullable=False, default=5)
+    recurring   = Column(Integer, nullable=False, default=0)
+    tag         = Column(String(128))
 
     #Link FK to Project table later: ForeignKey("project.id", ondelete="SET NULL")
     project_id  = Column(Integer, nullable=False, index=True)
@@ -49,6 +50,10 @@ class Task(Base):
     back_populates="task",
     cascade="all, delete-orphan",
     passive_deletes=True
+    )
+
+    assigned_users = relationship(
+        "TaskAssignment", back_populates="task", cascade="all, delete-orphan"
     )
 
     subtasks = association_proxy("subtask_links", "subtask")  
