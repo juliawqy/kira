@@ -60,6 +60,11 @@ COMMENT_CREATE_PAYLOAD = {
     "comment": "This is a test comment",
 }
 
+INVALID_CREATE_NONEXISTENT_USER = {
+    "user_id": INVALID_USER_ID,
+    "comment": "This is a test comment",
+}
+
 COMMENT_RESPONSE = {
     "comment_id": VALID_COMMENT_ID,
     "task_id": VALID_TASK_ID,
