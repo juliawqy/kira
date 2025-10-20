@@ -4,6 +4,7 @@ from backend.src.database.models.project import Project, ProjectAssignment
 from backend.src.database.models.user import User
 from backend.src.database.models.team import Team
 from backend.src.database.models.user import User
+from backend.src.database.models.comment import Comment
 from backend.src.database.models.department import Department
 
 # Create tables

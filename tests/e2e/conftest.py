@@ -18,6 +18,7 @@ from backend.src.database.db_setup import Base
 import backend.src.database.db_setup as db_setup
 import backend.src.services.user as user_service
 import backend.src.services.task as task_service
+import backend.src.services.comment as comment_service
 from backend.src.main import app
 
 
@@ -85,6 +86,10 @@ def app_server(tmp_path):
         pass
     try:
         task_service.SessionLocal = TestingSessionLocal
+    except Exception:
+        pass
+    try:
+        comment_service.SessionLocal = TestingSessionLocal
     except Exception:
         pass
 
