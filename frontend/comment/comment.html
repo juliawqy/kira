@@ -39,10 +39,12 @@
   <div id="commentList"></div>
   <p id="status"></p>
 
-  <script>
-    const API_BASE = "http://127.0.0.1:8000/kira/app/api/v1/task";
-    const TASK_ID = 1;
-    const USER_ID = 2;
+    <script>
+        // Allow overriding API base and IDs via query params (e.g., ?api=http://127.0.0.1:8010/kira/app/api/v1/task&task=1&user=2)
+        const params = new URLSearchParams(location.search);
+        const API_BASE = params.get('api') || "http://127.0.0.1:8000/kira/app/api/v1/task";
+        const TASK_ID = parseInt(params.get('task') || '1', 10);
+        const USER_ID = parseInt(params.get('user') || '2', 10);
 
     function setStatus(msg, isError = false) {
         const status = document.getElementById("status");

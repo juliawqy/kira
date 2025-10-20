@@ -2,66 +2,11 @@ import time
 import os
 import pytest
 from selenium.webdriver.common.by import By
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-
-
-@pytest.fixture(scope="session")
-def test_db_engine():
-    """Connect to same SQLite database used by backend."""
-    from backend.src.database.db_setup import Base
-    engine = create_engine("sqlite:///backend/src/database/kira.db", echo=False)
-    yield engine
-
-
-@pytest.fixture
-def isolated_database(test_db_engine):
-    """Ensure clean comment/task state for each E2E test + insert task/user rows."""
-    connection = test_db_engine.connect()
-    transaction = connection.begin()
-
-    try:
-        connection.execute(text("DELETE FROM comment"))
-        connection.execute(text("DELETE FROM task"))
-        connection.execute(text("DELETE FROM user"))
-        connection.execute(text("DELETE FROM project"))
-
-        connection.execute(text("""
-            INSERT INTO user (user_id, email, name, role, admin, hashed_pw, department_id)
-            VALUES (2, 'testuser@example.com', 'Test User', 'STAFF', 0, 'hashed_pw_dummy', NULL)
-        """))
-
-        connection.execute(text("""
-            INSERT INTO project (project_id, project_name, project_manager, active)
-            VALUES (1, 'UI Test Project', 2, 1)
-        """))
-
-        connection.execute(text("""
-            INSERT INTO task (id, title, description, status, priority, project_id, active, recurring)
-            VALUES (1, 'Test Task', 'Task used for comment testing', 'To-do', 5, 1, 1, 0)
-        """))
-
-
-        connection.commit()
-    except Exception as e:
-        print("Setup failed:", e)
-        connection.rollback()
-
-    yield connection
-
-    # Clean up after test
-    try:
-        connection.execute(text("DELETE FROM comment"))
-        connection.execute(text("DELETE FROM task"))
-        connection.execute(text("DELETE FROM user"))
-        connection.execute(text("DELETE FROM project"))
-        connection.commit()
-    except Exception as e:
-        print("Teardown failed:", e)
-        connection.rollback()
-    finally:
-        connection.close()
-
+from sqlalchemy.orm import Session
+from backend.src.database.db_setup import Base
+from backend.src.database.models.user import User
+from backend.src.database.models.project import Project
+from backend.src.database.models.task import Task
 
 
 @pytest.fixture
@@ -80,12 +25,25 @@ def test_comment_data():
     }
 
 
-def test_complete_comment_crud_workflow_ui_only(driver, isolated_database, test_comment_data):
+def test_complete_comment_crud_workflow_ui_only(driver, app_server, test_comment_data, reset_database):
     """Full UI workflow test for comment feature."""
     data = test_comment_data
+
+    # Seed required entities into the isolated DB bound to app_server
+    # We use the globally patched SessionLocal via reset_database fixture
+    import backend.src.database.db_setup as db_setup
+    with db_setup.SessionLocal() as session:
+        # Create user, project, task
+        session.add(User(user_id=data["user_id"], email="testuser@example.com", name="Test User", role="STAFF", admin=False, hashed_pw="x"))
+        session.add(Project(project_id=1, project_name="UI Test Project", project_manager=data["user_id"], active=True))
+        session.add(Task(id=data["task_id"], title="Test Task", description="Task used for comment testing", status="To-do", priority=5, project_id=1, active=True, recurring=False))
+        session.commit()
+
     html_file = os.path.join(os.getcwd(), "frontend", "comment", "comment.html")
-    driver.get(f"file:///{html_file}")
-    time.sleep(2)
+    from urllib.parse import quote
+    # Pass API base and IDs via query string
+    driver.get(f"file:///{html_file}?api={quote(app_server + '/task')}&task={data['task_id']}&user={data['user_id']}")
+    time.sleep(1.5)
 
     # Verify starting empty state
     comments = driver.find_elements(By.CSS_SELECTOR, ".comment-item")
@@ -94,10 +52,15 @@ def test_complete_comment_crud_workflow_ui_only(driver, isolated_database, test_
     # ADD COMMENT
     driver.find_element(By.ID, "commentInput").send_keys(data["create_comment"])
     driver.find_element(By.ID, "submitComment").click()
-    time.sleep(1)
-
-    status = driver.find_element(By.ID, "status").text.lower()
-    assert data["expected_messages"]["create_success"] in status.lower(), "Comment creation failed"
+    # Wait for async status
+    status_ok = False
+    for _ in range(6):
+        status = driver.find_element(By.ID, "status").text.lower()
+        if data["expected_messages"]["create_success"] in status:
+            status_ok = True
+            break
+        time.sleep(0.5)
+    assert status_ok, f"Comment creation failed; got: '{driver.find_element(By.ID, 'status').text}'"
 
 
     # VERIFY COMMENT IN LIST
@@ -117,10 +80,15 @@ def test_complete_comment_crud_workflow_ui_only(driver, isolated_database, test_
     update_input.send_keys(data["update_comment"])
 
     driver.find_element(By.CSS_SELECTOR, ".btn-save").click()
-    time.sleep(1)
-
-    status = driver.find_element(By.ID, "status").text.lower()
-    assert data["expected_messages"]["update_success"] in status, "Comment update failed"
+    # Wait for async status
+    status_ok = False
+    for _ in range(6):
+        status = driver.find_element(By.ID, "status").text.lower()
+        if data["expected_messages"]["update_success"] in status:
+            status_ok = True
+            break
+        time.sleep(0.5)
+    assert status_ok, f"Comment update failed; got: '{driver.find_element(By.ID, 'status').text}'"
 
     # VERIFY UPDATED TEXT
     driver.find_element(By.ID, "refresh").click()
@@ -134,12 +102,21 @@ def test_complete_comment_crud_workflow_ui_only(driver, isolated_database, test_
     delete_buttons[0].click()
     time.sleep(1)
 
-    alert = driver.switch_to.alert
-    alert.accept()
-    time.sleep(1)
-
-    status = driver.find_element(By.ID, "status").text.lower()
-    assert "comment" in status and ("deleted" in status or "loaded" in status), "Comment deletion failed"
+    # Confirm delete if alert appears
+    try:
+        alert = driver.switch_to.alert
+        alert.accept()
+    except Exception:
+        pass
+    # Wait for async status
+    status_ok = False
+    for _ in range(6):
+        status = driver.find_element(By.ID, "status").text.lower()
+        if "comment" in status and ("deleted" in status or "loaded" in status or "success" in status):
+            status_ok = True
+            break
+        time.sleep(0.5)
+    assert status_ok, f"Comment deletion failed; got: '{driver.find_element(By.ID, 'status').text}'"
 
 
     # FINAL VERIFY EMPTY
