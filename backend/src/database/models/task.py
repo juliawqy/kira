@@ -44,7 +44,6 @@ class Task(Base):
         passive_deletes=True,
     )
 
-    #comments = Column(String)
     comments = relationship(
     "Comment",
     back_populates="task",

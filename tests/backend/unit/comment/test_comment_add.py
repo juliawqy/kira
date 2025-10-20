@@ -24,14 +24,12 @@ def test_add_comment_success(mock_session_local):
     assert result["user_id"] == VALID_USER_ID
     assert result["comment"] == VALID_COMMENT_TEXT
 
-
 # UNI-006/002
 def test_add_comment_empty_text():
     """Empty comments should raise ValueError."""
     with pytest.raises(ValueError, match=ERR_EMPTY_COMMENT):
         if not EMPTY_COMMENT_TEXT.strip():
             raise ValueError(ERR_EMPTY_COMMENT)
-
 
 # UNI-006/003
 def test_add_comment_invalid_task_id():

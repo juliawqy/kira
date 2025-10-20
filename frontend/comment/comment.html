@@ -54,7 +54,7 @@
 
     async function loadComments() {
         try {
-        const resp = await fetch(`${API_BASE}/${TASK_ID}/comments`);
+        const resp = await fetch(`${API_BASE}/${TASK_ID}/comment`);
         if (!resp.ok) throw new Error("Failed to load comments");
         const comments = await resp.json();
 

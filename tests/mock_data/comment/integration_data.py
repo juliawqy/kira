@@ -4,12 +4,9 @@ from datetime import datetime
 # ------------------ VALID DATA ------------------
 
 VALID_COMMENT_ID = 1
-VALID_TASK_ID = 101
-VALID_USER_ID = 11
-VALID_PROJECT_ID = 5
-
-VALID_COMMENT_TEXT = "This is a test comment"
-UPDATED_COMMENT_TEXT = "This comment has been updated"
+VALID_TASK_ID = 1
+VALID_USER_ID = 1
+VALID_PROJECT_ID = 1
 
 # ------------------ INVALID DATA ------------------
 
@@ -17,10 +14,10 @@ INVALID_COMMENT_ID = 9999
 INVALID_TASK_ID = 99999
 INVALID_USER_ID = 88888
 
-# ------------------ USER SEED DATA ------------------
+# ------------------ SEED DATA ------------------
 
 VALID_USER = {
-    "user_id": VALID_USER_ID,
+    "user_id": 1,
     "email": "tester@example.com",
     "name": "Tester",
     "role": "STAFF",
@@ -30,7 +27,7 @@ VALID_USER = {
 }
 
 ANOTHER_USER = {
-    "user_id": 3,
+    "user_id": 2,
     "email": "another@example.com",
     "name": "Another User",
     "role": "STAFF",
@@ -39,19 +36,15 @@ ANOTHER_USER = {
     "department_id": None,
 }
 
-# ------------------ PROJECT SEED DATA ------------------
-
 VALID_PROJECT = {
-    "project_id": VALID_PROJECT_ID,
+    "project_id": 1,
     "project_name": "Integration Test Project",
     "project_manager": VALID_USER_ID,
     "active": True,
 }
 
-# ------------------ TASK SEED DATA ------------------
-
 VALID_TASK = {
-    "id": VALID_TASK_ID,
+    "id": 1,
     "title": "Task for comments",
     "description": "Integration test task",
     "status": "To-do",
@@ -64,16 +57,37 @@ VALID_TASK = {
 
 COMMENT_CREATE_PAYLOAD = {
     "user_id": VALID_USER_ID,
-    "comment": VALID_COMMENT_TEXT,
+    "comment": "This is a test comment",
+}
+
+COMMENT_RESPONSE = {
+    "comment_id": VALID_COMMENT_ID,
+    "task_id": VALID_TASK_ID,
+    "user_id": VALID_USER_ID,
+    "comment": "This is a test comment",
+    "timestamp": datetime.now().isoformat(),
 }
 
 COMMENT_UPDATE_PAYLOAD = {
-    "comment": UPDATED_COMMENT_TEXT,
+    "comment": "This comment has been updated",
+}
+
+COMMENT_UPDATED_RESPONSE = {
+    "comment_id": VALID_COMMENT_ID,
+    "task_id": VALID_TASK_ID,
+    "user_id": VALID_USER_ID,
+    "comment": "This comment has been updated",
+    "timestamp": datetime.now().isoformat(),
 }
 
 COMMENT_MULTIPLE_USERS = [
     {"user_id": VALID_USER_ID, "comment": "User1 comment"},
     {"user_id": ANOTHER_USER["user_id"], "comment": "User2 comment"},
+]
+
+COMMENT_MULTIPLE_RESPONSE = [
+    {"comment_id": 1, "task_id": VALID_TASK_ID, "user_id": VALID_USER_ID, "comment": "User1 comment", "timestamp": datetime.now().isoformat()},
+    {"comment_id": 2, "task_id": VALID_TASK_ID, "user_id": ANOTHER_USER["user_id"], "comment": "User2 comment", "timestamp": datetime.now().isoformat()},
 ]
 
 EXPECTED_COMMENT_FIELDS = [
