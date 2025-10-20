@@ -29,13 +29,11 @@ def test_assign_users_success(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock users exist
     mock_user1 = MagicMock()
     mock_user1.user_id = VALID_USER_ADMIN["user_id"]
     mock_user2 = MagicMock()
@@ -44,12 +42,10 @@ def test_assign_users_success(mock_session_local):
     def mock_execute_side_effect(stmt):
         if "user_id" in str(stmt).lower() and "where" in str(stmt).lower():
             if "in" in str(stmt).lower():
-                # First call: check if users exist
                 mock_result = MagicMock()
                 mock_result.scalars.return_value.all.return_value = [mock_user1, mock_user2]
                 return mock_result
             else:
-                # Second call: check existing assignments
                 mock_result = MagicMock()
                 mock_result.scalars.return_value.all.return_value = []
                 return mock_result
@@ -71,25 +67,21 @@ def test_assign_users_single_user_success(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock user exists
     mock_user = MagicMock()
     mock_user.user_id = VALID_USER_ADMIN["user_id"]
     
     def mock_execute_side_effect(stmt):
         if "user_id" in str(stmt).lower() and "where" in str(stmt).lower():
             if "in" in str(stmt).lower():
-                # First call: check if user exists
                 mock_result = MagicMock()
                 mock_result.scalars.return_value.all.return_value = [mock_user]
                 return mock_result
             else:
-                # Second call: check existing assignments
                 mock_result = MagicMock()
                 mock_result.scalars.return_value.all.return_value = []
                 return mock_result
@@ -110,13 +102,11 @@ def test_assign_users_partial_existing_assignments(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock users exist
     mock_user1 = MagicMock()
     mock_user1.user_id = VALID_USER_ADMIN["user_id"]
     mock_user2 = MagicMock()
@@ -128,17 +118,14 @@ def test_assign_users_partial_existing_assignments(mock_session_local):
         call_count += 1
         
         if call_count == 1:
-            # First call: check if users exist
             mock_result = MagicMock()
             mock_result.scalars.return_value.all.return_value = [mock_user1, mock_user2]
             return mock_result
         elif call_count == 2:
-            # Second call: check existing assignments - return one existing
             mock_result = MagicMock()
             mock_result.scalars.return_value.all.return_value = [VALID_USER_ADMIN["user_id"]]
             return mock_result
         else:
-            # Handle any other queries
             mock_result = MagicMock()
             mock_result.scalars.return_value.all.return_value = []
             return mock_result
@@ -148,7 +135,7 @@ def test_assign_users_partial_existing_assignments(mock_session_local):
     user_ids = [VALID_USER_ADMIN["user_id"], VALID_USER["user_id"]]
     result = ta_service.assign_users(VALID_DEFAULT_TASK["id"], user_ids)
     
-    assert result == 1  # Only one new assignment created
+    assert result == 1 
     assert mock_session.add.call_count == 1
 
 # UNI-026/004
@@ -160,13 +147,11 @@ def test_assign_users_all_already_assigned_returns_zero(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock users exist
     mock_user1 = MagicMock()
     mock_user1.user_id = VALID_USER_ADMIN["user_id"]
     mock_user2 = MagicMock()
@@ -178,17 +163,14 @@ def test_assign_users_all_already_assigned_returns_zero(mock_session_local):
         call_count += 1
         
         if call_count == 1:
-            # First call: check if users exist
             mock_result = MagicMock()
             mock_result.scalars.return_value.all.return_value = [mock_user1, mock_user2]
             return mock_result
         elif call_count == 2:
-            # Second call: check existing assignments - return both existing
             mock_result = MagicMock()
             mock_result.scalars.return_value.all.return_value = [VALID_USER_ADMIN["user_id"], VALID_USER["user_id"]]
             return mock_result
         else:
-            # Handle any other queries
             mock_result = MagicMock()
             mock_result.scalars.return_value.all.return_value = []
             return mock_result
@@ -198,7 +180,7 @@ def test_assign_users_all_already_assigned_returns_zero(mock_session_local):
     user_ids = [VALID_USER_ADMIN["user_id"], VALID_USER["user_id"]]
     result = ta_service.assign_users(VALID_DEFAULT_TASK["id"], user_ids)
     
-    assert result == 0  # No new assignments created
+    assert result == 0  
     mock_session.add.assert_not_called()
 
 # UNI-026/005
@@ -220,36 +202,31 @@ def test_assign_users_deduplicates_user_ids(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock user exists
     mock_user = MagicMock()
     mock_user.user_id = VALID_USER_ADMIN["user_id"]
     
     def mock_execute_side_effect(stmt):
         if "user_id" in str(stmt).lower() and "where" in str(stmt).lower():
             if "in" in str(stmt).lower():
-                # First call: check if users exist
                 mock_result = MagicMock()
                 mock_result.scalars.return_value.all.return_value = [mock_user]
                 return mock_result
             else:
-                # Second call: check existing assignments
                 mock_result = MagicMock()
                 mock_result.scalars.return_value.all.return_value = []
                 return mock_result
     
     mock_session.execute.side_effect = mock_execute_side_effect
     
-    # Pass duplicate user IDs
     user_ids = [VALID_USER_ADMIN["user_id"], VALID_USER_ADMIN["user_id"], VALID_USER_ADMIN["user_id"]]
     result = ta_service.assign_users(VALID_DEFAULT_TASK["id"], user_ids)
     
-    assert result == 1  # Only one assignment created despite duplicates
+    assert result == 1  
     assert mock_session.add.call_count == 1
 
 # UNI-026/007
@@ -291,14 +268,12 @@ def test_assign_users_user_not_found_raises_error(mock_session_local):
     
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
-    # Mock task exists and is active
+
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock user doesn't exist
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = []
     mock_session.execute.return_value = mock_result
@@ -317,19 +292,16 @@ def test_unassign_users_success(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock users exist
     mock_user1 = MagicMock()
     mock_user1.user_id = VALID_USER_ADMIN["user_id"]
     mock_user2 = MagicMock()
     mock_user2.user_id = VALID_USER["user_id"]
     
-    # Mock existing assignments
     mock_assignment1 = MagicMock()
     mock_assignment1.task_id = VALID_DEFAULT_TASK["id"]
     mock_assignment1.user_id = VALID_USER_ADMIN["user_id"]
@@ -341,12 +313,10 @@ def test_unassign_users_success(mock_session_local):
     def mock_execute_side_effect(stmt):
         if "user_id" in str(stmt).lower() and "where" in str(stmt).lower():
             if "in" in str(stmt).lower():
-                # First call: check if users exist
                 mock_result = MagicMock()
                 mock_result.scalars.return_value.all.return_value = [mock_user1, mock_user2]
                 return mock_result
             else:
-                # Second call: get assignments to delete
                 mock_result = MagicMock()
                 mock_result.scalars.return_value.all.return_value = [mock_assignment1, mock_assignment2]
                 return mock_result
@@ -368,13 +338,11 @@ def test_unassign_users_no_assignments_found(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock users exist
     mock_user = MagicMock()
     mock_user.user_id = VALID_USER_ADMIN["user_id"]
     
@@ -384,17 +352,14 @@ def test_unassign_users_no_assignments_found(mock_session_local):
         call_count += 1
         
         if call_count == 1:
-            # First call: check if users exist
             mock_result = MagicMock()
             mock_result.scalars.return_value.all.return_value = [mock_user]
             return mock_result
         elif call_count == 2:
-            # Second call: get assignments to delete - none found
             mock_result = MagicMock()
             mock_result.scalars.return_value.all.return_value = []
             return mock_result
         else:
-            # Handle any other queries
             mock_result = MagicMock()
             mock_result.scalars.return_value.all.return_value = []
             return mock_result
@@ -439,13 +404,11 @@ def test_unassign_users_user_not_found_raises_error(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock user doesn't exist
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = []
     mock_session.execute.return_value = mock_result
@@ -464,16 +427,14 @@ def test_clear_task_assignees_success(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock query and delete
     mock_query = MagicMock()
     mock_query.filter.return_value = mock_query
-    mock_query.delete.return_value = 3  # 3 assignments deleted
+    mock_query.delete.return_value = 3  
     mock_session.query.return_value = mock_query
     
     result = ta_service.clear_task_assignees(VALID_DEFAULT_TASK["id"])
@@ -491,16 +452,14 @@ def test_clear_task_assignees_no_assignments(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.begin.return_value.__enter__.return_value = mock_session
     
-    # Mock task exists and is active
     mock_task = MagicMock()
     mock_task.id = VALID_DEFAULT_TASK["id"]
     mock_task.active = True
     mock_session.get.return_value = mock_task
     
-    # Mock query and delete
     mock_query = MagicMock()
     mock_query.filter.return_value = mock_query
-    mock_query.delete.return_value = 0  # No assignments deleted
+    mock_query.delete.return_value = 0 
     mock_session.query.return_value = mock_query
     
     result = ta_service.clear_task_assignees(VALID_DEFAULT_TASK["id"])
@@ -532,11 +491,9 @@ def test_list_assignees_success(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value.__enter__.return_value = mock_session
     
-    # Mock user IDs from assignments
     mock_result1 = MagicMock()
     mock_result1.scalars.return_value.all.return_value = [VALID_USER_ADMIN["user_id"], VALID_USER["user_id"]]
     
-    # Mock users
     mock_user1 = MagicMock()
     mock_user1.user_id = VALID_USER_ADMIN["user_id"]
     mock_user1.name = VALID_USER_ADMIN["name"]
@@ -575,7 +532,6 @@ def test_list_assignees_no_assignments(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value.__enter__.return_value = mock_session
     
-    # Mock no user IDs from assignments
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = []
     mock_session.execute.return_value = mock_result
@@ -607,7 +563,7 @@ def test_list_tasks_for_user_success_active_only(mock_session_local):
     mock_task2.active = False
     
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [mock_task1]  # Only active task
+    mock_result.scalars.return_value.all.return_value = [mock_task1] 
     mock_session.execute.return_value = mock_result
     
     result = ta_service.list_tasks_for_user(VALID_USER_ADMIN["user_id"], active_only=True)
@@ -625,7 +581,6 @@ def test_list_tasks_for_user_success_include_inactive(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value.__enter__.return_value = mock_session
     
-    # Mock tasks
     mock_task1 = MagicMock()
     mock_task1.id = VALID_DEFAULT_TASK["id"]
     mock_task1.title = VALID_DEFAULT_TASK["title"]
@@ -811,7 +766,6 @@ def test_list_assignees_sql_query_validation(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value.__enter__.return_value = mock_session
     
-    # Mock empty user IDs from assignments (so second query won't be called)
     mock_result1 = MagicMock()
     mock_result1.scalars.return_value.all.return_value = []
     
@@ -819,7 +773,7 @@ def test_list_assignees_sql_query_validation(mock_session_local):
     
     ta_service.list_assignees(VALID_DEFAULT_TASK["id"])
     
-    assert mock_session.execute.call_count == 1  # Only one call since no user IDs found
+    assert mock_session.execute.call_count == 1  
     
     # Check first query (get user IDs)
     first_stmt = mock_session.execute.call_args[0][0]

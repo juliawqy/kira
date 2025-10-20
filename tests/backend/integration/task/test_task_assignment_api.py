@@ -9,7 +9,8 @@ from tests.mock_data.task.integration_data import (
     TASK_2_PAYLOAD,
     TASK_3_PAYLOAD,
     INVALID_TASK_ID_NONEXISTENT,
-    QUERY_STRING
+    QUERY_STRING,
+    QUERY_DICT
 )
 from tests.mock_data.user.integration_data import (
     VALID_USER_ADMIN_TASK_ASSIGNMENT,
@@ -63,7 +64,6 @@ def verify_database_state(test_db_session):
     initial_count = _verify_state()
     yield _verify_state
     final_count = _verify_state()
-    # Note: We don't assert equality here since some tests may create/delete tasks
 
 
 @pytest.fixture
@@ -77,23 +77,8 @@ def create_test_task(client, task_base_path):
 @pytest.fixture
 def create_test_users(test_db_session):
     """Create test users in the database and return their IDs."""
-    # Insert test users directly into the database
     test_db_session.execute(
-            text(QUERY_STRING),
-        {
-            "name1": VALID_USER_ADMIN_TASK_ASSIGNMENT["name"],
-            "email1": VALID_USER_ADMIN_TASK_ASSIGNMENT["email"],
-            "role1": VALID_USER_ADMIN_TASK_ASSIGNMENT["role"],
-            "dept1": VALID_USER_ADMIN_TASK_ASSIGNMENT["department_id"],
-            "admin1": VALID_USER_ADMIN_TASK_ASSIGNMENT["admin"],
-            "hash1": "hashed_password_1",
-            "name2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["name"],
-            "email2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["email"],
-            "role2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["role"],
-            "dept2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["department_id"],
-            "admin2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["admin"],
-            "hash2": "hashed_password_2",
-        }
+            text(QUERY_STRING), QUERY_DICT
     )
     test_db_session.commit()
     return [VALID_USER_ADMIN_TASK_ASSIGNMENT["user_id"], VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"]]
@@ -136,12 +121,10 @@ def test_assign_users_api_idempotent_behavior(client, task_base_path, create_tes
     
     payload = {"user_ids": user_ids}
     
-    # First assignment
     response1 = client.post(f"{task_base_path}/{task['id']}/assignees", json=payload)
     assert response1.status_code == 200
     assert response1.json()["created"] == 2
     
-    # Second assignment (should be idempotent)
     response2 = client.post(f"{task_base_path}/{task['id']}/assignees", json=payload)
     assert response2.status_code == 200
     assert response2.json()["created"] == 0
@@ -186,12 +169,10 @@ def test_unassign_users_api_success(client, task_base_path, create_test_task, cr
     task = create_test_task
     user_ids = create_test_users
     
-    # First assign users
     assign_payload = {"user_ids": user_ids}
     assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
     assert assign_response.status_code == 200
     
-    # Then unassign users
     import json
     unassign_payload = {"user_ids": user_ids}
     response = client.request(
@@ -257,14 +238,12 @@ def test_unassign_users_api_user_not_found(client, task_base_path, create_test_t
 def test_clear_task_assignees_api_success(client, task_base_path, create_test_task, create_test_users, test_db_session):
     """Clear all user assignments from task via API successfully."""
     task = create_test_task
-    user_ids = create_test_users
-    
-    # First assign users
+    user_ids = create_test_users    
+
     assign_payload = {"user_ids": user_ids}
     assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
     assert assign_response.status_code == 200
     
-    # Then clear all assignments
     response = client.delete(f"{task_base_path}/{task['id']}/assignees/all")
     
     assert response.status_code == 200
@@ -298,24 +277,20 @@ def test_list_assignees_api_success(client, task_base_path, create_test_task, cr
     task = create_test_task
     user_ids = create_test_users
     
-    # First assign users
     assign_payload = {"user_ids": user_ids}
     assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
     assert assign_response.status_code == 200
     
-    # Then list assignees
     response = client.get(f"{task_base_path}/{task['id']}/assignees")
     
     assert response.status_code == 200
     assignees = response.json()
     assert len(assignees) == 2
     
-    # Verify assignee data structure
     assignee_ids = [assignee["user_id"] for assignee in assignees]
     assert VALID_USER_ADMIN_TASK_ASSIGNMENT["user_id"] in assignee_ids
     assert VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"] in assignee_ids
     
-    # Verify UserRead schema fields are present
     for assignee in assignees:
         assert "user_id" in assignee
         assert "name" in assignee
@@ -350,12 +325,10 @@ def test_assign_users_database_persistence(client, task_base_path, create_test_t
     task = create_test_task
     user_ids = create_test_users
     
-    # Assign users via API
     payload = {"user_ids": user_ids}
     response = client.post(f"{task_base_path}/{task['id']}/assignees", json=payload)
     assert response.status_code == 200
     
-    # Verify database state
     db_assignments = test_db_session.execute(
         text("SELECT task_id, user_id FROM task_assignment WHERE task_id = :task_id"),
         {"task_id": task["id"]}
@@ -372,24 +345,20 @@ def test_unassign_users_database_removal(client, task_base_path, create_test_tas
     task = create_test_task
     user_ids = create_test_users
     
-    # First assign users
     assign_payload = {"user_ids": user_ids}
     assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
     assert assign_response.status_code == 200
     
-    # Verify assignments exist
     db_assignments = test_db_session.execute(
         text("SELECT COUNT(*) FROM task_assignment WHERE task_id = :task_id"),
         {"task_id": task["id"]}
     ).scalar()
     assert db_assignments == 2
     
-    # Unassign users
     unassign_payload = {"user_ids": user_ids}
     unassign_response = client.request("DELETE", f"{task_base_path}/{task['id']}/assignees", json=unassign_payload)
     assert unassign_response.status_code == 200
     
-    # Verify assignments removed
     db_assignments = test_db_session.execute(
         text("SELECT COUNT(*) FROM task_assignment WHERE task_id = :task_id"),
         {"task_id": task["id"]}
@@ -402,23 +371,19 @@ def test_clear_task_assignees_database_removal(client, task_base_path, create_te
     task = create_test_task
     user_ids = create_test_users
     
-    # First assign users
     assign_payload = {"user_ids": user_ids}
     assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
     assert assign_response.status_code == 200
     
-    # Verify assignments exist
     db_assignments = test_db_session.execute(
         text("SELECT COUNT(*) FROM task_assignment WHERE task_id = :task_id"),
         {"task_id": task["id"]}
     ).scalar()
     assert db_assignments == 2
     
-    # Clear all assignments
     clear_response = client.delete(f"{task_base_path}/{task['id']}/assignees/all")
     assert clear_response.status_code == 200
     
-    # Verify assignments removed
     db_assignments = test_db_session.execute(
         text("SELECT COUNT(*) FROM task_assignment WHERE task_id = :task_id"),
         {"task_id": task["id"]}
@@ -433,37 +398,31 @@ def test_complete_assignment_workflow(client, task_base_path, create_test_task, 
     task = create_test_task
     user_ids = create_test_users
     
-    # Step 1: Assign all users
     assign_payload = {"user_ids": user_ids}
     assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
     assert assign_response.status_code == 200
     assert assign_response.json()["created"] == 2
     
-    # Step 2: List assignees
     list_response = client.get(f"{task_base_path}/{task['id']}/assignees")
     assert list_response.status_code == 200
     assignees = list_response.json()
     assert len(assignees) == 2
     
-    # Step 3: Unassign one user
     unassign_payload = {"user_ids": [user_ids[0]]}
     unassign_response = client.request("DELETE", f"{task_base_path}/{task['id']}/assignees", json=unassign_payload)
     assert unassign_response.status_code == 200
     assert unassign_response.json()["Removed"] == 1
     
-    # Step 4: List assignees again
     list_response2 = client.get(f"{task_base_path}/{task['id']}/assignees")
     assert list_response2.status_code == 200
     assignees2 = list_response2.json()
     assert len(assignees2) == 1
     assert assignees2[0]["user_id"] == user_ids[1]
     
-    # Step 5: Clear remaining assignments
     clear_response = client.delete(f"{task_base_path}/{task['id']}/assignees/all")
     assert clear_response.status_code == 200
     assert clear_response.json()["Removed"] == 1
     
-    # Step 6: Verify no assignees remain
     list_response3 = client.get(f"{task_base_path}/{task['id']}/assignees")
     assert list_response3.status_code == 200
     assignees3 = list_response3.json()
@@ -474,7 +433,6 @@ def test_multiple_tasks_assignment_independence(client, task_base_path, create_t
     """Test that assignments to different tasks are independent."""
     user_ids = create_test_users
     
-    # Create two tasks
     task1_response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     assert task1_response.status_code == 201
     task1 = task1_response.json()
@@ -483,7 +441,6 @@ def test_multiple_tasks_assignment_independence(client, task_base_path, create_t
     assert task2_response.status_code == 201
     task2 = task2_response.json()
     
-    # Assign users to both tasks
     assign_payload = {"user_ids": user_ids}
     
     task1_assign = client.post(f"{task_base_path}/{task1['id']}/assignees", json=assign_payload)
@@ -492,7 +449,6 @@ def test_multiple_tasks_assignment_independence(client, task_base_path, create_t
     task2_assign = client.post(f"{task_base_path}/{task2['id']}/assignees", json=assign_payload)
     assert task2_assign.status_code == 200
     
-    # Verify both tasks have assignees
     task1_list = client.get(f"{task_base_path}/{task1['id']}/assignees")
     assert task1_list.status_code == 200
     assert len(task1_list.json()) == 2
@@ -501,11 +457,9 @@ def test_multiple_tasks_assignment_independence(client, task_base_path, create_t
     assert task2_list.status_code == 200
     assert len(task2_list.json()) == 2
     
-    # Clear assignments from one task
     task1_clear = client.delete(f"{task_base_path}/{task1['id']}/assignees/all")
     assert task1_clear.status_code == 200
     
-    # Verify independence: task1 has no assignees, task2 still has assignees
     task1_list2 = client.get(f"{task_base_path}/{task1['id']}/assignees")
     assert task1_list2.status_code == 200
     assert len(task1_list2.json()) == 0
