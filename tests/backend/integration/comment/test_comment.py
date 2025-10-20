@@ -1,72 +1,55 @@
+# tests/backend/integration/comment/test_comment.py
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
-from backend.src.database.models.task import Task
+
 from backend.src.database.models.user import User
-from tests.mock_data.comment_data import (
-    VALID_TASK_ID,
-    VALID_USER_ID,
+from backend.src.database.models.task import Task
+from backend.src.database.models.project import Project
+from tests.mock_data.comment.integration_data import (
+    VALID_USER,
+    VALID_PROJECT,
+    VALID_TASK,
     VALID_COMMENT_TEXT,
     UPDATED_COMMENT_TEXT,
     INVALID_COMMENT_ID,
+    ANOTHER_USER,
+    COMMENT_CREATE_PAYLOAD,
+    COMMENT_UPDATE_PAYLOAD,
+    COMMENT_MULTIPLE_USERS,
+    COMMENT_LIST_TEXTS,
 )
-from backend.src.database.models.project import Project
 
 
 @pytest.fixture
 def seeded_task_and_user(test_engine):
-    """Insert a user and task to satisfy comment foreign keys (using test engine)."""
+    """Insert a user, project, and task to satisfy comment foreign keys."""
     TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
     with TestingSessionLocal.begin() as db:
-        user = User(
-            user_id=VALID_USER_ID,
-            email="tester@example.com",
-            name="Tester",
-            role="STAFF",
-            admin=False,
-            hashed_pw="hashed_pw",
-            department_id=None,
-        )
-
-        project = Project(
-            project_id=1,
-            project_name="Integration Test Project",
-            project_manager=VALID_USER_ID,
-            active=True,
-        )
-        task = Task(
-            id=VALID_TASK_ID,
-            title="Task for comments",
-            description="Integration test task",
-            status="To-do",
-            priority=5,
-            project_id=project.project_id,
-            active=True,
-        )
-        db.add_all([user, task])
+        user = User(**VALID_USER)
+        project = Project(**VALID_PROJECT)
+        task = Task(**VALID_TASK)
+        db.add_all([user, project, task])
     yield
 
 
 @pytest.fixture
 def seed_user_and_task(seeded_task_and_user):
-    """Compatibility alias; actual seeding is done in seeded_task_and_user."""
+    """Compatibility alias; actual seeding done in seeded_task_and_user."""
     yield
 
 
 # ---------- TEST CASES ----------
 
+# INT-006/001
 def test_add_comment_and_retrieve(client: TestClient, task_base_path, seed_user_and_task):
-    # Add comment via API
-    resp = client.post(f"{task_base_path}/{VALID_TASK_ID}/comment", json={
-        "user_id": VALID_USER_ID,
-        "comment": VALID_COMMENT_TEXT
-    })
-    assert resp.status_code == 200 or resp.status_code == 201
+    """Add a comment via API and verify retrieval."""
+    resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD)
+    assert resp.status_code in (200, 201)
     new_comment = resp.json()
     assert new_comment["comment"] == VALID_COMMENT_TEXT
     comment_id = new_comment["comment_id"]
 
-    # Get comment via API
     resp2 = client.get(f"{task_base_path}/comment/{comment_id}")
     assert resp2.status_code == 200
     fetched = resp2.json()
@@ -74,33 +57,34 @@ def test_add_comment_and_retrieve(client: TestClient, task_base_path, seed_user_
     assert fetched["comment"] == VALID_COMMENT_TEXT
 
 
-# INT-090/002
+# INT-012/001
 def test_list_comments_for_task(client: TestClient, task_base_path, seed_user_and_task):
-    for text in ("First comment", "Second comment"):
-        resp = client.post(f"{task_base_path}/{VALID_TASK_ID}/comment", json={
-            "user_id": VALID_USER_ID,
+    """List all comments associated with a given task."""
+    from tests.mock_data.comment.integration_data import COMMENT_LIST_TEXTS
+
+    for text in COMMENT_LIST_TEXTS:
+        resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json={
+            "user_id": VALID_USER["user_id"],
             "comment": text
         })
         assert resp.status_code in (200, 201)
 
-    resp = client.get(f"{task_base_path}/{VALID_TASK_ID}/comments")
+    resp = client.get(f"{task_base_path}/{VALID_TASK['id']}/comments")
     assert resp.status_code == 200
     comments = resp.json()
-    assert len(comments) == 2
+    assert len(comments) == len(COMMENT_LIST_TEXTS)
+
     texts = [c["comment"] for c in comments]
-    assert "First comment" in texts
-    assert "Second comment" in texts
+    for expected in COMMENT_LIST_TEXTS:
+        assert expected in texts
 
 
-# INT-090/003
+
+# INT-027/001
 def test_update_comment_text(client: TestClient, task_base_path, seed_user_and_task):
-    c = client.post(f"{task_base_path}/{VALID_TASK_ID}/comment", json={
-        "user_id": VALID_USER_ID,
-        "comment": VALID_COMMENT_TEXT
-    }).json()
-    resp = client.patch(f"{task_base_path}/comment/{c['comment_id']}", json={
-        "comment": UPDATED_COMMENT_TEXT
-    })
+    """Update an existing comment’s text."""
+    c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
+    resp = client.patch(f"{task_base_path}/comment/{c['comment_id']}", json=COMMENT_UPDATE_PAYLOAD)
     assert resp.status_code == 200
     updated = resp.json()
     assert updated["comment"] == UPDATED_COMMENT_TEXT
@@ -109,12 +93,10 @@ def test_update_comment_text(client: TestClient, task_base_path, seed_user_and_t
     assert refetched["comment"] == UPDATED_COMMENT_TEXT
 
 
-# INT-090/004
+# INT-005/001
 def test_delete_comment(client: TestClient, task_base_path, seed_user_and_task):
-    c = client.post(f"{task_base_path}/{VALID_TASK_ID}/comment", json={
-        "user_id": VALID_USER_ID,
-        "comment": VALID_COMMENT_TEXT
-    }).json()
+    """Delete a comment and ensure it cannot be retrieved again."""
+    c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
     resp = client.delete(f"{task_base_path}/comment/{c['comment_id']}")
     assert resp.status_code == 200
     assert resp.json() is True
@@ -123,49 +105,42 @@ def test_delete_comment(client: TestClient, task_base_path, seed_user_and_task):
     assert resp2.status_code == 404
 
 
-# INT-090/005
+# INT-012/002
 def test_get_comment_not_found(client: TestClient, task_base_path, seed_user_and_task):
+    """Fetching a non-existent comment returns 404."""
     resp = client.get(f"{task_base_path}/comment/{INVALID_COMMENT_ID}")
     assert resp.status_code == 404
 
 
-# INT-090/006
+# INT-027/002
 def test_update_comment_not_found(client: TestClient, task_base_path, seed_user_and_task):
-    resp = client.patch(f"{task_base_path}/comment/{INVALID_COMMENT_ID}", json={
-        "comment": UPDATED_COMMENT_TEXT
-    })
+    """Updating a non-existent comment returns 404."""
+    resp = client.patch(f"{task_base_path}/comment/{INVALID_COMMENT_ID}", json=COMMENT_UPDATE_PAYLOAD)
     assert resp.status_code == 404
 
 
-# INT-090/007
+# INT-005/002
 def test_delete_comment_not_found(client: TestClient, task_base_path, seed_user_and_task):
+    """Deleting a non-existent comment returns 404."""
     resp = client.delete(f"{task_base_path}/comment/{INVALID_COMMENT_ID}")
     assert resp.status_code == 404
 
 
-# INT-090/008
+# INT-006/002
 def test_add_multiple_comments_different_users(client: TestClient, task_base_path, seed_user_and_task, test_engine):
+    """Add comments from multiple users and verify both appear."""
     TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
     with TestingSessionLocal.begin() as db:
-        new_user = User(
-            user_id=3,
-            email="another@example.com",
-            name="Another User",
-            role="STAFF",
-            admin=False,
-            hashed_pw="hashed_pw2",
-            department_id=None,
-        )
-        db.add(new_user)
+        db.add(User(**ANOTHER_USER))
 
-    client.post(f"{task_base_path}/{VALID_TASK_ID}/comment", json={"user_id": VALID_USER_ID, "comment": "User1 comment"})
-    client.post(f"{task_base_path}/{VALID_TASK_ID}/comment", json={"user_id": 3, "comment": "User2 comment"})
+    for payload in COMMENT_MULTIPLE_USERS:
+        resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=payload)
+        assert resp.status_code in (200, 201)
 
-    resp = client.get(f"{task_base_path}/{VALID_TASK_ID}/comments")
+    resp = client.get(f"{task_base_path}/{VALID_TASK['id']}/comments")
     assert resp.status_code == 200
     comments = resp.json()
     user_ids = [c["user_id"] for c in comments]
-    assert VALID_USER_ID in user_ids
-    assert 3 in user_ids
+    assert VALID_USER["user_id"] in user_ids
+    assert ANOTHER_USER["user_id"] in user_ids
     assert len(comments) == 2
-

@@ -12,7 +12,7 @@ from backend.src.database.models.task import Task
 from backend.src.database.models.user import User
 from backend.src.api.v1.router import router as v1_router
 from backend.src.main import app
-
+from backend.src.database.models.project import Project
 
 @pytest.fixture(scope="session")
 def test_engine(tmp_path_factory):
@@ -82,4 +82,5 @@ def clean_db(test_engine):
         s.execute(delete(Comment))
         s.execute(delete(Task))
         s.execute(delete(User))
+        s.execute(delete(Project))
     yield
