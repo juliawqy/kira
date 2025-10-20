@@ -138,8 +138,7 @@ def update_task(
         if priority is not None:
             _validate_bucket(priority)
             task.priority = priority
-        if recurring is not None: task.recurring = recurring
-        if tag is not None: task.tag = tag
+        if recurring is not None: task.recurring = recurring  
         if project_id is not None:  task.project_id = project_id
 
         session.add(task)
