@@ -18,6 +18,10 @@ class User(Base):
     # department_id = Column(Integer, ForeignKey("departments.department_id"), nullable=True)
     # department = relationship("Department", back_populates="users", lazy="joined")
 
+    assigned_tasks = relationship(
+        "TaskAssignment", back_populates="user", cascade="all, delete-orphan"
+    )
+
     __table_args__ = (
         UniqueConstraint("email", name="uq_user_email"),
     )

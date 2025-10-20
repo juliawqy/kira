@@ -3,6 +3,12 @@ import json
 from datetime import date, timedelta
 from backend.src.enums.task_status import TaskStatus
 
+from tests.mock_data.user.integration_data import (
+    VALID_USER_ADMIN_TASK_ASSIGNMENT,
+    VALID_USER_EMPLOYEE_TASK_ASSIGNMENT,
+)
+
+
 TASK_CREATE_PAYLOAD = {
     "title": "Default Task",
     "start_date": (date.today() + timedelta(days=3)),
@@ -262,3 +268,25 @@ VALID_PROJECT_ID_INACTIVE_TASK = 100
 INVALID_STATUS = "INVALID_STATUS"
 INVALID_TASK_ID_NONEXISTENT = 99999
 EMPTY_PROJECT_ID = 99999
+
+QUERY_STRING = """
+            INSERT INTO user (user_id, name, email, role, department_id, admin, hashed_pw)
+            VALUES 
+            (1, :name1, :email1, :role1, :dept1, :admin1, :hash1),
+            (2, :name2, :email2, :role2, :dept2, :admin2, :hash2)
+            """
+
+QUERY_DICT = {
+            "name1": VALID_USER_ADMIN_TASK_ASSIGNMENT["name"],
+            "email1": VALID_USER_ADMIN_TASK_ASSIGNMENT["email"],
+            "role1": VALID_USER_ADMIN_TASK_ASSIGNMENT["role"],
+            "dept1": VALID_USER_ADMIN_TASK_ASSIGNMENT["department_id"],
+            "admin1": VALID_USER_ADMIN_TASK_ASSIGNMENT["admin"],
+            "hash1": "hashed_password_1",
+            "name2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["name"],
+            "email2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["email"],
+            "role2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["role"],
+            "dept2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["department_id"],
+            "admin2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["admin"],
+            "hash2": "hashed_password_2",
+        }
