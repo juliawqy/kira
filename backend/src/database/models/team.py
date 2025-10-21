@@ -9,7 +9,7 @@ class Team(Base):
     team_name = Column(String, nullable=False)
     manager_id = Column(Integer, nullable=False)
     department_id = Column(Integer, nullable=False)
-    team_number = Column(Integer, nullable=False)
+    team_number = Column(String, nullable=False)
 
 
 class TeamAssignment(Base):

@@ -5,7 +5,7 @@ from typing import Optional, List
 class TeamCreate(BaseModel):
     team_name: str
     department_id: int
-    team_number: int
+    team_number: str
 
 
 class TeamAssignmentRead(BaseModel):
@@ -22,7 +22,7 @@ class TeamRead(BaseModel):
     team_name: str
     manager_id: int
     department_id: int
-    team_number: int 
+    team_number: str 
 
     class Config:
         orm_mode = True

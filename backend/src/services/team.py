@@ -4,7 +4,7 @@ from backend.src.database.models.team import Team, TeamAssignment
 from backend.src.enums.user_role import UserRole
 
 
-def create_team(team_name: str, user, department_id: int, team_number: int) -> dict:
+def create_team(team_name: str, user, department_id: int, team_number: str) -> dict:
     """Create a team and return it. Only managers can create a team.
     """
     # normalize and check against UserRole enum
@@ -18,7 +18,7 @@ def create_team(team_name: str, user, department_id: int, team_number: int) -> d
         team_name_clean = team_name.strip()
         team = Team(
             team_name=team_name_clean,
-            manager_id=user.user_id,
+            manager_id=user,
             department_id=department_id,
             team_number=team_number,
         )
@@ -57,6 +57,44 @@ def get_team_by_id(team_id: int) -> dict:
             "assignments": assignments_list,
         }
 
+def get_teams_by_department(department_id: int) -> list[dict]:
+    """Return all teams in a given department."""
+    with SessionLocal() as session:
+        teams = (
+            session.query(Team)
+            .filter(Team.team_number[3:5] == str(department_id))
+            .all()
+        )
+        result = []
+        for team in teams:
+            result.append({
+                "team_id": team.team_id,
+                "team_name": team.team_name,
+                "manager_id": team.manager_id,
+                "department_id": team.department_id,
+                "team_number": team.team_number,
+            })
+        return result
+
+def get_subteam_by_team_number(team_number: str) -> Optional[dict]:
+    with SessionLocal() as session:
+        team = (
+            session.query(Team)
+            .filter(
+                Team.team_number[0:8] == team_number
+            )
+            .first()
+        )
+        if not team:
+            return None
+        return {
+            "team_id": team.team_id,
+            "team_name": team.team_name,
+            "manager_id": team.manager_id,
+            "department_id": team.department_id,
+            "team_number": team.team_number,
+        }
+    
 
 def assign_to_team(team_id: int, assignee_id: int, user) -> dict:
     """Assign a user to a team. Only managers and directors allowed."""
