@@ -10,6 +10,7 @@ import backend.src.services.task as task_service
 from backend.src.schemas.comment import CommentCreate, CommentRead, CommentUpdate
 import backend.src.services.comment as comment_service
 import backend.src.services.task_assignment as assignment_service
+import backend.src.handlers.task_handler as task_handler
 
 router = APIRouter(prefix="/task", tags=["task"])
 
@@ -292,33 +293,40 @@ def clear_task_assignees(task_id: int):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+# ------------------ Comments ------------------
 
-#comments
 @router.post("/{task_id}/comment", response_model=CommentRead, name="add_comment")
 def add_comment(task_id: int, payload: CommentCreate):
-    return comment_service.add_comment(task_id, payload.user_id, payload.comment)
+    try:
+        return task_handler.add_comment(task_id, payload.user_id, payload.comment)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-@router.get("/{task_id}/comments", response_model=List[CommentRead], name="list_comments")
+
+@router.get("/{task_id}/comment", response_model=List[CommentRead], name="list_comments")
 def list_comments(task_id: int):
-    return comment_service.list_comments(task_id)
+    try:
+        return task_handler.list_comments(task_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.get("/comment/{comment_id}", response_model=CommentRead, name="get_comment")
 def get_comment(comment_id: int):
-    c = comment_service.get_comment(comment_id)
-    if not c:
-        raise HTTPException(404, "Comment not found")
-    return c
+    try:
+        return task_handler.get_comment(comment_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.patch("/comment/{comment_id}", response_model=CommentRead, name="update_comment")
 def update_comment(comment_id: int, payload: CommentUpdate):
     try:
-        return comment_service.update_comment(comment_id, payload.comment)
+        return task_handler.update_comment(comment_id, payload.comment)
     except ValueError as e:
-        raise HTTPException(404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.delete("/comment/{comment_id}", response_model=bool, name="delete_comment")
 def delete_comment(comment_id: int):
     try:
-        return comment_service.delete_comment(comment_id)
+        return task_handler.delete_comment(comment_id)
     except ValueError as e:
-        raise HTTPException(404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))

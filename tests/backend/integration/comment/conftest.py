@@ -64,14 +64,14 @@ def client(test_engine):
 @pytest.fixture(scope="session")
 def task_base_path() -> str:
     """Discover base path for task routes (e.g., '/kira/app/api/v1/task')."""
-    # Look for the route named 'add_comment' to derive prefix
+
     for route in app.routes:
         try:
             if getattr(route, "name", None) == "add_comment" and "POST" in route.methods:
                 return route.path.split("/{task_id}")[0].rstrip("/")
         except Exception:
             continue
-    return "/kira/app/api/v1/task"  # fallback
+    return "/kira/app/api/v1/task"  
 
 
 @pytest.fixture(autouse=True)

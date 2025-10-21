@@ -9,7 +9,7 @@ class Comment(Base):
     comment_id = Column(Integer, primary_key=True, index=True)
     task_id = Column(Integer, ForeignKey("task.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey("user.user_id", ondelete="CASCADE"), nullable=False)
-    comment = Column(String, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    comment = Column(String(256), nullable=False)
+    timestamp = Column(DateTime, default=datetime.now())
 
     task = relationship("Task", back_populates="comments")
