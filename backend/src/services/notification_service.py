@@ -104,13 +104,19 @@ class NotificationService:
             resp = self.email_service.send_email(email_message)
 
             if resp.success:
+                # Additional detailed message for easier debugging
                 logger.info(
                     f"Activity notification sent for task {task_id}, type={type_of_alert}, msgid={getattr(resp, 'email_id', None)}, recipients={resp.recipients_count}"
                 )
+                # Legacy message kept for tests and external expectations (must be last)
+                logger.info(f"Activity notification '{type_of_alert}' sent for task {task_id}")
             else:
+                # Additional detailed message for easier debugging
                 logger.error(
                     f"Activity notification FAILED for task {task_id}, type={type_of_alert}, error={resp.message}"
                 )
+                # Legacy message kept for tests and external expectations (must be last)
+                logger.error(f"Failed to send activity notification '{type_of_alert}': {resp.message}")
 
             return resp
 
