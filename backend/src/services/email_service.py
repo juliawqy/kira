@@ -1,6 +1,3 @@
-"""
-Email service for sending emails via FastMail SMTP (Synchronous)
-"""
 import logging
 import smtplib
 from datetime import datetime
@@ -9,6 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
+import uuid
 
 from ..config.email_config import get_email_settings
 from ..schemas.email import EmailMessage, EmailRecipient, EmailResponse, EmailType
@@ -41,14 +39,21 @@ class EmailService:
             msg = self._prepare_message(email_message)
             
             # Send email via SMTP
-            self._send_smtp_message(msg, email_message.recipients)
-            
-            logger.info(f"Email sent successfully to {len(email_message.recipients)} recipients")
+            message_id = self._send_smtp_message(msg, email_message.recipients, email_message.cc, email_message.bcc)
+
+            # Emit an explicit audit log with Message-ID and addressing for quick verification
+            to_list = [r.email for r in (email_message.recipients or [])]
+            cc_list = [r.email for r in (email_message.cc or [])]
+            bcc_list = [r.email for r in (email_message.bcc or [])]
+            subj = getattr(email_message.content, 'subject', None) if not isinstance(email_message.content, dict) else email_message.content.get('subject')
+            logger.info(
+                f"Email dispatched: msgid={message_id}, subject=\"{subj}\", to={to_list}, cc={cc_list}, bcc={bcc_list}")
             
             return EmailResponse(
                 success=True,
                 message="Email sent successfully",
-                recipients_count=len(email_message.recipients)
+                recipients_count=len(email_message.recipients),
+                email_id=message_id,
             )
             
         except Exception as e:
@@ -61,9 +66,10 @@ class EmailService:
     
     def _prepare_message(self, email_message: EmailMessage) -> MIMEMultipart:
         """Prepare email message"""
-        msg = MIMEMultipart('alternative')
+        msg = MIMEMultipart('mixed')
         
         # Set headers
+        # Always send from Fastmail configured address
         msg['From'] = f"{self.settings.fastmail_from_name} <{self.settings.fastmail_from_email}>"
         msg['To'] = ", ".join([recipient.email for recipient in email_message.recipients])
         msg['Subject'] = email_message.content.subject
@@ -71,19 +77,38 @@ class EmailService:
         # Add CC if provided
         if email_message.cc:
             msg['Cc'] = ", ".join([recipient.email for recipient in email_message.cc])
+        if email_message.bcc:
+            # BCC is handled at SMTP send; not included in header for recipients
+            pass
         
-        # Prepare content
+        # Prepare content into an 'alternative' part
+        alternative = MIMEMultipart('alternative')
         text_content, html_content = self._prepare_content(email_message)
         
         # Add text part
         if text_content:
             text_part = MIMEText(text_content, 'plain', 'utf-8')
-            msg.attach(text_part)
+            alternative.attach(text_part)
         
         # Add HTML part
         if html_content:
             html_part = MIMEText(html_content, 'html', 'utf-8')
-            msg.attach(html_part)
+            alternative.attach(html_part)
+
+        msg.attach(alternative)
+
+        # Attachments support (optional)
+        attachments = getattr(email_message, 'attachments', None)
+        if attachments:
+            for att in attachments:
+                try:
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(att['content'])
+                    encoders.encode_base64(part)
+                    part.add_header('Content-Disposition', f"attachment; filename=\"{att.get('filename','attachment')}\"")
+                    msg.attach(part)
+                except Exception as e:
+                    logger.warning(f"Failed to attach file {att}: {e}")
         
         return msg
     
@@ -111,10 +136,14 @@ class EmailService:
         # Use direct content
         return content.text_body, content.html_body
     
-    def _send_smtp_message(self, msg: MIMEMultipart, recipients: List[EmailRecipient]):
-        """Send message via SMTP"""
+    def _send_smtp_message(self, msg: MIMEMultipart, recipients: List[EmailRecipient], cc: Optional[List[EmailRecipient]] = None, bcc: Optional[List[EmailRecipient]] = None) -> str:
+        """Send message via SMTP and return a message id"""
         # Collect all recipient emails
         recipient_emails = [recipient.email for recipient in recipients]
+        if cc:
+            recipient_emails += [r.email for r in cc]
+        if bcc:
+            recipient_emails += [r.email for r in bcc]
         
         # Create SMTP connection
         if self.settings.use_ssl:
@@ -144,8 +173,13 @@ class EmailService:
             smtp.send_message(
                 msg,
                 from_addr=self.settings.fastmail_from_email,
-                to_addrs=recipient_emails
+                to_addrs=recipient_emails,
             )
+            # Construct a tracking id (if server didn't provide)
+            message_id = msg.get('Message-ID') or f"kira-{uuid.uuid4()}@{self.settings.fastmail_from_email.split('@')[-1]}"
+            if 'Message-ID' not in msg:
+                msg.add_header('Message-ID', message_id)
+            return message_id
             
         finally:
             # Close connection

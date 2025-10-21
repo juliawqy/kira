@@ -2,7 +2,48 @@
 <html>
 <head>
   <title>Tasks</title>
+  <style>
+    /* Lightweight toast styles (reused pattern from notification demo) */
+    #toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast { min-width: 280px; max-width: 420px; padding: 10px 12px; border-radius: 6px; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transform: translateY(-10px); animation: slideIn 120ms ease-out forwards; display: flex; align-items: start; gap: 8px; }
+    .toast-success { background: #198754; }
+    .toast-error { background: #dc3545; }
+    .toast button.toast-close { appearance: none; border: none; background: transparent; color: inherit; font-weight: bold; font-size: 16px; line-height: 1; cursor: pointer; margin-left: auto; padding: 0 4px; }
+    @keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
+  </style>
   <script>
+    // Simple toast utility (auto-dismiss ~3s, supports manual close)
+    function showToast(message, type = 'success') {
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+      }
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      const text = document.createElement('div');
+      text.textContent = message;
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'toast-close';
+      closeBtn.setAttribute('aria-label', 'Close');
+      closeBtn.textContent = '×';
+      toast.appendChild(text);
+      toast.appendChild(closeBtn);
+      container.appendChild(toast);
+      const remove = () => {
+        if (!toast.parentNode) return;
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.parentNode && toast.parentNode.removeChild(toast), 180);
+      };
+      const timer = setTimeout(remove, 3000);
+      closeBtn.addEventListener('click', () => {
+        clearTimeout(timer);
+        remove();
+      });
+    }
+
     const params = new URLSearchParams(location.search);
     const API_BASE = params.get('api') || "http://127.0.0.1:8000/kira/app/api/v1/task";
 
@@ -99,14 +140,23 @@
         description: document.getElementById(`update-desc-${id}`).value,
         priority: parseInt(document.getElementById(`update-priority-${id}`).value)
       };
-      const resp = await fetch(API_BASE + "/" + id, {
-        method: "PATCH",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(payload)
-      });
-      if (resp.ok) {
-        document.getElementById("status-msg").innerText = "updated successfully";
-        await refreshTasks();
+      try {
+        const resp = await fetch(API_BASE + "/" + id, {
+          method: "PATCH",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(payload)
+        });
+        if (resp.ok) {
+          document.getElementById("status-msg").innerText = "updated successfully";
+          showToast("Your task has been successfully updated.", 'success');
+          await refreshTasks();
+        } else {
+          document.getElementById("status-msg").innerText = "update failed";
+          showToast("We couldn’t save your task. Please try again.", 'error');
+        }
+      } catch (e) {
+        document.getElementById("status-msg").innerText = "update failed";
+        showToast("We couldn’t save your task. Please try again.", 'error');
       }
     }
 

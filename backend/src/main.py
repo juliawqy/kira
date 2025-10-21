@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import logging
 
 from backend.src.database.db_setup import Base, engine
 from backend.src.database.models.task import Task  
@@ -10,6 +11,14 @@ from backend.src.database.models.project import Project, ProjectAssignment
 from backend.src.database.models.comment import Comment
 
 Base.metadata.create_all(bind=engine)
+
+# Configure logging so service INFO logs show up in the console
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+logging.getLogger("backend").setLevel(logging.INFO)
+logging.getLogger("backend.src").setLevel(logging.INFO)
 
 app = FastAPI(title="KIRA API")
 app.include_router(v1_router)

@@ -38,6 +38,8 @@ class EmailMessage(BaseModel):
     cc: Optional[List[EmailRecipient]] = None
     bcc: Optional[List[EmailRecipient]] = None
     priority: Optional[str] = "normal"  # low, normal, high
+    # attachments: list of dicts with keys {filename: str, content: bytes}
+    attachments: Optional[List[Dict[str, Any]]] = None
 
 
 class TaskUpdateEmailData(BaseModel):

@@ -83,6 +83,66 @@ LARGE_DATA_NOTIFICATION = {
     "task_url": "http://localhost:8000/tasks/333"
 }
 
+# Parameter sets for direct notify_activity tests
+NOTIFY_ACTIVITY_SUCCESS_PARAMS = {
+    "user_email": "u@example.com",
+    "task_id": 1,
+    "task_title": "T",
+    "type_of_alert": "task_update",
+    "updated_fields": ["title"],
+    "old_values": {"title": "a"},
+    "new_values": {"title": "b"},
+    "to_recipients": ["r@example.com"],
+}
+
+NOTIFY_ACTIVITY_FAILURE_PARAMS = {
+    "user_email": "u@example.com",
+    "task_id": 2,
+    "task_title": "T",
+    "type_of_alert": "task_update",
+    "updated_fields": ["title"],
+    "old_values": {"title": "a"},
+    "new_values": {"title": "b"},
+    "to_recipients": ["r@example.com"],
+}
+
+NOTIFY_ACTIVITY_NO_RECIPIENTS_PARAMS = {
+    "user_email": "u@example.com",
+    "task_id": 3,
+    "task_title": "T",
+    "type_of_alert": "task_update",
+    "updated_fields": ["title"],
+    "old_values": {},
+    "new_values": {},
+    "to_recipients": [],
+}
+
+NOTIFY_ACTIVITY_INVALID_TYPE_PARAMS = {
+    "user_email": "u@example.com",
+    "task_id": 4,
+    "task_title": "T",
+    "type_of_alert": "bogus",
+    "updated_fields": [],
+}
+
+NOTIFY_ACTIVITY_COMMENT_MISSING_USER_PARAMS = {
+    "user_email": "u@example.com",
+    "task_id": 5,
+    "task_title": "T",
+    "type_of_alert": "comment_create",
+    "updated_fields": [],
+    # intentionally no comment_user
+}
+
+NOTIFY_ACTIVITY_COMMENT_WITH_USER_PARAMS = {
+    "user_email": "actor@example.com",
+    "task_id": 6,
+    "task_title": "Commented Task",
+    "type_of_alert": "comment_create",
+    "comment_user": "commenter@example.com",
+    "updated_fields": [],
+}
+
 # Notification response test data
 SUCCESSFUL_NOTIFICATION_RESPONSE = {
     "success": True,

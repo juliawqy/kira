@@ -1,0 +1,34 @@
+"""Mock configuration data for email settings and environment variables (aligned to EmailSettings)."""
+
+EMAIL_SETTINGS = {
+    "fastmail_smtp_host": "smtp.fastmail.com",
+    "fastmail_smtp_port": 587,
+    "fastmail_username": "test@fastmail.com",
+    "fastmail_password": "test_password",
+    "fastmail_from_email": "kirahoora@fastmail.com",
+    "fastmail_from_name": "Kira Test App",
+    "app_name": "KIRA Test System",
+    "app_url": "http://localhost:8000",
+    "use_tls": True,
+    "use_ssl": False,
+    "timeout": 60,
+    # For dev/test default recipients
+    "test_recipient_email": "unit+test@example.com",
+    "test_recipient_name": "Unit Test",
+}
+
+EMAIL_ENV = {
+    'FASTMAIL_SMTP_HOST': 'smtp.fastmail.com',
+    'FASTMAIL_SMTP_PORT': '587',
+    'FASTMAIL_USERNAME': 'test@fastmail.com',
+    'FASTMAIL_PASSWORD': 'test_password',
+    'FASTMAIL_FROM_EMAIL': 'kirahoora@fastmail.com',
+    'FASTMAIL_FROM_NAME': 'Kira Test App',
+    'APP_NAME': 'KIRA Test System',
+    'APP_URL': 'http://localhost:8000',
+    'USE_TLS': 'True',
+    'USE_SSL': 'False',
+    'TIMEOUT': '60',
+    'TEST_RECIPIENT_EMAIL': 'unit+test@example.com',
+    'TEST_RECIPIENT_NAME': 'Unit Test',
+}

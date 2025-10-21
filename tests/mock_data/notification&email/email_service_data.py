@@ -1,5 +1,10 @@
 """Mock data for email service tests"""
 
+# Common constants for tests
+CUSTOM_MESSAGE_ID = "custom-id@example.com"
+SIMPLE_TASK_ID = 1
+UNIT_TEST_EMAIL = "unit+test@example.com"
+
 # Valid email settings configurations
 VALID_EMAIL_SETTINGS = {
     "smtp_server": "smtp.fastmail.com",
