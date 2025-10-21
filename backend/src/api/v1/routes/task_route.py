@@ -176,16 +176,9 @@ def get_task(task_id: int):
 
 @router.patch("/{task_id}", response_model=TaskRead, name="update_task")
 def update_task(task_id: int, payload: TaskUpdate):
-    """
-    Update details of a task.
 
-    Return the updated task.
-
-    Use delete_task for setting active=False.
-    Use set_task_status for status transitions.
-    """
     try:
-        updated = task_service.update_task(task_id, **payload.model_dump(exclude_unset=True))
+        updated = task_handler.update_task(task_id, **payload.model_dump(exclude_unset=True))
         return updated
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

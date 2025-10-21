@@ -8,7 +8,8 @@ from __future__ import annotations
 import pytest
 from unittest.mock import patch, MagicMock
 
-from backend.src.services.task import add_task, update_task
+from backend.src.services.task import add_task
+from backend.src.handlers.task_handler import update_task
 from backend.src.services.notification_service import get_notification_service
 from backend.src.services.email_service import EmailService
 from backend.src.schemas.email import EmailRecipient

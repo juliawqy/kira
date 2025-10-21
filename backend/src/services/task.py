@@ -159,54 +159,7 @@ def update_task(
 
         session.add(task)
         session.flush()
-        # Trigger centralized notification 
-        try:
-            candidate_fields = []
-            if title is not None:       candidate_fields.append("title")
-            if description is not None: candidate_fields.append("description")
-            if start_date is not None:  candidate_fields.append("start_date")
-            if deadline is not None:    candidate_fields.append("deadline")
-            if priority is not None:    candidate_fields.append("priority")
-            if recurring is not None:   candidate_fields.append("recurring")
-            if tag is not None:         candidate_fields.append("tag")
-            if project_id is not None:  candidate_fields.append("project_id")
 
-            # Only include truly changed fields
-            updated_fields = []
-            old_values = {}
-            new_values = {}
-            for f in candidate_fields:
-                before = _prev.get(f)
-                after = getattr(task, f)
-                if str(before) != str(after):
-                    updated_fields.append(f)
-                    old_values[f] = before
-                    new_values[f] = after
-
-            resp = get_notification_service().notify_activity(
-                user_email="system@kira.local",
-                task_id=task.id,
-                task_title=task.title or "",
-                type_of_alert="task_update",
-                updated_fields=updated_fields or None,
-                old_values=old_values or None,
-                new_values=new_values or None,
-            )
-            try:
-                if resp and getattr(resp, 'success', False):
-                    logger.info(
-                        f"Task update notification dispatched for task {task.id}, fields={updated_fields}, msgid={getattr(resp, 'email_id', None)}"
-                    )
-                elif resp:
-                    logger.error(
-                        f"Task update notification FAILED for task {task.id}: {getattr(resp, 'message', None)}"
-                    )
-            except Exception:
-                # Best-effort logging only
-                pass
-        except Exception as _notify_err:
-            # Do not fail the update on notification issues
-            logger.debug(f"Task update notification skipped due to error: {_notify_err}")
         return task
 
 def set_task_status(task_id: int, new_status: str) -> Task:
