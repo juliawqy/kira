@@ -6,9 +6,6 @@ from datetime import date, timedelta, datetime
 from backend.src.database.models.project import Project
 from backend.src.database.models.user import User
 from backend.src.database.models.task_assignment import TaskAssignment
-from backend.src.database.db_setup import SessionLocal
-
-from sqlalchemy import delete
 
 from backend.src.enums.task_status import TaskStatus
 from tests.mock_data.task.integration_data import (
@@ -70,25 +67,21 @@ def test_db_session(test_engine):
         yield session
 
 @pytest.fixture(autouse=True)
-def create_test_project():
-    with SessionLocal() as session:
-        session.execute(delete(Project))
-        session.commit()
+def create_test_project(test_db_session):
+    """Ensure a valid project exists for task creation (project_id=1)."""
 
-        project = Project(**VALID_PROJECT)
-        project2 = Project(**VALID_PROJECT_2)
-        session.add_all([project, project2])
-        session.commit()
+    project = Project(**VALID_PROJECT)
+    project.project_id = VALID_PROJECT["project_id"]
+    project2 = Project(**VALID_PROJECT_2)
+    project2.project_id = VALID_PROJECT_2["project_id"]
+    test_db_session.add_all([project, project2])
+    test_db_session.commit()
 
 @pytest.fixture(autouse=True)
-def create_test_user():
-    with SessionLocal() as session:
-        session.execute(delete(User))
-        session.commit()
-
-        user = User(**VALID_USER)
-        session.add(user)
-        session.commit()
+def create_test_user(test_db_session):
+    user = User(**VALID_USER)
+    test_db_session.add(user)
+    test_db_session.commit()
 
 # INT-002/001
 def test_list_tasks_success(client, task_base_path):
@@ -575,17 +568,9 @@ def test_list_project_tasks_by_user(client, task_base_path, test_db_session):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
     
-    response = client.get(f"{task_base_path}/project/{VALID_PROJECT_ID}")
-    assert response.status_code == 200
-    tasks = response.json()
-    assert tasks, "Expected at least one active task in the project"
-    valid_task_id = tasks[0]["id"]
-
-    # Insert task assignment using the same session as API
-    with SessionLocal() as session:
-        task_assgn = TaskAssignment(task_id=valid_task_id, user_id=VALID_USER_ID)
-        session.add(task_assgn)
-        session.commit()
+    task_assgn = TaskAssignment(**VALID_TASK_ASSIGNMENT)
+    test_db_session.add(task_assgn)
+    test_db_session.commit()
 
     response = client.get(f"{task_base_path}/project-user/{VALID_PROJECT_ID}/{VALID_USER_ID}")
     assert response.status_code == 200
