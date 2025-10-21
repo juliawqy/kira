@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, UniqueConstraint, PrimaryKeyConstraint
 from backend.src.database.db_setup import Base
+from sqlalchemy.orm import relationship
+
 
 class Project(Base):
     __tablename__ = "project"
@@ -8,6 +10,10 @@ class Project(Base):
     project_name = Column(String, nullable=False)
     project_manager = Column(Integer, nullable=False)
     active = Column(Boolean, nullable=False, default=True)
+
+    tasks = relationship(
+        "Task", back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class ProjectAssignment(Base):

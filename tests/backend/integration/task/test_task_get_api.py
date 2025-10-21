@@ -3,6 +3,12 @@ from __future__ import annotations
 
 import pytest
 from datetime import date, timedelta, datetime
+from backend.src.database.models.project import Project
+from backend.src.database.models.user import User
+from backend.src.database.models.task_assignment import TaskAssignment
+from backend.src.database.db_setup import SessionLocal
+
+from sqlalchemy import delete
 
 from backend.src.enums.task_status import TaskStatus
 from tests.mock_data.task.integration_data import (
@@ -23,7 +29,14 @@ from tests.mock_data.task.integration_data import (
     FILTER_AND_SORT_QUERY,
     VALID_PROJECT_ID,
     VALID_PROJECT_ID_INACTIVE_TASK,
-    TASK_CREATE_CHILD
+    TASK_CREATE_CHILD,
+    VALID_PROJECT,
+    VALID_PROJECT_2,
+    INVALID_PROJECT_ID,
+    VALID_USER_ID,
+    INVALID_USER_ID,
+    VALID_USER,
+    VALID_TASK_ASSIGNMENT
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -39,6 +52,43 @@ def serialize_payload(payload: dict) -> dict:
 
     return {k: convert(v) for k, v in payload.items()}
 
+@pytest.fixture(scope="function")
+def test_db_session(test_engine):
+    """
+    Create a database session using the same SessionLocal as the API.
+    """
+    from sqlalchemy.orm import sessionmaker
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
+
+    with TestingSessionLocal() as session:
+        yield session
+
+@pytest.fixture(autouse=True)
+def create_test_project():
+    with SessionLocal() as session:
+        session.execute(delete(Project))
+        session.commit()
+
+        project = Project(**VALID_PROJECT)
+        project2 = Project(**VALID_PROJECT_2)
+        session.add_all([project, project2])
+        session.commit()
+
+@pytest.fixture(autouse=True)
+def create_test_user():
+    with SessionLocal() as session:
+        session.execute(delete(User))
+        session.commit()
+
+        user = User(**VALID_USER)
+        session.add(user)
+        session.commit()
 
 # INT-002/001
 def test_list_tasks_success(client, task_base_path):
@@ -333,7 +383,7 @@ def test_list_task_by_project(client, task_base_path):
     ):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
-    
+
     response = client.get(f"{task_base_path}/project/{VALID_PROJECT_ID}")
     assert response.status_code == 200
     data = response.json()
@@ -504,3 +554,70 @@ def test_list_subtasks_inactive_parent(client, task_base_path):
     client.post(f"{task_base_path}/{parent['id']}/delete")
     resp = client.get(f"{task_base_path}/{parent['id']}/subtasks")
     assert resp.status_code == 404
+
+# INT-013/016
+def test_list_tasks_invalid_project(client, task_base_path):
+    resp = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
+    assert resp.status_code == 201
+
+    response = client.get(f"{task_base_path}/project/{INVALID_PROJECT_ID}")
+    assert response.status_code == 400
+
+# INT-133/001
+def test_list_project_tasks_by_user(client, task_base_path, test_db_session):
+    for payload in (
+        TASK_CREATE_PAYLOAD,
+        TASK_2_PAYLOAD,     
+        TASK_3_PAYLOAD,     
+        TASK_4_PAYLOAD,
+        INACTIVE_TASK_PAYLOAD    
+    ):
+        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
+        assert resp.status_code == 201
+    
+    response = client.get(f"{task_base_path}/project/{VALID_PROJECT_ID}")
+    assert response.status_code == 200
+    tasks = response.json()
+    assert tasks, "Expected at least one active task in the project"
+    valid_task_id = tasks[0]["id"]
+
+    # Insert task assignment using the same session as API
+    with SessionLocal() as session:
+        task_assgn = TaskAssignment(task_id=valid_task_id, user_id=VALID_USER_ID)
+        session.add(task_assgn)
+        session.commit()
+
+    response = client.get(f"{task_base_path}/project-user/{VALID_PROJECT_ID}/{VALID_USER_ID}")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+
+# INT-133/002
+def test_list_project_tasks_by_invalid_user(client, task_base_path):
+    for payload in (
+        TASK_CREATE_PAYLOAD,
+        TASK_2_PAYLOAD,     
+        TASK_3_PAYLOAD,     
+        TASK_4_PAYLOAD,
+        INACTIVE_TASK_PAYLOAD    
+    ):
+        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
+        assert resp.status_code == 201
+
+    response = client.get(f"{task_base_path}/project-user/{VALID_PROJECT_ID}/{INVALID_USER_ID}")
+    assert response.status_code == 400
+
+# INT-133-003
+def test_list_user_project_tasks_by_invalid_project(client, task_base_path):
+    for payload in (
+        TASK_CREATE_PAYLOAD,
+        TASK_2_PAYLOAD,     
+        TASK_3_PAYLOAD,     
+        TASK_4_PAYLOAD,
+        INACTIVE_TASK_PAYLOAD    
+    ):
+        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
+        assert resp.status_code == 201
+
+    response = client.get(f"{task_base_path}/project-user/{INVALID_PROJECT_ID}/{INVALID_USER_ID}")
+    assert response.status_code == 400

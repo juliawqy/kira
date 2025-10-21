@@ -101,9 +101,22 @@ def list_tasks_filtered_sorted(
 @router.get("/project/{project_id}", response_model=List[TaskWithSubTasks], name="list_tasks_by_project")
 def list_tasks_by_project(project_id: int):
     """Get all parent-level tasks for a specific project with their subtasks."""
-    parent_tasks = task_service.list_tasks_by_project(project_id)
+    try: 
+        parent_tasks = task_handler.list_tasks_by_project(project_id)
+        return parent_tasks
     
-    return parent_tasks
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/project-user/{project_id}/{user_id}", response_model=List[TaskWithSubTasks], name="list_project_tasks_by_user")
+def list_project_tasks_by_user(project_id: int, user_id: int):
+
+    try:
+        tasks = task_handler.list_project_tasks_by_user(project_id, user_id)
+        return tasks
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/parents", response_model=List[TaskRead], name="list_parent_tasks")
 def list_parent_tasks(

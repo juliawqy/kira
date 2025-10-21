@@ -9,9 +9,11 @@ from sqlalchemy.orm import sessionmaker
 # Import service first so models register once under backend.src.*
 import backend.src.services.task as svc
 import backend.src.services.task_assignment as assignment_svc
+import backend.src.services.project as project_svc
 from backend.src.database.db_setup import Base
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
+from backend.src.database.models.project import Project
 from backend.src.main import app
 
 
@@ -57,6 +59,7 @@ def client(test_engine):
     # Point the service layer to the test DB
     svc.SessionLocal = TestingSessionLocal
     assignment_svc.SessionLocal = TestingSessionLocal
+    project_svc.SessionLocal = TestingSessionLocal
 
     with TestClient(app) as c:
         yield c
@@ -89,4 +92,5 @@ def clean_db(test_engine):
         s.execute(delete(ParentAssignment))
         s.execute(delete(Task))
         s.execute(delete(User))
+        s.execute(delete(Project))
     yield

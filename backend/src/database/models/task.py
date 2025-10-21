@@ -10,6 +10,7 @@ from backend.src.enums.task_status import TaskStatus
 from backend.src.database.models.comment import Comment
 
 class Task(Base):
+    
     __tablename__ = "task"  
 
     id          = Column(Integer, primary_key=True)
@@ -21,9 +22,10 @@ class Task(Base):
     priority    = Column(Integer, nullable=False, default=5)
     recurring   = Column(Integer, nullable=False, default=0)
     tag         = Column(String(128))
-
+    
+    project = relationship("Project", back_populates="tasks")
     #Link FK to Project table later: ForeignKey("project.id", ondelete="SET NULL")
-    project_id  = Column(Integer, nullable=False, index=True)
+    project_id  = Column(Integer, ForeignKey("project.project_id", ondelete="SET NULL"), nullable=True)
     active      = Column(Boolean, nullable=False, default=True)
 
     # --- Association-object relationships ---

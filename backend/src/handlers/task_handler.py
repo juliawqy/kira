@@ -1,8 +1,32 @@
 # backend/src/handlers/task_handler.py
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
+from backend.src.services import project as project_service
 from backend.src.services import comment as comment_service
 
+
+# -------- Project Handlers -------------------------------------------------------
+
+def list_tasks_by_project(project_id: int):
+    project = project_service.get_project_by_id(project_id)
+    if not project:
+        raise ValueError(f"Project {project_id} not found")
+
+    return task_service.list_tasks_by_project(project_id, active_only=True)
+
+def list_project_tasks_by_user(project_id: int, user_id: int):
+    project = project_service.get_project_by_id(project_id)
+    if not project:
+        raise ValueError(f"Project {project_id} not found")
+
+    user = user_service.get_user(user_id)
+    if not user:
+        raise ValueError(f"User {user_id} not found")
+
+    return task_service.list_project_tasks_by_user(project_id, user_id)
+
+
+# -------- Comment Handlers -------------------------------------------------------
 
 def add_comment(task_id: int, user_id: int, comment_text: str):
 
