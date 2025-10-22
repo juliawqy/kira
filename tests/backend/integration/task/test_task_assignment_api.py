@@ -476,5 +476,5 @@ def test_list_user_project_tasks_by_invalid_project(client, task_base_path, crea
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    response = client.get(f"{task_base_path}/project-user/{INVALID_PROJECT_ID}/{INVALID_USER_ID}")
+    response = client.get(f"{task_base_path}/project-user/{INVALID_PROJECT_ID}/{VALID_USER_ID}")
     assert response.status_code == 400

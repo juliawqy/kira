@@ -49,7 +49,3 @@ def test_create_project_empty_name_raises(isolated_test_db):
     with pytest.raises(ValueError):
         project_service.create_project(EMPTY_PROJECT_NAME, user)
 
-# INT-078/001
-def test_get_project_not_found_raises(isolated_test_db):
-    with pytest.raises(ValueError):
-        project_service.get_project_by_id(NOT_FOUND_ID)

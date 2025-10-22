@@ -387,6 +387,20 @@ def test_list_task_by_project(client, task_base_path):
     data = response.json()
     assert len(data) == 1
 
+# INT-002/013
+def test_list_task_by_invalid_project(client, task_base_path):
+    for payload in (
+        TASK_CREATE_PAYLOAD,
+        TASK_2_PAYLOAD,     
+        TASK_3_PAYLOAD,     
+        TASK_4_PAYLOAD,
+        INACTIVE_TASK_PAYLOAD    
+    ):
+        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
+        assert resp.status_code == 201
+
+    response = client.get(f"{task_base_path}/project/{INVALID_PROJECT_ID}")
+    assert response.status_code == 400
 # INT-013/007
 def test_list_parent_tasks_excludes_subtasks(client, task_base_path):
     """Children created with parent_id should not appear in parent list endpoint."""
