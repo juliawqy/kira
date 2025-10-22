@@ -173,6 +173,8 @@ def test_complete_task_crud_workflow(driver, isolated_database, app_server, test
     driver.find_element(By.CSS_SELECTOR, "[id^='update-desc-']").send_keys(update_task["description"])
     driver.find_element(By.CSS_SELECTOR, "[id^='update-priority-']").clear()
     driver.find_element(By.CSS_SELECTOR, "[id^='update-priority-']").send_keys(str(update_task["priority"]))
+    driver.find_element(By.CSS_SELECTOR, "[id^='update-project-']").clear()
+    driver.find_element(By.CSS_SELECTOR, "[id^='update-project-']").send_keys(str(update_task["project"]))
     driver.find_element(By.CSS_SELECTOR, selectors["list_view"]["save_button"]).click()
     time.sleep(1)
 

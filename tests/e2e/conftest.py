@@ -19,7 +19,9 @@ import backend.src.database.db_setup as db_setup
 import backend.src.services.user as user_service
 import backend.src.services.task as task_service
 import backend.src.services.comment as comment_service
+import backend.src.services.project as project_service
 from backend.src.main import app
+from tests.mock_data.task.e2e_data import VALID_PROJECT, VALID_PROJECT_2
 
 
 @pytest.fixture(scope="module")
@@ -90,6 +92,14 @@ def app_server(tmp_path):
         pass
     try:
         comment_service.SessionLocal = TestingSessionLocal
+    except Exception:
+        pass
+    try: 
+        project_service.SessionLocal = TestingSessionLocal
+        project = project_service.create_project(**VALID_PROJECT)
+        project2 = project_service.create_project(**VALID_PROJECT_2)
+        TestingSessionLocal.add_all([project, project2])
+        TestingSessionLocal.commit()
     except Exception:
         pass
 

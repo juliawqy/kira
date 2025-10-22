@@ -22,6 +22,7 @@
             <input id="update-title-${t.id}" placeholder="Title" />
             <input id="update-desc-${t.id}" placeholder="Description" />
             <input id="update-priority-${t.id}" type="number" placeholder="Priority" />
+            <input id="update-project-${t.id}" type="number" placeholder="Project" />
             <button class="save-btn" onclick="saveTask(${t.id})">Save</button>
           </div>
           <div class="subtasks">
@@ -171,8 +172,7 @@
     <select id="task-project">
       <option value="" disabled selected>Project</option>
       <option value="1">Project Alpha (1)</option>
-      <option value="100">Project Beta (100)</option>
-      <option value="123">Project Gamma (123)</option>
+      <option value="2">Project Beta (2)</option>
     </select>
     <button onclick="createTask()" id="create-task">Submit</button>
   </div>
