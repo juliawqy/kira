@@ -26,6 +26,7 @@ from tests.mock_data.task.integration_data import (
     VALID_CREATE_PAYLOAD_ADMIN,
     VALID_CREATE_PAYLOAD_USER,
     EXPECTED_TASK_RESPONSE,
+    TASK_2,
     VALID_ASSIGNMENT_PAYLOAD,
     VALID_ASSIGNMENT_PAYLOAD_MULTIPLE,
     INVALID_ASSIGNMENT_PAYLOAD,
@@ -222,14 +223,11 @@ def test_unassign_users_api_user_not_found(client, task_base_path, create_test_t
 # INT-026/011
 def test_clear_task_assignees_api_success(client, task_base_path, create_test_task):
     """Clear all user assignments from task via API successfully."""
-    task = create_test_task
-    user_ids = [VALID_USER_ADMIN_TASK_ASSIGNMENT["user_id"], VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"]]
 
-    assign_payload = {"user_ids": user_ids}
-    assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
+    assign_response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
     assert assign_response.status_code == 200
 
-    response = client.delete(f"{task_base_path}/{task['id']}/assignees/all")
+    response = client.delete(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees/all")
 
     assert response.status_code == 200
     result = response.json()
@@ -238,9 +236,8 @@ def test_clear_task_assignees_api_success(client, task_base_path, create_test_ta
 # INT-026/012
 def test_clear_task_assignees_api_no_assignments(client, task_base_path, create_test_task):
     """Clear assignments from task with no assignments returns 0."""
-    task = create_test_task
 
-    response = client.delete(f"{task_base_path}/{task['id']}/assignees/all")
+    response = client.delete(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees/all")
 
     assert response.status_code == 200
     result = response.json()
@@ -259,14 +256,11 @@ def test_clear_task_assignees_api_task_not_found(client, task_base_path):
 # INT-026/014
 def test_list_assignees_api_success(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """List users assigned to a task via API successfully."""
-    task = create_test_task
-    user_ids = create_test_users_and_project
-    
-    assign_payload = {"user_ids": user_ids}
-    assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
+
+    assign_response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
     assert assign_response.status_code == 200
     
-    response = client.get(f"{task_base_path}/{task['id']}/assignees")
+    response = client.get(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees")
     
     assert response.status_code == 200
     assignees = response.json()
@@ -286,9 +280,8 @@ def test_list_assignees_api_success(client, task_base_path, create_test_task, cr
 # INT-026/015
 def test_list_assignees_api_no_assignments(client, task_base_path, create_test_task):
     """List assignees for task with no assignments returns empty list."""
-    task = create_test_task
     
-    response = client.get(f"{task_base_path}/{task['id']}/assignees")
+    response = client.get(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees")
     
     assert response.status_code == 200
     assignees = response.json()
@@ -307,71 +300,61 @@ def test_list_assignees_api_task_not_found(client, task_base_path):
 # INT-026/017
 def test_assign_users_database_persistence(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """Verify that user assignments persist in the database."""
-    task = create_test_task
-    user_ids = create_test_users_and_project
-    
-    payload = {"user_ids": user_ids}
-    response = client.post(f"{task_base_path}/{task['id']}/assignees", json=payload)
+
+    response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
     assert response.status_code == 200
     
     db_assignments = test_db_session.execute(
         text("SELECT task_id, user_id FROM task_assignment WHERE task_id = :task_id"),
-        {"task_id": task["id"]}
+        {"task_id": EXPECTED_TASK_RESPONSE["id"]}
     ).fetchall()
     
     assert len(db_assignments) == 2
     assignment_tuples = [(row[0], row[1]) for row in db_assignments]
-    assert (task["id"], VALID_USER_ADMIN_TASK_ASSIGNMENT["user_id"]) in assignment_tuples
-    assert (task["id"], VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"]) in assignment_tuples
+    assert (EXPECTED_TASK_RESPONSE["id"], VALID_USER_ADMIN_TASK_ASSIGNMENT["user_id"]) in assignment_tuples
+    assert (EXPECTED_TASK_RESPONSE["id"], VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"]) in assignment_tuples
 
 # INT-026/018
 def test_unassign_users_database_removal(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """Verify that unassigning users removes records from the database."""
-    task = create_test_task
-    user_ids = create_test_users_and_project
-    
-    assign_payload = {"user_ids": user_ids}
-    assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
+
+    assign_response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
     assert assign_response.status_code == 200
     
     db_assignments = test_db_session.execute(
         text("SELECT COUNT(*) FROM task_assignment WHERE task_id = :task_id"),
-        {"task_id": task["id"]}
+        {"task_id": EXPECTED_TASK_RESPONSE["id"]}
     ).scalar()
     assert db_assignments == 2
     
-    unassign_payload = {"user_ids": user_ids}
-    unassign_response = client.request("DELETE", f"{task_base_path}/{task['id']}/assignees", json=unassign_payload)
+    unassign_response = client.request("DELETE", f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
     assert unassign_response.status_code == 200
     
     db_assignments = test_db_session.execute(
         text("SELECT COUNT(*) FROM task_assignment WHERE task_id = :task_id"),
-        {"task_id": task["id"]}
+        {"task_id": EXPECTED_TASK_RESPONSE["id"]}
     ).scalar()
     assert db_assignments == 0
 
 # INT-026/019
 def test_clear_task_assignees_database_removal(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """Verify that clearing task assignees removes all records from the database."""
-    task = create_test_task
-    user_ids = create_test_users_and_project
-    
-    assign_payload = {"user_ids": user_ids}
-    assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
+
+    assign_response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
     assert assign_response.status_code == 200
     
     db_assignments = test_db_session.execute(
         text("SELECT COUNT(*) FROM task_assignment WHERE task_id = :task_id"),
-        {"task_id": task["id"]}
+        {"task_id": EXPECTED_TASK_RESPONSE["id"]}
     ).scalar()
     assert db_assignments == 2
     
-    clear_response = client.delete(f"{task_base_path}/{task['id']}/assignees/all")
+    clear_response = client.delete(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees/all")
     assert clear_response.status_code == 200
     
     db_assignments = test_db_session.execute(
         text("SELECT COUNT(*) FROM task_assignment WHERE task_id = :task_id"),
-        {"task_id": task["id"]}
+        {"task_id": EXPECTED_TASK_RESPONSE["id"]}
     ).scalar()
     assert db_assignments == 0
 
@@ -380,35 +363,31 @@ def test_clear_task_assignees_database_removal(client, task_base_path, create_te
 # INT-026/020
 def test_complete_assignment_workflow(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """Test complete workflow: assign users, list assignees, unassign some, list again."""
-    task = create_test_task
-    user_ids = create_test_users_and_project
-    
-    assign_payload = {"user_ids": user_ids}
-    assign_response = client.post(f"{task_base_path}/{task['id']}/assignees", json=assign_payload)
+
+    assign_response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
     assert assign_response.status_code == 200
     assert assign_response.json()["created"] == 2
     
-    list_response = client.get(f"{task_base_path}/{task['id']}/assignees")
+    list_response = client.get(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees")
     assert list_response.status_code == 200
     assignees = list_response.json()
     assert len(assignees) == 2
     
-    unassign_payload = {"user_ids": [user_ids[0]]}
-    unassign_response = client.request("DELETE", f"{task_base_path}/{task['id']}/assignees", json=unassign_payload)
+    unassign_response = client.request("DELETE", f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD)
     assert unassign_response.status_code == 200
     assert unassign_response.json()["Removed"] == 1
     
-    list_response2 = client.get(f"{task_base_path}/{task['id']}/assignees")
+    list_response2 = client.get(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees")
     assert list_response2.status_code == 200
     assignees2 = list_response2.json()
     assert len(assignees2) == 1
-    assert assignees2[0]["user_id"] == user_ids[1]
+    assert assignees2[0]["user_id"] == VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"]
     
-    clear_response = client.delete(f"{task_base_path}/{task['id']}/assignees/all")
+    clear_response = client.delete(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees/all")
     assert clear_response.status_code == 200
     assert clear_response.json()["Removed"] == 1
     
-    list_response3 = client.get(f"{task_base_path}/{task['id']}/assignees")
+    list_response3 = client.get(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees")
     assert list_response3.status_code == 200
     assignees3 = list_response3.json()
     assert len(assignees3) == 0
@@ -416,7 +395,6 @@ def test_complete_assignment_workflow(client, task_base_path, create_test_task, 
 # INT-026/021
 def test_multiple_tasks_assignment_independence(client, task_base_path, create_test_users_and_project, test_db_session):
     """Test that assignments to different tasks are independent."""
-    user_ids = create_test_users_and_project
     
     task1_response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     assert task1_response.status_code == 201
@@ -426,30 +404,28 @@ def test_multiple_tasks_assignment_independence(client, task_base_path, create_t
     assert task2_response.status_code == 201
     task2 = task2_response.json()
     
-    assign_payload = {"user_ids": user_ids}
-    
-    task1_assign = client.post(f"{task_base_path}/{task1['id']}/assignees", json=assign_payload)
+    task1_assign = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
     assert task1_assign.status_code == 200
     
-    task2_assign = client.post(f"{task_base_path}/{task2['id']}/assignees", json=assign_payload)
+    task2_assign = client.post(f"{task_base_path}/{TASK_2['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
     assert task2_assign.status_code == 200
     
-    task1_list = client.get(f"{task_base_path}/{task1['id']}/assignees")
+    task1_list = client.get(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees")
     assert task1_list.status_code == 200
     assert len(task1_list.json()) == 2
     
-    task2_list = client.get(f"{task_base_path}/{task2['id']}/assignees")
+    task2_list = client.get(f"{task_base_path}/{TASK_2['id']}/assignees")
     assert task2_list.status_code == 200
     assert len(task2_list.json()) == 2
     
-    task1_clear = client.delete(f"{task_base_path}/{task1['id']}/assignees/all")
+    task1_clear = client.delete(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees/all")
     assert task1_clear.status_code == 200
     
-    task1_list2 = client.get(f"{task_base_path}/{task1['id']}/assignees")
+    task1_list2 = client.get(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees")
     assert task1_list2.status_code == 200
     assert len(task1_list2.json()) == 0
     
-    task2_list2 = client.get(f"{task_base_path}/{task2['id']}/assignees")
+    task2_list2 = client.get(f"{task_base_path}/{TASK_2['id']}/assignees")
     assert task2_list2.status_code == 200
     assert len(task2_list2.json()) == 2
 
@@ -465,10 +441,7 @@ def test_list_project_tasks_by_user(client, task_base_path, test_db_session, cre
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    user_ids = [VALID_USER_ADMIN_TASK_ASSIGNMENT["user_id"]]
-
-    payload = {"user_ids": user_ids}
-    response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=payload)
+    response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD)
     assert response.status_code == 200
 
     response = client.get(f"{task_base_path}/project-user/{VALID_PROJECT_ID}/{VALID_USER_ID}")
