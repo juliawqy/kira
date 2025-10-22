@@ -56,5 +56,3 @@ cd frontend && npm run test:e2e
 ### Check tests status on HTML page
     windows: start htmlcov\index.html
     mac: open htmlcov/index.html
-
-`
