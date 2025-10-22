@@ -12,7 +12,7 @@
     `pip install -r requirements.txt`
 
 4. Create database and setup tables (SQLite)
-    python -m backend.src.database.db_setup_tables`
+    `python -m backend.src.database.db_setup_tables`
 
 5. run project 
     `uvicorn backend.src.main:app --reload`
