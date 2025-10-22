@@ -21,6 +21,9 @@ class User(Base):
     assigned_tasks = relationship(
         "TaskAssignment", back_populates="user", cascade="all, delete-orphan"
     )
+    assigned_teams = relationship(
+        "TeamAssignment", back_populates="user", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         UniqueConstraint("email", name="uq_user_email"),

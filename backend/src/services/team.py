@@ -1,24 +1,19 @@
 from typing import Optional, Any, Union
 from backend.src.database.db_setup import SessionLocal
-from backend.src.database.models.team import Team, TeamAssignment
+from backend.src.database.models.team import Team 
+from backend.src.database.models.team_assignment import TeamAssignment
 from backend.src.enums.user_role import UserRole
 
 
-def create_team(team_name: str, user, department_id: int, team_number: str) -> dict:
+def create_team(team_name: str, user_id, department_id: int, team_number: str) -> dict:
     """Create a team and return it. Only managers can create a team.
     """
-    # normalize and check against UserRole enum
-    user_role = getattr(user, "role", None)
-    if not user_role or str(user_role).lower() != UserRole.MANAGER.value.lower():
-        raise ValueError("Only managers can create a team.")
-    if not team_name or not team_name.strip():
-        raise ValueError("Team name cannot be empty or whitespace.")
 
     with SessionLocal.begin() as session:
         team_name_clean = team_name.strip()
         team = Team(
             team_name=team_name_clean,
-            manager_id=user,
+            manager_id=user_id,
             department_id=department_id,
             team_number=team_number,
         )
@@ -40,7 +35,7 @@ def get_team_by_id(team_id: int) -> dict:
         team = session.get(Team, team_id)
         if not team:
             raise ValueError("Team not found")
-        # Load assignments for the team so the returned payload matches TeamRead (which includes assignments)
+
         assignments = (
             session.query(TeamAssignment).filter_by(team_id=team_id).all()
         )
@@ -98,13 +93,6 @@ def get_subteam_by_team_number(team_number: str) -> Optional[dict]:
 
 def assign_to_team(team_id: int, assignee_id: int, user) -> dict:
     """Assign a user to a team. Only managers and directors allowed."""
-    user_role = getattr(user, "role", None)
-    user_id = getattr(user, "user_id", None)
-    if not user_role or str(user_role).lower() not in [
-        UserRole.MANAGER.value.lower(),
-        UserRole.DIRECTOR.value.lower(),
-    ]:
-        raise ValueError("Only managers and directors can assign to a team.")
 
     with SessionLocal.begin() as session:
         team = session.get(Team, team_id)
@@ -115,18 +103,15 @@ def assign_to_team(team_id: int, assignee_id: int, user) -> dict:
         session.add(assignment)
         try:
             session.flush()
-            # Try to refresh to populate DB-generated fields (id). For mocks this may be a no-op.
             try:
                 session.refresh(assignment)
             except Exception:
                 pass
         except Exception as e:
-            # explicit rollback for clarity and to satisfy tests asserting rollback
             session.rollback()
             raise ValueError(f"Failed to assign: {str(e)}")
 
         return {
-            "id": assignment.id,
             "team_id": assignment.team_id,
             "user_id": assignment.user_id,
         }

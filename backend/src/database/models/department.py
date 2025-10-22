@@ -10,5 +10,5 @@ class Department(Base):
     manager_id = Column(Integer, nullable=False)
 
     teams = relationship("Team", back_populates="department")
-    users = relationship("User", back_populates="department")
+    # users = relationship("User", back_populates="department")
 
