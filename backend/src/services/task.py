@@ -10,13 +10,10 @@ from typing import Iterable, Optional
 from sqlalchemy import select, exists
 from sqlalchemy.orm import selectinload
 
-import logging
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
-from backend.src.services.notification_service import get_notification_service
-
 
 
 
@@ -147,7 +144,6 @@ def update_task(
 
         session.add(task)
         session.flush()
-
         return task
 
 def set_task_status(task_id: int, new_status: str) -> Task:

@@ -5,9 +5,7 @@ from backend.src.services import comment as comment_service
 from backend.src.services.notification_service import get_notification_service
 from backend.src.services import task_assignment as assignment_service
 from backend.src.enums.notification import NotificationType
-import logging
 
-logger = logging.getLogger(__name__)
 
 
 def add_comment(task_id: int, user_id: int, comment_text: str):
