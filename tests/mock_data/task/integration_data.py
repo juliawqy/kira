@@ -2,18 +2,14 @@
 import json
 from datetime import date, timedelta
 from backend.src.enums.task_status import TaskStatus
-
-from tests.mock_data.user.integration_data import (
-    VALID_USER_ADMIN_TASK_ASSIGNMENT,
-    VALID_USER_EMPLOYEE_TASK_ASSIGNMENT,
-)
+from backend.src.enums.user_role import UserRole
 
 
 TASK_CREATE_PAYLOAD = {
     "title": "Default Task",
     "start_date": (date.today() + timedelta(days=3)),
     "deadline": (date.today() + timedelta(days=10)),
-    "project_id": 123
+    "project_id": 1
 }
 
 EXPECTED_TASK_RESPONSE = {
@@ -24,7 +20,7 @@ EXPECTED_TASK_RESPONSE = {
     "start_date": (date.today() + timedelta(days=3)),
     "deadline": (date.today() + timedelta(days=10)),
     "priority": 5,
-    "project_id": 123,
+    "project_id": 1,
     "active": True,
 }
 
@@ -35,13 +31,13 @@ INVALID_TASK_CREATE = {
 INVALID_TASK_CREATE_INVALID_PARENT = {
     "title": "Task with Invalid Parent",
     "parent_id": 99999,
-    "project_id": 100
+    "project_id": 2
 }
 
 INVALID_TASK_CREATE_INACTIVE_PARENT = {
     "title": "Task with Inactive Parent",
     "parent_id": 1,
-    "project_id": 100
+    "project_id": 2
 }
 
 TASK_2_PAYLOAD = {
@@ -51,7 +47,7 @@ TASK_2_PAYLOAD = {
     "deadline": (date.today() + timedelta(days=7)),
     "status": TaskStatus.IN_PROGRESS.value,
     "priority": 9,
-    "project_id": 100,
+    "project_id": 2,
     "active": True
 }
 
@@ -63,7 +59,7 @@ TASK_2 = {
     "deadline": (date.today() + timedelta(days=7)),
     "status": TaskStatus.IN_PROGRESS.value,
     "priority": 9,
-    "project_id": 100,
+    "project_id": 2,
     "active": True
 }
 
@@ -71,7 +67,7 @@ TASK_3_PAYLOAD = {
     "title": "Task 3",
     "start_date": (date.today() - timedelta(days=10)),
     "deadline": (date.today() - timedelta(days=5)),
-    "project_id": 123,
+    "project_id": 1,
     "priority": 1
 }
 
@@ -83,7 +79,7 @@ TASK_3 = {
     "deadline": (date.today() - timedelta(days=5)),
     "status": TaskStatus.TO_DO.value,
     "priority": 1,
-    "project_id": 123,
+    "project_id": 1,
     "active": True
 }
 
@@ -91,7 +87,7 @@ TASK_4_PAYLOAD = {
     "title": "Task 4",
     "start_date": (date.today() - timedelta(days=10)),
     "deadline": (date.today() + timedelta(days=7)),
-    "project_id": 123,
+    "project_id": 1,
     "status": TaskStatus.IN_PROGRESS.value,
     "priority": 10
 }
@@ -104,13 +100,13 @@ TASK_4 = {
     "deadline": (date.today() + timedelta(days=7)),
     "status": TaskStatus.TO_DO.value,
     "priority": 10,
-    "project_id": 123,
+    "project_id": 1,
     "active": True
 }
 
 INACTIVE_TASK_PAYLOAD = {
     "title": "Inactive Task",
-    "project_id": 100,
+    "project_id": 2,
     "active": False
 }
 
@@ -122,14 +118,14 @@ INACTIVE_TASK = {
     "start_date": None,
     "deadline": None,
     "priority": 5,
-    "project_id": 100,
+    "project_id": 2,
     "active": False,
 }
 
 
 INACTIVE_SUBTASK_PAYLOAD = {
     "title": "Inactive Subtask",
-    "project_id": 123
+    "project_id": 1
 }
 
 INACTIVE_SUBTASK = {
@@ -140,19 +136,19 @@ INACTIVE_SUBTASK = {
     "start_date": None,
     "deadline": None,
     "priority": 5,
-    "project_id": 123,
+    "project_id": 1,
     "active": False,
 }
 
 TASK_CREATE_CHILD = {
     "title": "Task First Child",
-    "project_id": 123,
+    "project_id": 1,
 }
 
 EXPECTED_TASK_CHILD_RESPONSE = {
     "id": 2,
     "title": "Task First Child",
-    "project_id": 123,
+    "project_id": 1,
     "status": TaskStatus.TO_DO.value,
     "priority": 5,
     "active": True,
@@ -224,7 +220,7 @@ TASK_UPDATE_PAYLOAD = {
     "start_date": (date.today() + timedelta(days=2)),
     "deadline": (date.today() + timedelta(days=11)),
     "priority": 8,
-    "project_id": 100,
+    "project_id": 2,
 }
 
 EXPECTED_TASK_UPDATED = {
@@ -261,32 +257,86 @@ TASK_UPDATE_EMPTY = {
     "project_id": None
 }
 
-
-VALID_PROJECT_ID = 123
-VALID_PROJECT_ID_INACTIVE_TASK = 100
+VALID_USER_ID = 1
+INVALID_USER_ID = 99999
+VALID_PROJECT_ID = 1
+VALID_PROJECT_ID_INACTIVE_TASK = 2
+INVALID_PROJECT_ID = 99999
 
 INVALID_STATUS = "INVALID_STATUS"
 INVALID_TASK_ID_NONEXISTENT = 99999
 EMPTY_PROJECT_ID = 99999
 
-QUERY_STRING = """
-            INSERT INTO user (user_id, name, email, role, department_id, admin, hashed_pw)
-            VALUES 
-            (1, :name1, :email1, :role1, :dept1, :admin1, :hash1),
-            (2, :name2, :email2, :role2, :dept2, :admin2, :hash2)
-            """
+VALID_PROJECT = {
+    "project_id": 1,
+    "project_name": "Integration Test Project",
+    "project_manager": 1,
+    "active": True,
+}
 
-QUERY_DICT = {
-            "name1": VALID_USER_ADMIN_TASK_ASSIGNMENT["name"],
-            "email1": VALID_USER_ADMIN_TASK_ASSIGNMENT["email"],
-            "role1": VALID_USER_ADMIN_TASK_ASSIGNMENT["role"],
-            "dept1": VALID_USER_ADMIN_TASK_ASSIGNMENT["department_id"],
-            "admin1": VALID_USER_ADMIN_TASK_ASSIGNMENT["admin"],
-            "hash1": "hashed_password_1",
-            "name2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["name"],
-            "email2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["email"],
-            "role2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["role"],
-            "dept2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["department_id"],
-            "admin2": VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["admin"],
-            "hash2": "hashed_password_2",
-        }
+VALID_PROJECT_2 = {
+    "project_id": 2,
+    "project_name": "Integration Test Project",
+    "project_manager": 1,
+    "active": True,
+}
+
+VALID_CREATE_PAYLOAD_USER = {
+    "name": "Bob Employee",
+    "email": "bob.employee@example.com",
+    "role": UserRole.STAFF,
+    "hashed_pw": "Empl@yee123",
+    "department_id": 20,
+    "admin": False,
+}
+
+VALID_CREATE_PAYLOAD_ADMIN = {
+    "name": "Alice Admin",
+    "email": "alice.admin@example.com",
+    "role": UserRole.MANAGER,
+    "hashed_pw": "Adm!nPass123",
+    "department_id": 10,
+    "admin": True,
+}
+
+VALID_TASK_ASSIGNMENT = {
+    "task_id": 1,
+    "user_id": 1,
+}
+
+VALID_USER = {
+    "user_id": 1,
+    "email": "tester@example.com",
+    "name": "Tester",
+    "role": UserRole.MANAGER.value,
+    "admin": False,
+    "hashed_pw": "hashed_pw",
+    "department_id": None,
+}
+
+VALID_USER_ADMIN_TASK_ASSIGNMENT = {
+    "user_id": 1,
+    "name": "Alice Admin",
+    "email": "alice.admin@example.com",
+    "role": UserRole.MANAGER.value,
+    "department_id": 10,
+    "admin": True,
+    "password": "Adm!nPass123",
+}
+
+VALID_USER_EMPLOYEE_TASK_ASSIGNMENT = {
+    "user_id": 2,
+    "name": "Bob Employee",
+    "email": "bob.employee@example.com",
+    "role": UserRole.STAFF.value,
+    "department_id": 20,
+    "admin": False,
+    "hashed_pw": "Empl@yee123",
+}
+
+INVALID_USER_ID = 99999
+
+VALID_ASSIGNMENT_PAYLOAD = {"user_ids": [1]}
+VALID_ASSIGNMENT_PAYLOAD_MULTIPLE = {"user_ids": [1, 2]}
+INVALID_ASSIGNMENT_PAYLOAD = {"user_ids": [999999]}
+EMPTY_ASSIGNMENT_PAYLOAD = {"user_ids": []}

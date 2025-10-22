@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import pytest
 from datetime import date, timedelta, datetime
+from backend.src.database.models.project import Project
+from backend.src.database.models.user import User
+from backend.src.database.models.task_assignment import TaskAssignment
 
 from backend.src.enums.task_status import TaskStatus
 from tests.mock_data.task.integration_data import (
@@ -23,7 +26,14 @@ from tests.mock_data.task.integration_data import (
     FILTER_AND_SORT_QUERY,
     VALID_PROJECT_ID,
     VALID_PROJECT_ID_INACTIVE_TASK,
-    TASK_CREATE_CHILD
+    TASK_CREATE_CHILD,
+    VALID_PROJECT,
+    VALID_PROJECT_2,
+    INVALID_PROJECT_ID,
+    VALID_USER_ID,
+    INVALID_USER_ID,
+    VALID_USER,
+    VALID_TASK_ASSIGNMENT,
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -39,6 +49,39 @@ def serialize_payload(payload: dict) -> dict:
 
     return {k: convert(v) for k, v in payload.items()}
 
+@pytest.fixture(scope="function")
+def test_db_session(test_engine):
+    """
+    Create a database session using the same SessionLocal as the API.
+    """
+    from sqlalchemy.orm import sessionmaker
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
+
+    with TestingSessionLocal() as session:
+        yield session
+
+@pytest.fixture(autouse=True)
+def create_test_project(test_db_session):
+    """Ensure a valid project exists for task creation (project_id=1)."""
+
+    project = Project(**VALID_PROJECT)
+    project.project_id = VALID_PROJECT["project_id"]
+    project2 = Project(**VALID_PROJECT_2)
+    project2.project_id = VALID_PROJECT_2["project_id"]
+    test_db_session.add_all([project, project2])
+    test_db_session.commit()
+
+@pytest.fixture(autouse=True)
+def create_test_user(test_db_session):
+    user = User(**VALID_USER)
+    test_db_session.add(user)
+    test_db_session.commit()
 
 # INT-002/001
 def test_list_tasks_success(client, task_base_path):
@@ -333,7 +376,7 @@ def test_list_task_by_project(client, task_base_path):
     ):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
-    
+
     response = client.get(f"{task_base_path}/project/{VALID_PROJECT_ID}")
     assert response.status_code == 200
     data = response.json()
@@ -344,6 +387,20 @@ def test_list_task_by_project(client, task_base_path):
     data = response.json()
     assert len(data) == 1
 
+# INT-002/013
+def test_list_task_by_invalid_project(client, task_base_path):
+    for payload in (
+        TASK_CREATE_PAYLOAD,
+        TASK_2_PAYLOAD,     
+        TASK_3_PAYLOAD,     
+        TASK_4_PAYLOAD,
+        INACTIVE_TASK_PAYLOAD    
+    ):
+        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
+        assert resp.status_code == 201
+
+    response = client.get(f"{task_base_path}/project/{INVALID_PROJECT_ID}")
+    assert response.status_code == 400
 # INT-013/007
 def test_list_parent_tasks_excludes_subtasks(client, task_base_path):
     """Children created with parent_id should not appear in parent list endpoint."""
@@ -504,3 +561,11 @@ def test_list_subtasks_inactive_parent(client, task_base_path):
     client.post(f"{task_base_path}/{parent['id']}/delete")
     resp = client.get(f"{task_base_path}/{parent['id']}/subtasks")
     assert resp.status_code == 404
+
+# INT-013/016
+def test_list_tasks_invalid_project(client, task_base_path):
+    resp = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
+    assert resp.status_code == 201
+
+    response = client.get(f"{task_base_path}/project/{INVALID_PROJECT_ID}")
+    assert response.status_code == 400

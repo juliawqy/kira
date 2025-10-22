@@ -35,7 +35,7 @@ def get_project_by_id(project_id: int) -> Dict:
     with SessionLocal() as session:
         project = session.get(Project, project_id)
         if not project:
-            raise ValueError("Project not found")
+            return None
 
         return {
             "project_id": project.project_id,

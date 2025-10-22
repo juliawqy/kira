@@ -132,24 +132,3 @@ INVALID_PASSWORD_CHANGE_WRONG_CURRENT = {
 }
 
 INVALID_USER_ID = 9999
-
-# Task Assignment Test Data
-VALID_USER_ADMIN_TASK_ASSIGNMENT = {
-    "user_id": 1,
-    "name": "Alice Admin",
-    "email": "alice.admin@example.com",
-    "role": UserRole.MANAGER.value,
-    "department_id": 10,
-    "admin": True,
-    "password": "Adm!nPass123",
-}
-
-VALID_USER_EMPLOYEE_TASK_ASSIGNMENT = {
-    "user_id": 2,
-    "name": "Bob Employee",
-    "email": "bob.employee@example.com",
-    "role": UserRole.STAFF.value,
-    "department_id": 20,
-    "admin": False,
-    "password": "Empl@yee123",
-}

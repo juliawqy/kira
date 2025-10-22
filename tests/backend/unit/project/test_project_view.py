@@ -13,7 +13,6 @@ def test_view_project_success(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value.__enter__.return_value = mock_session
 
-    # Mock a fake project object
     mock_project = MagicMock()
     mock_project.project_id = TEST_PROJECT_ID
     mock_project.project_name = VALID_PROJECT_NAME
@@ -22,13 +21,13 @@ def test_view_project_success(mock_session_local):
 
     mock_session.get.return_value = mock_project
 
-    result = project_service.get_project_by_id(1)
+    result = project_service.get_project_by_id(TEST_PROJECT_ID)
     assert result["project_id"] == TEST_PROJECT_ID
     assert result["project_name"] == VALID_PROJECT_NAME
     assert result["project_manager"] == MANAGER_USER["user_id"]
     assert result["active"] is True
 
-# UNI-078/002
+# # UNI-078/002
 @patch("backend.src.services.project.SessionLocal")
 def test_view_project_not_found(mock_session_local):
     mock_session = MagicMock()
@@ -36,6 +35,5 @@ def test_view_project_not_found(mock_session_local):
 
     mock_session.get.return_value = None
 
-    with pytest.raises(ValueError) as exc:
-        project_service.get_project_by_id(NOT_FOUND_ID)
-    assert "Project not found" in str(exc.value)
+    result = project_service.get_project_by_id(NOT_FOUND_ID)
+    assert result is None

@@ -12,6 +12,7 @@ E2E_TASK_WORKFLOW = {
         "title": "Updated Task Title",
         "description": "This task was updated",
         "priority": 8,
+        "project_id": 2
     },
     "expected_responses": {
         "create_success": "task created",
@@ -45,4 +46,18 @@ E2E_SELECTORS = {
         "status_element": "status-msg",
         "refresh_button": "refresh-btn",
     }
+}
+
+VALID_PROJECT = {
+    "project_id": 1,
+    "project_name": "Project Alpha",
+    "project_manager": 1,
+    "active": True,
+}
+
+VALID_PROJECT_2 = {
+    "project_id": 2,
+    "project_name": "Project Beta",
+    "project_manager": 1,
+    "active": True,
 }

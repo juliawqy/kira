@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import pytest
 from datetime import date, datetime
+from backend.src.database.models.project import Project
 
 from backend.src.enums.task_status import TaskStatus
 from tests.mock_data.task.integration_data import (
@@ -15,7 +16,9 @@ from tests.mock_data.task.integration_data import (
     TASK_UPDATE_PARTIAL_DATES,
     TASK_UPDATE_EMPTY,
     INVALID_STATUS,
-    INVALID_TASK_ID_NONEXISTENT
+    INVALID_TASK_ID_NONEXISTENT,
+    VALID_PROJECT,
+    VALID_PROJECT_2
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -30,6 +33,32 @@ def serialize_payload(payload: dict) -> dict:
         return value
 
     return {k: convert(v) for k, v in payload.items()}
+
+@pytest.fixture(scope="function")
+def test_db_session(test_engine):
+    """
+    Create a database session using the same SessionLocal as the API.
+    """
+    from sqlalchemy.orm import sessionmaker
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
+
+    with TestingSessionLocal() as session:
+        yield session
+
+@pytest.fixture(autouse=True)
+def create_test_project(test_db_session):
+    """Ensure a valid project exists for task creation (project_id=1)."""
+
+    project = Project(**VALID_PROJECT)
+    project2 = Project(**VALID_PROJECT_2)
+    test_db_session.add_all([project, project2])
+    test_db_session.commit()
 
 
 # INT-003/001

@@ -1,5 +1,6 @@
 # tests/mock_data/comment/integration_data.py
 from datetime import datetime
+from backend.src.enums.user_role import UserRole
 
 # ------------------ VALID DATA ------------------
 
@@ -20,7 +21,7 @@ VALID_USER = {
     "user_id": 1,
     "email": "tester@example.com",
     "name": "Tester",
-    "role": "STAFF",
+    "role": UserRole.STAFF.value,
     "admin": False,
     "hashed_pw": "hashed_pw",
     "department_id": None,
@@ -30,7 +31,7 @@ ANOTHER_USER = {
     "user_id": 2,
     "email": "another@example.com",
     "name": "Another User",
-    "role": "STAFF",
+    "role": UserRole.STAFF.value,
     "admin": False,
     "hashed_pw": "hashed_pw2",
     "department_id": None,

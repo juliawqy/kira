@@ -13,6 +13,7 @@ from sqlalchemy.orm import selectinload
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
+from backend.src.database.models.task_assignment import TaskAssignment
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 
@@ -318,12 +319,34 @@ def list_tasks_by_project(project_id: int, *, active_only: bool = True) -> list[
         stmt = (
             select(Task)
             .where(not_a_subtask)
+            .where(Task.active == active_only)
             .where(Task.project_id == project_id)
             .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
         )
         
-        if active_only:
-            stmt = stmt.where(Task.active.is_(True))
+        tasks = session.execute(stmt).scalars().all()
+        return tasks
+
+def list_project_tasks_by_user(project_id: int, user_id: int) -> list[Task]:
+    """
+    List all tasks in a project assigned to a specific user.
+    Only returns tasks that are not subtasks of other tasks (top-level hierarchy).
+    """
+    with SessionLocal() as session:
+        # Only return parent tasks (not subtasks) for this project
+        not_a_subtask = ~exists(
+            select(ParentAssignment.subtask_id).where(ParentAssignment.subtask_id == Task.id)
+        )
+        stmt = (
+            select(Task)
+            .where(not_a_subtask)
+            .where(Task.project_id == project_id)
+            .join(TaskAssignment, Task.id == TaskAssignment.task_id)
+            .where(TaskAssignment.user_id == user_id)
+            .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
+        )
+        
+        stmt = stmt.where(Task.active.is_(True))
         
         tasks = session.execute(stmt).scalars().all()
         return tasks
