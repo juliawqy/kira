@@ -9,11 +9,12 @@ from sqlalchemy import create_engine, event
 
 
 from sqlalchemy.orm import sessionmaker
-from tests.mock_data.task.e2e_data import E2E_TASK_WORKFLOW, E2E_SELECTORS
+from tests.mock_data.task.e2e_data import E2E_TASK_WORKFLOW, E2E_SELECTORS, VALID_PROJECT, VALID_PROJECT_2
 import threading
 import socket
 import uvicorn
 import backend.src.services.task as svc
+from backend.src.database.models.project import Project
 from backend.src.main import app
 
 @pytest.fixture(scope="session")
@@ -68,7 +69,18 @@ def reset_database_tables(test_engine):
     """Drop and recreate all tables before each test to reset ID sequences."""
     Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)
+
+    Session = sessionmaker(bind=test_engine, future=True)
+    with Session() as session:
+        project1 = Project(**VALID_PROJECT)
+        project1.project_id = VALID_PROJECT["project_id"]
+        project2 = Project(**VALID_PROJECT_2)
+        project2.project_id = VALID_PROJECT_2["project_id"]
+        session.add_all([project1, project2])
+        session.commit()
+
     yield
+
 @pytest.fixture(scope="session")
 def app_server(test_engine):
     """Run FastAPI app with SessionLocal overridden to the isolated test engine."""
@@ -174,7 +186,7 @@ def test_complete_task_crud_workflow(driver, isolated_database, app_server, test
     driver.find_element(By.CSS_SELECTOR, "[id^='update-priority-']").clear()
     driver.find_element(By.CSS_SELECTOR, "[id^='update-priority-']").send_keys(str(update_task["priority"]))
     driver.find_element(By.CSS_SELECTOR, "[id^='update-project-']").clear()
-    driver.find_element(By.CSS_SELECTOR, "[id^='update-project-']").send_keys(str(update_task["project"]))
+    driver.find_element(By.CSS_SELECTOR, "[id^='update-project-']").send_keys(str(update_task["project_id"]))
     driver.find_element(By.CSS_SELECTOR, selectors["list_view"]["save_button"]).click()
     time.sleep(1)
 

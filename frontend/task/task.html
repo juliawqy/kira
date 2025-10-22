@@ -33,7 +33,7 @@
             <div class="subtask-list" id="subtasks-${t.id}"></div>
           </div>
           <div class="actions">
-            <button class="update-btn" onclick="prefillUpdate(${t.id}, '${(t.title||'').replace(/'/g, "\\'")}', '${(t.description||'').replace(/'/g, "\\'")}', ${t.priority||''})">Update</button>
+            <button class="update-btn" onclick="prefillUpdate(${t.id}, '${(t.title||'').replace(/'/g, "\\'")}', '${(t.description||'').replace(/'/g, "\\'")}', ${t.priority||''}, ${t.project_id || ''})">Update</button>
             <!-- Parent delete button now has its own class -->
             <button class="delete-btn parent-delete-btn" onclick="deleteTask(${t.id})">Delete</button>
           </div>
@@ -54,6 +54,7 @@
                 <input id="update-title-${st.id}" placeholder="Title" />
                 <input id="update-desc-${st.id}" placeholder="Description" />
                 <input id="update-priority-${st.id}" type="number" placeholder="Priority" />
+                <input id="update-project-${st.id}" type="number" placeholder="Project" />
                 <button class="save-btn" onclick="saveTask(${st.id})">Save</button>
                 <!-- Subtask delete button stays as plain delete-btn -->
                 <button class="delete-btn" onclick="deleteTask(${st.id})">Delete</button>
@@ -88,10 +89,11 @@
       }
     }
 
-    function prefillUpdate(id, title, desc, priority) {
+    function prefillUpdate(id, title, desc, priority, project) {
       document.getElementById(`update-title-${id}`).value = title || "";
       document.getElementById(`update-desc-${id}`).value = desc || "";
       document.getElementById(`update-priority-${id}`).value = priority || "";
+      document.getElementById(`update-project-${id}`).value = project || "";
     }
 
     async function saveTask(id) {

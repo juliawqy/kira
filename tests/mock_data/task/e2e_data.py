@@ -50,14 +50,14 @@ E2E_SELECTORS = {
 
 VALID_PROJECT = {
     "project_id": 1,
-    "project_name": "Integration Test Project",
+    "project_name": "Project Alpha",
     "project_manager": 1,
     "active": True,
 }
 
 VALID_PROJECT_2 = {
     "project_id": 2,
-    "project_name": "Integration Test Project",
+    "project_name": "Project Beta",
     "project_manager": 1,
     "active": True,
 }
