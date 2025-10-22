@@ -131,8 +131,7 @@ def update_task(
             try:
                 assignees = assignment_service.list_assignees(task_id)
                 recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
-            except Exception as _assignee_err:
-                logger.debug(f"Could not resolve assignee emails for task {task_id}: {_assignee_err}")
+            except Exception:
                 recipients = None
 
         get_notification_service().notify_activity(
