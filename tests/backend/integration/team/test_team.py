@@ -57,6 +57,19 @@ def seed_task_and_user(test_engine):
 
 # for subsequent handler level integration with user
 
+# # UNI-058/002
+# @patch("backend.src.services.team.SessionLocal")
+# def test_create_team_non_manager(mock_session_local):
+#     mock_session = MagicMock()
+#     mock_session_local.begin.return_value.__enter__.return_value = mock_session
+#     user = type("User", (), STAFF_USER)
+#     with pytest.raises(ValueError):
+#         team_service.create_team(
+#             VALID_TEAM_CREATE["team_name"],
+#             user,
+#             department_id=VALID_TEAM_CREATE.get("department_id"),
+#             team_number=VALID_TEAM_CREATE.get("team_number"),
+#         )
 
 # # INT-058/002
 # def test_create_team_integration_non_manager_raises(isolated_test_db):
@@ -87,6 +100,34 @@ def seed_task_and_user(test_engine):
 #     assert result["team_id"] == team["team_id"]
 #     assert result["user_id"] == assignee_id
 
+
+# # UNI-062/002
+# @patch("backend.src.services.team.SessionLocal")
+# def test_assign_to_team_success_director(mock_session_local):
+# 	mock_session = MagicMock()
+# 	mock_session_local.begin.return_value.__enter__.return_value = mock_session
+# 	mock_team = MagicMock()
+# 	mock_team.team_id = TEAM_ID_2
+# 	mock_session.get.return_value = mock_team
+
+# 	user = make_user(DIRECTOR_USER)
+# 	result = team_service.assign_to_team(TEAM_ID_2, ASSIGNEE_ID_222, user)
+
+# 	assert result["team_id"] == TEAM_ID_2
+# 	assert "id" in result
+# 	assert result["team_id"] == TEAM_ID_2
+# 	assert result["user_id"] == ASSIGNEE_ID_222
+
+
+# # UNI-062/003
+# @pytest.mark.parametrize("user_dict", [STAFF_USER, NO_ROLE_USER])
+# @patch("backend.src.services.team.SessionLocal")
+# def test_assign_to_team_unauthorized(mock_session_local, user_dict):
+# 	mock_session = MagicMock()
+# 	mock_session_local.begin.return_value.__enter__.return_value = mock_session
+# 	user = make_user(user_dict)
+# 	with pytest.raises(ValueError):
+# 		team_service.assign_to_team(TEAM_ID_1, ASSIGNEE_ID_55, user)
 
 # # INT-062/003
 # def test_unauthorized_user_cannot_assign(isolated_test_db):

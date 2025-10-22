@@ -2,7 +2,7 @@ from typing import Optional, Any, Union
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.team import Team 
 from backend.src.database.models.team_assignment import TeamAssignment
-from backend.src.enums.user_role import UserRole
+from sqlalchemy.exc import IntegrityError
 
 
 def create_team(team_name: str, user_id, department_id: int, team_number: str) -> dict:
@@ -91,7 +91,7 @@ def get_subteam_by_team_number(team_number: str) -> Optional[dict]:
         }
     
 
-def assign_to_team(team_id: int, assignee_id: int, user) -> dict:
+def assign_to_team(team_id: int, assignee_id: int) -> dict:
     """Assign a user to a team. Only managers and directors allowed."""
 
     with SessionLocal.begin() as session:
@@ -103,10 +103,12 @@ def assign_to_team(team_id: int, assignee_id: int, user) -> dict:
         session.add(assignment)
         try:
             session.flush()
-            try:
-                session.refresh(assignment)
-            except Exception:
-                pass
+            session.refresh(assignment)
+        except IntegrityError:
+            session.rollback()
+            raise ValueError(
+                f"User {assignee_id} is already assigned to team {team_id}."
+            )
         except Exception as e:
             session.rollback()
             raise ValueError(f"Failed to assign: {str(e)}")

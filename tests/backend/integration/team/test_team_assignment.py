@@ -65,7 +65,7 @@ def test_assign_to_team_not_found():
     )
 
     with pytest.raises(ValueError) as exc:
-        team_service.assign_to_team(NOT_FOUND_ID, STAFF_USER["user_id"], MANAGER_USER["user_id"])
+        team_service.assign_to_team(NOT_FOUND_ID, STAFF_USER["user_id"])
     assert f"Team with id {NOT_FOUND_ID} not found" in str(exc.value)
 
 
@@ -78,7 +78,7 @@ def test_assign_to_team_success(isolated_test_db):
         team_number=VALID_TEAM_CREATE["team_number"],
     )
 
-    result = team_service.assign_to_team(team["team_id"], STAFF_USER["user_id"], MANAGER_USER["user_id"])
+    result = team_service.assign_to_team(team["team_id"], STAFF_USER["user_id"])
 
     assert result["team_id"] == team["team_id"]
     assert result["user_id"] == STAFF_USER["user_id"]
@@ -101,10 +101,10 @@ def test_duplicate_assignment_raises_and_only_one_record_exists(isolated_test_db
     )
 
     assignee_id = STAFF_USER["user_id"]
-    team_service.assign_to_team(team["team_id"], assignee_id, MANAGER_USER["user_id"])
+    team_service.assign_to_team(team["team_id"], assignee_id)
 
     with pytest.raises(ValueError):
-        team_service.assign_to_team(team["team_id"], assignee_id, MANAGER_USER["user_id"])
+        team_service.assign_to_team(team["team_id"], assignee_id)
 
     sess = Session(bind=isolated_test_db)
     try:

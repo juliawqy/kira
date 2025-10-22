@@ -11,7 +11,7 @@ def make_user(user_dict):
 def test_view_team_success(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value.__enter__.return_value = mock_session
-    # Mock team object
+
     mock_team = MagicMock()
     mock_team.team_id = VALID_TEAM_CREATE["team_id"]
     mock_team.team_name = VALID_TEAM_CREATE["team_name"]
@@ -19,6 +19,7 @@ def test_view_team_success(mock_session_local):
     mock_team.department_id = VALID_TEAM_CREATE.get("department_id")
     mock_team.team_number = VALID_TEAM_CREATE.get("team_number")
     mock_session.get.return_value = mock_team
+
     result = team_service.get_team_by_id(VALID_TEAM_CREATE["team_id"])
     assert result["team_id"] == VALID_TEAM_CREATE["team_id"]
     assert result["team_name"] == VALID_TEAM_CREATE["team_name"]
