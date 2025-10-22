@@ -33,7 +33,7 @@ from tests.mock_data.task.integration_data import (
     VALID_USER_ID,
     INVALID_USER_ID,
     VALID_USER,
-    VALID_TASK_ASSIGNMENT
+    VALID_TASK_ASSIGNMENT,
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -554,55 +554,4 @@ def test_list_tasks_invalid_project(client, task_base_path):
     assert resp.status_code == 201
 
     response = client.get(f"{task_base_path}/project/{INVALID_PROJECT_ID}")
-    assert response.status_code == 400
-
-# INT-133/001
-def test_list_project_tasks_by_user(client, task_base_path, test_db_session):
-    for payload in (
-        TASK_CREATE_PAYLOAD,
-        TASK_2_PAYLOAD,     
-        TASK_3_PAYLOAD,     
-        TASK_4_PAYLOAD,
-        INACTIVE_TASK_PAYLOAD    
-    ):
-        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
-        assert resp.status_code == 201
-    
-    task_assgn = TaskAssignment(**VALID_TASK_ASSIGNMENT)
-    test_db_session.add(task_assgn)
-    test_db_session.commit()
-
-    response = client.get(f"{task_base_path}/project-user/{VALID_PROJECT_ID}/{VALID_USER_ID}")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-
-# INT-133/002
-def test_list_project_tasks_by_invalid_user(client, task_base_path):
-    for payload in (
-        TASK_CREATE_PAYLOAD,
-        TASK_2_PAYLOAD,     
-        TASK_3_PAYLOAD,     
-        TASK_4_PAYLOAD,
-        INACTIVE_TASK_PAYLOAD    
-    ):
-        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
-        assert resp.status_code == 201
-
-    response = client.get(f"{task_base_path}/project-user/{VALID_PROJECT_ID}/{INVALID_USER_ID}")
-    assert response.status_code == 400
-
-# INT-133-003
-def test_list_user_project_tasks_by_invalid_project(client, task_base_path):
-    for payload in (
-        TASK_CREATE_PAYLOAD,
-        TASK_2_PAYLOAD,     
-        TASK_3_PAYLOAD,     
-        TASK_4_PAYLOAD,
-        INACTIVE_TASK_PAYLOAD    
-    ):
-        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
-        assert resp.status_code == 201
-
-    response = client.get(f"{task_base_path}/project-user/{INVALID_PROJECT_ID}/{INVALID_USER_ID}")
     assert response.status_code == 400

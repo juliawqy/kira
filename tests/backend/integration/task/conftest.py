@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 import backend.src.services.task as svc
 import backend.src.services.task_assignment as assignment_svc
 import backend.src.services.project as project_svc
+import backend.src.services.task_assignment as task_assignment_svc
 from backend.src.database.db_setup import Base
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
@@ -60,6 +61,7 @@ def client(test_engine):
     svc.SessionLocal = TestingSessionLocal
     assignment_svc.SessionLocal = TestingSessionLocal
     project_svc.SessionLocal = TestingSessionLocal
+    task_assignment_svc.SessionLocal = TestingSessionLocal
 
     with TestClient(app) as c:
         yield c
