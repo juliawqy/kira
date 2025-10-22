@@ -12,11 +12,6 @@ from backend.src.database.models.comment import Comment
 
 Base.metadata.create_all(bind=engine)
 
-# Configure logging so service INFO logs show up in the console
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-)
 logging.getLogger("backend").setLevel(logging.INFO)
 logging.getLogger("backend.src").setLevel(logging.INFO)
 

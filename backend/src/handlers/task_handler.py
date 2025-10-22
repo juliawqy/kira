@@ -3,6 +3,8 @@ from backend.src.services import task as task_service
 from backend.src.services import user as user_service
 from backend.src.services import comment as comment_service
 from backend.src.services.notification_service import get_notification_service
+from backend.src.services import task_assignment as assignment_service
+from backend.src.enums.notification import NotificationType
 import logging
 
 logger = logging.getLogger(__name__)
@@ -68,25 +70,14 @@ def update_task(
     recurring: int | None = None,
     tag: str | None = None,
     project_id: int | None = None,
+    to_recipients: list[str] | None = None,
     **kwargs,
 ):
-    # Snapshot current values for diffing
-    pre = task_service.get_task_with_subtasks(task_id)
-    if not pre:
-        # Let the service raise a consistent error message
-        return task_service.update_task(task_id, **{
-            k: v for k, v in {
-                'title': title,
-                'description': description,
-                'start_date': start_date,
-                'deadline': deadline,
-                'priority': priority,
-                'recurring': recurring,
-                'tag': tag,
-                'project_id': project_id,
-                **kwargs,
-            }.items() if v is not None
-        })
+    
+    try:
+        pre = task_service.get_task_with_subtasks(task_id)
+    except ValueError as e:
+        raise ValueError(str(e))
 
     prev_values = {
         'title': getattr(pre, 'title', None),
@@ -99,7 +90,7 @@ def update_task(
         'project_id': getattr(pre, 'project_id', None),
     }
 
-    # Perform update via service
+    
     updated = task_service.update_task(
         task_id,
         title=title,
@@ -113,7 +104,7 @@ def update_task(
         **kwargs,
     )
 
-    # Determine which fields were intended to change
+   
     candidate_fields: list[str] = []
     if title is not None:       candidate_fields.append('title')
     if description is not None: candidate_fields.append('description')
@@ -124,7 +115,7 @@ def update_task(
     if tag is not None:         candidate_fields.append('tag')
     if project_id is not None:  candidate_fields.append('project_id')
 
-    # Build diffs
+    
     updated_fields: list[str] = []
     old_values: dict = {}
     new_values: dict = {}
@@ -136,19 +127,25 @@ def update_task(
             old_values[f] = before
             new_values[f] = after
 
-    # Send notification (best-effort)
-    try:
-        if updated_fields:
-            resp = get_notification_service().notify_activity(
-                user_email="system@kira.local",
-                task_id=updated.id,
-                task_title=updated.title or "",
-                type_of_alert="task_update",
-                updated_fields=updated_fields,
-                old_values=old_values,
-                new_values=new_values,
-            )
-    except Exception as _notify_err:
-        logger.debug(f"Task update notification skipped due to error: {_notify_err}")
+    if updated_fields:
+        recipients = to_recipients
+        if recipients is None:
+            try:
+                assignees = assignment_service.list_assignees(task_id)
+                recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
+            except Exception as _assignee_err:
+                logger.debug(f"Could not resolve assignee emails for task {task_id}: {_assignee_err}")
+                recipients = None
+
+        get_notification_service().notify_activity(
+            user_email="system@kira.local",
+            task_id=updated.id,
+            task_title=updated.title or "",
+            type_of_alert=NotificationType.TASK_UPDATE.value,
+            updated_fields=updated_fields,
+            old_values=old_values,
+            new_values=new_values,
+            to_recipients=recipients,
+        )
 
     return updated

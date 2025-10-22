@@ -17,7 +17,7 @@ from backend.src.database.models.parent_assignment import ParentAssignment
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 from backend.src.services.notification_service import get_notification_service
 
-logger = logging.getLogger(__name__)
+
 
 
 # ---- Helpers ----------------------------------------------------------------
@@ -134,18 +134,6 @@ def update_task(
         task = session.get(Task, task_id)
         if not task:
             raise ValueError("Task not found")
-
-        # Snapshot previous values for audit/notification
-        _prev = {
-            "title": task.title,
-            "description": task.description,
-            "start_date": task.start_date,
-            "deadline": task.deadline,
-            "priority": task.priority,
-            "recurring": task.recurring,
-            "tag": getattr(task, "tag", None),
-            "project_id": task.project_id,
-        }
 
         if title is not None:       task.title = title
         if description is not None: task.description = description

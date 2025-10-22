@@ -1,6 +1,3 @@
-"""Mock data for email templates tests"""
-
-# Basic template rendering data
 BASIC_TEMPLATE_DATA = {
     "app_name": "KIRA",
     "assignee_name": "John Doe",
@@ -55,10 +52,10 @@ COMPLETE_TEMPLATE_DATA = {
     "task_url": "https://kira.example.com/tasks/789"
 }
 
-# Edge case template data
+
 NULL_ASSIGNEE_TEMPLATE_DATA = {
     "app_name": "KIRA",
-    "assignee_name": None,  # Should fallback to "Team Member"
+    "assignee_name": None,  
     "task_title": "Task with No Assignee",
     "task_id": 999,
     "updated_by": "Admin",
@@ -75,7 +72,7 @@ EMPTY_FIELDS_TEMPLATE_DATA = {
     "task_id": 111,
     "updated_by": "System",
     "update_date": "2025-10-15",
-    "updated_fields": [],  # Empty fields list
+    "updated_fields": [],  
     "previous_values": {},
     "new_values": {}
 }
@@ -93,7 +90,7 @@ MISSING_VALUES_TEMPLATE_DATA = {
     "task_url": None
 }
 
-# Special characters and unicode data
+
 UNICODE_TEMPLATE_DATA = {
     "app_name": "KIRA™",
     "assignee_name": "José María García",
@@ -128,11 +125,11 @@ SPECIAL_CHARS_TEMPLATE_DATA = {
     }
 }
 
-# Long content test data
+
 LONG_CONTENT_TEMPLATE_DATA = {
     "app_name": "KIRA",
     "assignee_name": "Test User with Very Long Name for Testing Purposes",
-    "task_title": "A" * 200,  # Very long title (200 characters)
+    "task_title": "A" * 200, 
     "task_id": 555,
     "updated_by": "System Administrator with Long Title",
     "update_date": "2025-10-15",
@@ -143,12 +140,12 @@ LONG_CONTENT_TEMPLATE_DATA = {
     },
     "new_values": {
         "title": "A" * 200,
-        "description": "B" * 1000  # Very long description (1000 characters)
+        "description": "B" * 1000  
     },
     "task_url": "https://very-long-domain-name-for-testing.example.com/tasks/555"
 }
 
-# Multiple field changes scenarios
+
 SINGLE_FIELD_CHANGE_DATA = {
     "app_name": "KIRA",
     "assignee_name": "Developer",
@@ -192,12 +189,12 @@ MANY_FIELDS_CHANGES_DATA = {
     "task_id": 603,
     "updated_by": "System",
     "update_date": "2025-10-15",
-    "updated_fields": [f"field_{i}" for i in range(20)],  # 20 different fields
+    "updated_fields": [f"field_{i}" for i in range(20)], 
     "previous_values": {f"field_{i}": f"old_value_{i}" for i in range(20)},
     "new_values": {f"field_{i}": f"new_value_{i}" for i in range(20)}
 }
 
-# Template structure validation data
+
 EXPECTED_HTML_ELEMENTS = [
     "<!DOCTYPE html>",
     "<html>",
@@ -226,7 +223,7 @@ EXPECTED_CSS_CLASSES = [
     "footer"
 ]
 
-# Performance test data for templates
+
 PERFORMANCE_TEMPLATE_DATA = {
     "app_name": "KIRA Performance Test",
     "assignee_name": "Performance Tester",
@@ -239,7 +236,7 @@ PERFORMANCE_TEMPLATE_DATA = {
     "new_values": {f"performance_field_{i}": f"new_perf_value_{i}" * 10 for i in range(100)}
 }
 
-# Template rendering result validation
+
 EXPECTED_RENDERED_CONTENT = {
     "should_contain": [
         "KIRA",
@@ -249,14 +246,14 @@ EXPECTED_RENDERED_CONTENT = {
         "Task ID:"
     ],
     "should_not_contain": [
-        "{{",  # No unrendered template variables
+        "{{",  
         "}}",
-        "None",  # No Python None values
-        "undefined"  # No Jinja2 undefined values
+        "None",  
+        "undefined"  
     ]
 }
 
-# Different template scenarios
+
 TEMPLATE_SCENARIOS = {
     "basic_update": BASIC_TEMPLATE_DATA,
     "minimal_data": MINIMAL_TEMPLATE_DATA,
@@ -271,7 +268,7 @@ TEMPLATE_SCENARIOS = {
     "performance_test": PERFORMANCE_TEMPLATE_DATA
 }
 
-# Template validation patterns
+
 HTML_VALIDATION_PATTERNS = [
     r"<html[^>]*>.*</html>",
     r"<head>.*</head>", 
@@ -280,7 +277,7 @@ HTML_VALIDATION_PATTERNS = [
 ]
 
 JINJA_VARIABLE_PATTERNS = [
-    r"\{\{\s*\w+\s*\}\}",  # Basic variables
-    r"\{\{\s*\w+\s*\|\s*\w+\s*\}\}",  # Variables with filters
-    r"\{\%.*?\%\}"  # Jinja2 statements
+    r"\{\{\s*\w+\s*\}\}",  
+    r"\{\{\s*\w+\s*\|\s*\w+\s*\}\}", 
+    r"\{\%.*?\%\}"  
 ]

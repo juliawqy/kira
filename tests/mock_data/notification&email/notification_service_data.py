@@ -1,6 +1,3 @@
-"""Mock data for notification service tests"""
-
-# Basic notification test data
 VALID_TASK_NOTIFICATION = {
     "task_id": 123,
     "task_title": "Implement User Authentication",
@@ -55,7 +52,7 @@ MULTIPLE_FIELDS_UPDATE_NOTIFICATION = {
     "task_url": "http://localhost:8000/tasks/999"
 }
 
-# Edge case notification data
+
 EMPTY_UPDATED_FIELDS_NOTIFICATION = {
     "task_id": 111,
     "task_title": "No Changes Task",
@@ -83,7 +80,7 @@ LARGE_DATA_NOTIFICATION = {
     "task_url": "http://localhost:8000/tasks/333"
 }
 
-# Parameter sets for direct notify_activity tests
+
 NOTIFY_ACTIVITY_SUCCESS_PARAMS = {
     "user_email": "u@example.com",
     "task_id": 1,
@@ -131,7 +128,7 @@ NOTIFY_ACTIVITY_COMMENT_MISSING_USER_PARAMS = {
     "task_title": "T",
     "type_of_alert": "comment_create",
     "updated_fields": [],
-    # intentionally no comment_user
+    
 }
 
 NOTIFY_ACTIVITY_COMMENT_WITH_USER_PARAMS = {
@@ -143,7 +140,7 @@ NOTIFY_ACTIVITY_COMMENT_WITH_USER_PARAMS = {
     "updated_fields": [],
 }
 
-# Notification response test data
+
 SUCCESSFUL_NOTIFICATION_RESPONSE = {
     "success": True,
     "message": "Notification sent successfully",
@@ -162,13 +159,13 @@ MULTIPLE_RECIPIENTS_NOTIFICATION_RESPONSE = {
     "recipients_count": 3
 }
 
-# Error scenarios
+
 EMAIL_SERVICE_ERROR = "Email service connection failed"
 SMTP_TIMEOUT_ERROR = "SMTP connection timeout"
 INVALID_RECIPIENT_ERROR = "Invalid recipient email address"
 TEMPLATE_RENDER_ERROR = "Template rendering failed"
 
-# Notification service configuration data
+
 NOTIFICATION_SERVICE_CONFIG = {
     "email_enabled": True,
     "sms_enabled": False,
@@ -176,7 +173,7 @@ NOTIFICATION_SERVICE_CONFIG = {
     "default_template": "task_updated"
 }
 
-# Task update scenarios for testing
+
 TASK_TITLE_UPDATE = {
     "scenario": "title_change",
     "task_id": 501,
@@ -233,13 +230,13 @@ TASK_COMPLETE_UPDATE = {
     "expected_fields": ["title", "description", "priority", "status"]
 }
 
-# Logging test scenarios
+
 LOG_SUCCESS_INFO = "Processing task update notification for task {task_id}"
 LOG_SUCCESS_COMPLETE = "Task update notification sent successfully for task {task_id}"
 LOG_EMAIL_FAILURE = "Failed to send task update notification: {error_message}"
 LOG_EXCEPTION_ERROR = "Error in notify_task_updated: {exception_message}"
 
-# Performance test data
+
 PERFORMANCE_TEST_NOTIFICATION = {
     "task_id": 9999,
     "task_title": "Performance Test Task",
@@ -248,7 +245,7 @@ PERFORMANCE_TEST_NOTIFICATION = {
     "new_values": {"field_" + str(i): f"new_{i}" for i in range(1000)}
 }
 
-# Notification batch data
+
 NOTIFICATION_BATCH_SMALL = [
     {"task_id": 601, "task_title": "Batch Task 1", "updated_fields": ["title"]},
     {"task_id": 602, "task_title": "Batch Task 2", "updated_fields": ["priority"]},
@@ -260,7 +257,7 @@ NOTIFICATION_BATCH_LARGE = [
     for i in range(50)
 ]
 
-# Special character and unicode test data
+
 UNICODE_NOTIFICATION_DATA = {
     "task_id": 888,
     "task_title": "Tëst Tàsk with Ünicöde Chäräctërs",
@@ -285,4 +282,15 @@ SPECIAL_CHARACTERS_NOTIFICATION = {
     "new_values": {
         "title": "Task with <special> & characters \"quotes\""
     }
+}
+
+
+CUSTOM_EVENT_ACTIVITY_PARAMS = {
+    "user_email": "actor@example.com",
+    "task_id": 321,
+    "task_title": "Demo Task",
+    "type_of_alert": "custom_event",
+    "updated_fields": [],
+    "old_values": {},
+    "new_values": {},
 }

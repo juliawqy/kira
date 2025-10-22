@@ -1,5 +1,3 @@
-"""Mock configuration data for email settings and environment variables (aligned to EmailSettings)."""
-
 EMAIL_SETTINGS = {
     "fastmail_smtp_host": "smtp.fastmail.com",
     "fastmail_smtp_port": 587,
@@ -12,7 +10,6 @@ EMAIL_SETTINGS = {
     "use_tls": True,
     "use_ssl": False,
     "timeout": 60,
-    # For dev/test default recipients
     "test_recipient_email": "unit+test@example.com",
     "test_recipient_name": "Unit Test",
 }

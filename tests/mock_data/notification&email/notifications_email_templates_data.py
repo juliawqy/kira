@@ -1,6 +1,3 @@
-"""Render data fixtures for email template tests (centralized)."""
-
-# Basic sample used for both HTML and text rendering
 RENDER_DATA_BASIC = {
     'app_name': 'KIRA',
     'assignee_name': 'John Doe',
@@ -14,7 +11,7 @@ RENDER_DATA_BASIC = {
     'task_url': 'http://localhost:8000/tasks/123',
 }
 
-# Missing assignee name
+
 RENDER_DATA_MISSING_ASSIGNEE = {
     'app_name': 'KIRA',
     'assignee_name': None,
@@ -27,7 +24,6 @@ RENDER_DATA_MISSING_ASSIGNEE = {
     'new_values': {'status': 'IN_PROGRESS'},
 }
 
-# Empty updated_fields
 RENDER_DATA_EMPTY_FIELDS = {
     'app_name': 'KIRA',
     'assignee_name': 'Test User',
@@ -40,7 +36,7 @@ RENDER_DATA_EMPTY_FIELDS = {
     'new_values': {},
 }
 
-# Multiple field changes
+
 RENDER_DATA_MULTIPLE_CHANGES = {
     'app_name': 'KIRA',
     'assignee_name': 'Test User',

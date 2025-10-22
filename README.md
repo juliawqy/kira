@@ -12,7 +12,7 @@
     `pip install -r requirements.txt`
 
 4. Create database and setup tables (SQLite)
-    `python -m backend.src.database.db_setup_tables`
+    python -m backend.src.database.db_setup_tables`
 
 5. run project 
     `uvicorn backend.src.main:app --reload`
@@ -57,3 +57,4 @@ cd frontend && npm run test:e2e
     windows: start htmlcov\index.html
     mac: open htmlcov/index.html
 
+`

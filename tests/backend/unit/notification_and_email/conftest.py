@@ -1,4 +1,3 @@
-# tests/backend/unit/notification&email/conftest.py
 from __future__ import annotations
 
 import pytest
@@ -8,9 +7,7 @@ from pathlib import Path
 
 
 def _load_mock_module(file_name: str):
-    """Dynamically load a Python module from tests/mock_data/notification&email/ by filename."""
     import importlib.util
-    # parents[3] points to the top-level 'tests' directory
     mock_dir = Path(__file__).parents[3] / 'mock_data' / 'notification&email'
     file_path = mock_dir / file_name
     spec = importlib.util.spec_from_file_location(f"mock_{file_name.replace('.', '_')}", str(file_path))
@@ -20,9 +17,8 @@ def _load_mock_module(file_name: str):
     return module
 
 
-# Load mock data modules
 _mock_base = Path(__file__).parents[3] / 'mock_data' / 'notification&email'
-_email_config = _load_mock_module('email_config_data.py') if (_mock_base / 'email_config_data.py').exists() else None
+_email_config = _load_mock_module('email_config_data.py')
 _email_service_data = _load_mock_module('email_service_data.py')
 _email_templates_data = _load_mock_module('email_templates_data.py')
 _notifications_email_templates_data = _load_mock_module('notifications_email_templates_data.py')
@@ -31,45 +27,15 @@ _notification_service_data = _load_mock_module('notification_service_data.py')
 
 @pytest.fixture(autouse=True)
 def email_env_vars():
-    """Automatically mock email environment variables for all tests using mock data."""
-    env = (_email_config.EMAIL_ENV if _email_config else {
-        'FASTMAIL_SMTP_HOST': 'smtp.fastmail.com',
-        'FASTMAIL_SMTP_PORT': '587',
-        'FASTMAIL_USERNAME': 'test@fastmail.com',
-        'FASTMAIL_PASSWORD': 'test_password',
-        'FASTMAIL_FROM_EMAIL': 'kirahoora@fastmail.com',
-        'FASTMAIL_FROM_NAME': 'Kira Test App',
-        'APP_NAME': 'KIRA Test System',
-        'APP_URL': 'http://localhost:8000',
-        'USE_TLS': 'True',
-        'USE_SSL': 'False',
-        'TIMEOUT': '60',
-        'TEST_RECIPIENT_EMAIL': 'unit+test@example.com',
-        'TEST_RECIPIENT_NAME': 'Unit Test',
-    })
+    env = _email_config.EMAIL_ENV
     with patch.dict(os.environ, env):
         yield
 
 
 @pytest.fixture
 def patched_email_settings():
-    """Patch get_email_settings to return EmailSettings from mock config."""
     from backend.src.config.email_config import EmailSettings
-    settings_dict = _email_config.EMAIL_SETTINGS if _email_config else {
-        "fastmail_smtp_host": "smtp.fastmail.com",
-        "fastmail_smtp_port": 587,
-        "fastmail_username": "test@fastmail.com",
-        "fastmail_password": "test_password",
-        "fastmail_from_email": "kirahoora@fastmail.com",
-        "fastmail_from_name": "Kira Test App",
-        "app_name": "KIRA Test System",
-        "app_url": "http://localhost:8000",
-        "use_tls": True,
-        "use_ssl": False,
-        "timeout": 60,
-        "test_recipient_email": "unit+test@example.com",
-        "test_recipient_name": "Unit Test",
-    }
+    settings_dict = _email_config.EMAIL_SETTINGS
     settings_obj = EmailSettings(**settings_dict)
     with patch('backend.src.services.email_service.get_email_settings', return_value=settings_obj):
         yield settings_obj
@@ -77,16 +43,11 @@ def patched_email_settings():
 
 @pytest.fixture
 def email_service_with_patches(patched_email_settings):
-    """Construct EmailService with patched settings ready for tests."""
     from backend.src.services.email_service import EmailService
     return EmailService()
 
-
-# --- Reusable patch fixtures (MagicMock + patch) ---
-
 @pytest.fixture
 def patched_smtp():
-    """Patch smtplib.SMTP and return the MagicMock server instance."""
     with patch('backend.src.services.email_service.smtplib.SMTP', autospec=True) as mock_smtp:
         server = MagicMock(name='SMTPServer')
         mock_smtp.return_value = server
@@ -95,14 +56,10 @@ def patched_smtp():
 
 @pytest.fixture
 def patched_smtp_ssl():
-    """Patch smtplib.SMTP_SSL and return the MagicMock SSL server instance."""
     with patch('backend.src.services.email_service.smtplib.SMTP_SSL', autospec=True) as mock_smtp_ssl:
         server = MagicMock(name='SMTPSSLServer')
         mock_smtp_ssl.return_value = server
         yield server
-
-
-# --- Data fixtures sourced from mock_data files ---
 
 @pytest.fixture
 def single_recipient_list():
@@ -139,7 +96,6 @@ def email_message_task_update():
 @pytest.fixture
 def html_only_email_message():
     from backend.src.schemas.email import EmailMessage, EmailRecipient, EmailContent, EmailType
-    # Use VALID_EMAIL_CONTENT_HTML_TEXT but drop text_body to simulate html-only
     content = dict(_email_service_data.VALID_EMAIL_CONTENT_HTML_TEXT)
     content["text_body"] = None
     return EmailMessage(
@@ -151,7 +107,6 @@ def html_only_email_message():
 @pytest.fixture
 def text_only_email_message():
     from backend.src.schemas.email import EmailMessage, EmailRecipient, EmailContent, EmailType
-    # Use VALID_EMAIL_CONTENT_HTML_TEXT but drop html_body to simulate text-only
     content = dict(_email_service_data.VALID_EMAIL_CONTENT_HTML_TEXT)
     content["html_body"] = None
     return EmailMessage(
@@ -159,8 +114,6 @@ def text_only_email_message():
         content=EmailContent(**content),
         email_type=EmailType.GENERAL_NOTIFICATION,
     )
-
-# --- Notification service data fixtures ---
 
 @pytest.fixture
 def notification_valid_update():
@@ -226,8 +179,9 @@ def notify_activity_comment_missing_user_params():
 def notify_activity_comment_with_user_params():
     return _notification_service_data.NOTIFY_ACTIVITY_COMMENT_WITH_USER_PARAMS
 
-
-# --- Email template data fixtures ---
+@pytest.fixture
+def custom_event_activity_params():
+    return _notification_service_data.CUSTOM_EVENT_ACTIVITY_PARAMS
 
 @pytest.fixture
 def template_basic_data():
@@ -262,9 +216,6 @@ def template_special_chars_data():
 @pytest.fixture
 def template_long_content_data():
     return _email_templates_data.LONG_CONTENT_TEMPLATE_DATA
-
-# --- New fixtures: centralized render data for test_email_templates.py ---
-
 @pytest.fixture
 def render_data_basic():
     return _notifications_email_templates_data.RENDER_DATA_BASIC
@@ -300,24 +251,18 @@ def render_data_numeric_boolean():
 @pytest.fixture
 def render_data_performance():
     return _notifications_email_templates_data.RENDER_DATA_PERFORMANCE
-
-
-# --- Additional fixtures for email tests ---
-
 @pytest.fixture
 def invalid_email_settings_obj():
-    """An EmailSettings object with invalid critical fields, based on mock config."""
     from backend.src.config.email_config import EmailSettings
-    base = _email_config.EMAIL_SETTINGS if _email_config else {}
     return EmailSettings(
         fastmail_smtp_host="",
         fastmail_smtp_port=587,
         fastmail_username="",
         fastmail_password="",
         fastmail_from_email="",
-        fastmail_from_name=base.get("fastmail_from_name", "Kira Test App"),
-        app_name=base.get("app_name", "KIRA Test System"),
-        app_url=base.get("app_url", "http://localhost:8000"),
+        fastmail_from_name=_email_config.EMAIL_SETTINGS.get("fastmail_from_name", "Kira Test App"),
+        app_name=_email_config.EMAIL_SETTINGS.get("app_name", "KIRA Test System"),
+        app_url=_email_config.EMAIL_SETTINGS.get("app_url", "http://localhost:8000"),
     )
 
 
@@ -329,7 +274,6 @@ def email_message_with_cc_bcc():
         recipients=[EmailRecipient(**r) for r in data["recipients"]],
         content=EmailContent(**data["content"]),
         cc=[EmailRecipient(**r) for r in data.get("cc", [])],
-        bcc=[EmailRecipient(**r) for r in data.get("bcc", [])],
         email_type=EmailType.GENERAL_NOTIFICATION,
     )
 
