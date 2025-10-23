@@ -38,6 +38,15 @@ pytest tests/backend/unit
 ### Run only backend integration tests
 pytest tests/backend/integration
 
+### See test email recipient (local)
+To route notification emails to a fixed test inbox during local runs, set these environment variables before running tests or starting the app.
+
+- Windows (PowerShell):
+    `$env:TEST_RECIPIENT_EMAIL = "kirahoora@gmail.com"; $env:TEST_RECIPIENT_NAME = "Kira Local"`
+
+- macOS/Linux (bash/zsh):
+    `export TEST_RECIPIENT_EMAIL="kirahoora@gmail.com"; export TEST_RECIPIENT_NAME="Kira Local"`
+
 ### Run full-stack e2e tests
 pytest tests/e2e
 
