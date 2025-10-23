@@ -1,4 +1,5 @@
 from backend.src.enums.task_status import TaskStatus
+from backend.src.enums.user_role import UserRole
 
 E2E_TASK_WORKFLOW = {
     "create": {
@@ -60,4 +61,14 @@ VALID_PROJECT_2 = {
     "project_name": "Project Beta",
     "project_manager": 1,
     "active": True,
+}
+
+VALID_USER = {
+    "user_id": 1,
+    "email": "tester@example.com",
+    "name": "Tester",
+    "role": UserRole.STAFF.value,
+    "admin": False,
+    "hashed_pw": "hashed_pw",
+    "department_id": None,
 }

@@ -9,12 +9,13 @@ from sqlalchemy import create_engine, event
 
 
 from sqlalchemy.orm import sessionmaker
-from tests.mock_data.task.e2e_data import E2E_TASK_WORKFLOW, E2E_SELECTORS, VALID_PROJECT, VALID_PROJECT_2
+from tests.mock_data.task.e2e_data import E2E_TASK_WORKFLOW, E2E_SELECTORS, VALID_PROJECT, VALID_PROJECT_2, VALID_USER
 import threading
 import socket
 import uvicorn
 import backend.src.services.task as svc
 from backend.src.database.models.project import Project
+from backend.src.database.models.user import User
 from backend.src.main import app
 
 @pytest.fixture(scope="session")
@@ -72,6 +73,9 @@ def reset_database_tables(test_engine):
 
     Session = sessionmaker(bind=test_engine, future=True)
     with Session() as session:
+        user = User(**VALID_USER)
+        session.add(user)
+        session.flush()
         project1 = Project(**VALID_PROJECT)
         project1.project_id = VALID_PROJECT["project_id"]
         project2 = Project(**VALID_PROJECT_2)
