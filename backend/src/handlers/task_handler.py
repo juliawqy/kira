@@ -136,7 +136,7 @@ def update_task(
             recipients = None
 
         resp = get_notification_service().notify_activity(
-            user_email="system@kira.local",
+            user_email=kwargs.get("user_email"),
             task_id=updated.id,
             task_title=updated.title or "",
             type_of_alert=NotificationType.TASK_UPDATE.value,
@@ -158,7 +158,6 @@ def update_task(
                 },
             )
         except Exception:
-            # Ensure handler never raises due to logging issues
             pass
 
     return updated
