@@ -25,6 +25,8 @@ class User(Base):
         "TeamAssignment", back_populates="user", cascade="all, delete-orphan"
     )
 
+    managed_projects = relationship("Project", back_populates="project_manager_user")
+
     __table_args__ = (
         UniqueConstraint("email", name="uq_user_email"),
     )
