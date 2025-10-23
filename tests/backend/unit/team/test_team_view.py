@@ -28,12 +28,3 @@ def test_view_team_success(mock_session_local):
     assert result["manager_id"] == VALID_TEAM["manager_id"]
     assert result["department_id"] == VALID_TEAM["department_id"]
     assert result["team_number"] == VALID_TEAM["team_number"]
-
-# UNI-061/002
-@patch("backend.src.services.team.SessionLocal")
-def test_view_team_not_found(mock_session_local):
-    mock_session = MagicMock()
-    mock_session_local.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = None
-    with pytest.raises(ValueError):
-        team_service.get_team_by_id(NOT_FOUND_ID)

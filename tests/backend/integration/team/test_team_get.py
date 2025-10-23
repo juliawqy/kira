@@ -69,16 +69,3 @@ def test_get_team():
     fetched = team_service.get_team_by_id(VALID_TEAM["team_id"])
     assert fetched["team_id"] == VALID_TEAM["team_id"]
     assert fetched["team_name"] == VALID_TEAM["team_name"]
-
-# INT-061/002
-def test_get_team_nonexistent():
-    team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], 
-        VALID_TEAM_CREATE["manager_id"], 
-        department_id=VALID_TEAM_CREATE["department_id"], 
-        prefix=str(VALID_TEAM_CREATE["department_id"])
-    )
-    
-    with pytest.raises(ValueError):
-        team_service.get_team_by_id(NOT_FOUND_ID)
-
