@@ -10,11 +10,17 @@ import importlib.util
 
 from backend.src.database.db_setup import Base
 from backend.src.database.models.task import Task
+from backend.src.database.models.project import Project
+from backend.src.database.models.user import User
 from backend.src.enums.task_status import TaskStatus
 
+from tests.mock_data.notification_email.integration_data import (
+    VALID_USER,
+    VALID_PROJECT
+)
 
 def _load_mock_module(file_name: str):
-    mock_dir = Path(__file__).parents[3] / 'mock_data' / 'notification&email'
+    mock_dir = Path(__file__).parents[3] / 'mock_data' / 'notification_email'
     file_path = mock_dir / file_name
     spec = importlib.util.spec_from_file_location(f"mock_{file_name.replace('.', '_')}", str(file_path))
     module = importlib.util.module_from_spec(spec)
@@ -67,10 +73,15 @@ def db_session(test_engine_backend_integration):
 @pytest.fixture
 def task_factory(db_session):
     def _create_task(**kwargs):
+        user = User(**VALID_USER)
+        db_session.add(user)
+        db_session.flush()
+        project = Project(**VALID_PROJECT)
+        db_session.add(project)
+        db_session.flush()
+
         default_data = dict(getattr(_integration_mock, 'DEFAULT_TASK_DATA', {}))
         default_data.setdefault("status", TaskStatus.TO_DO.value)
-        default_data["project_id"] = kwargs.pop("project_id", 1)
-        default_data.update(kwargs)
 
         task = Task(**default_data)
         db_session.add(task)
