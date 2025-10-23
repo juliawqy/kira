@@ -12,6 +12,7 @@ from tests.mock_data.project_data import (
     STAFF_USER, 
     VALID_PROJECT, 
     EMPTY_PROJECT_NAME, 
+    NOT_FOUND_ID
 )
 from unittest.mock import patch
 
@@ -69,3 +70,8 @@ def test_create_project_empty_name_raises(isolated_test_db):
     with pytest.raises(ValueError):
         project_handler.create_project(EMPTY_PROJECT_NAME, MANAGER_USER["user_id"])
 
+# INT-077/004
+def test_get_nonexistent_project(isolated_test_db):
+
+    with pytest.raises(ValueError):
+        project_handler.get_project_by_id(NOT_FOUND_ID)
