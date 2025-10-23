@@ -2,6 +2,7 @@ from typing import Optional, Any, Union
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.team import Team 
 from backend.src.database.models.team_assignment import TeamAssignment
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 
@@ -21,7 +22,7 @@ def create_team(team_name: str, user_id, department_id: int, prefix: str) -> dic
         session.flush()                
         session.refresh(team)          
         
-        team_number = f"{str(prefix).zfill(2)}{str(team.team_id).zfill(2)}00"
+        team_number = f"{str(prefix).zfill(2)}{str(team.team_id).zfill(2)}".ljust(6, "0")
         team.team_number = team_number
         
         session.commit()             
@@ -41,7 +42,7 @@ def get_team_by_id(team_id: int) -> dict:
     with SessionLocal() as session:
         team = session.get(Team, team_id)
         if not team:
-            raise ValueError("Team not found")
+            return None
 
         assignments = (
             session.query(TeamAssignment).filter_by(team_id=team_id).all()
@@ -64,7 +65,7 @@ def get_teams_by_department(department_id: int) -> list[dict]:
     with SessionLocal() as session:
         teams = (
             session.query(Team)
-            .filter(Team.team_number[3:5] == str(department_id))
+            .filter(func.substr(Team.team_number, 1, 2) == str(department_id).zfill(2))
             .all()
         )
         result = []
@@ -78,24 +79,29 @@ def get_teams_by_department(department_id: int) -> list[dict]:
             })
         return result
 
-def get_subteam_by_team_number(team_number: str) -> Optional[dict]:
+def get_subteam_by_team_number(team_number: str) -> list[dict]:
+    """Return all subteams under a given team number prefix."""
+    prefix = team_number[:4]
     with SessionLocal() as session:
-        team = (
+        subteams = (
             session.query(Team)
-            .filter(
-                Team.team_number[0:8] == team_number
-            )
-            .first()
+            .filter(func.substr(Team.team_number, 1, 4) == prefix)
+            .filter(Team.team_number != team_number)
+            .all()
         )
-        if not team:
-            return None
-        return {
-            "team_id": team.team_id,
-            "team_name": team.team_name,
-            "manager_id": team.manager_id,
-            "department_id": team.department_id,
-            "team_number": team.team_number,
-        }
+        if not subteams:
+            return []
+
+        return [
+            {
+                "team_id": t.team_id,
+                "team_name": t.team_name,
+                "manager_id": t.manager_id,
+                "department_id": t.department_id,
+                "team_number": t.team_number,
+            }
+            for t in subteams
+        ]
     
 
 def assign_to_team(team_id: int, assignee_id: int) -> dict:
@@ -116,9 +122,6 @@ def assign_to_team(team_id: int, assignee_id: int) -> dict:
             raise ValueError(
                 f"User {assignee_id} is already assigned to team {team_id}."
             )
-        except Exception as e:
-            session.rollback()
-            raise ValueError(f"Failed to assign: {str(e)}")
 
         return {
             "team_id": assignment.team_id,

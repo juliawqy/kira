@@ -47,6 +47,21 @@ VALID_TEAM = {
     "team_number": "010100",
 }
 
+VALID_SUBTEAM_CREATE = {
+    "team_id": 1,
+    "team_name": "Subteam Alpha",
+    "manager_id": 2,
+}
+
+VALID_SUBTEAM = {
+    "team_id": 2,
+    "team_name": "Subteam Alpha",
+    "manager_id": 2,
+    "department_id": 1,
+    "team_number": "010102",
+}
+
 NOT_FOUND_ID = 9999
+INVALID_TEAM_NUMBER = "999999"
 
 
