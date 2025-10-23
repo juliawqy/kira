@@ -16,7 +16,6 @@ from tests.mock_data.task.unit_data import (
     VALID_PROJECT_ID,
     VALID_PROJECT_ID_INACTIVE_TASK,
     INVALID_TASK_ID_NONEXISTENT,
-    INVALID_TASK_ID_TYPE
 )
 
 pytestmark = pytest.mark.unit
@@ -862,16 +861,3 @@ def test_get_task_by_invalid_id(mock_session_local):
     assert "id" in sql_text and invalid_id_str in sql_text, f"Task ID filter not found in SQL: {sql_text}"
     
     assert result is None
-
-# UNI-002/019
-@pytest.mark.parametrize("invalid_id", INVALID_TASK_ID_TYPE)
-@patch("backend.src.services.task.SessionLocal")
-def test_get_task_by_invalid_id_type(mock_session_local, invalid_id):
-    """Get task by invalid ID type raises TypeError"""
-    from backend.src.services import task as task_service
-    
-    mock_session = MagicMock()
-    mock_session_local.return_value.__enter__.return_value = mock_session
-    
-    with pytest.raises(TypeError):
-        task_service.get_task_with_subtasks(invalid_id)

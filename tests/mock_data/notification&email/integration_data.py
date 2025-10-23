@@ -1,6 +1,3 @@
-"""Mock data for integration tests between notification and email services"""
-
-# Task update integration scenarios
 INTEGRATION_SINGLE_TITLE_UPDATE = {
     "original_task": {
         "id": 1001,
@@ -101,13 +98,13 @@ INTEGRATION_NO_CHANGES = {
         "deadline": None
     },
     "update_data": {
-        "title": "No Changes Task",  # Same as original
-        "priority": 3  # Same as original
+        "title": "No Changes Task", 
+        "priority": 3  
     },
-    "expected_notification": None  # No notification should be sent
+    "expected_notification": None 
 }
 
-# Email service integration scenarios
+
 EMAIL_SERVICE_SUCCESS_SCENARIO = {
     "recipients": [
         {"email": "integration@test.com", "name": "Integration Tester"}
@@ -120,7 +117,7 @@ EMAIL_SERVICE_SUCCESS_SCENARIO = {
 }
 
 EMAIL_SERVICE_FAILURE_SCENARIO = {
-    "recipients": [],  # No recipients
+    "recipients": [], 
     "response": {
         "success": True,
         "message": "No recipients configured for notifications", 
@@ -140,7 +137,7 @@ EMAIL_SERVICE_ERROR_SCENARIO = {
     }
 }
 
-# Full pipeline test scenarios
+
 PIPELINE_SUCCESS_SCENARIO = {
     "task_update": INTEGRATION_SINGLE_TITLE_UPDATE,
     "notification_success": True,
@@ -163,7 +160,7 @@ PIPELINE_EMAIL_FAILURE = {
     "expected_result": "Task updated but email sending failed"
 }
 
-# Service communication test data
+
 SERVICE_COMMUNICATION_SUCCESS = {
     "notification_to_email_call": {
         "task_id": 2001,
@@ -195,7 +192,7 @@ SERVICE_COMMUNICATION_FAILURE = {
     }
 }
 
-# Error handling integration scenarios
+
 ERROR_HANDLING_TASK_UPDATE_CONTINUES = {
     "task_data": {
         "id": 3001,
@@ -218,7 +215,7 @@ ERROR_HANDLING_LOGGING_TEST = {
     ]
 }
 
-# Recipient determination test scenarios
+
 RECIPIENT_DETERMINATION_WITH_RECIPIENTS = {
     "task_id": 4001,
     "mock_recipients": [
@@ -240,7 +237,7 @@ RECIPIENT_DETERMINATION_NO_RECIPIENTS = {
     }
 }
 
-# Performance integration test data
+
 PERFORMANCE_INTEGRATION_TEST = {
     "task_data": {
         "id": 5001,
@@ -250,10 +247,10 @@ PERFORMANCE_INTEGRATION_TEST = {
         f"field_{i}": f"value_{i}" for i in range(50)
     },
     "expected_notification_fields": [f"field_{i}" for i in range(50)],
-    "performance_threshold_ms": 1000  # Max 1 second for processing
+    "performance_threshold_ms": 1000 
 }
 
-# Mock database session scenarios
+
 MOCK_SESSION_SUCCESS = {
     "session_type": "successful_transaction",
     "operations": ["get", "add", "flush"],

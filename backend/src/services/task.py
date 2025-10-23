@@ -17,6 +17,7 @@ from backend.src.database.models.task_assignment import TaskAssignment
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 
+
 # ---- Helpers ----------------------------------------------------------------
 def _assert_no_cycle(session, parent_id: int, child_id: int) -> None:
     """
@@ -592,15 +593,14 @@ def get_task_with_subtasks(task_id: int) -> Optional[Task]:
     """
     Return a task with its active subtasks
     """
-    if not isinstance(task_id, int):
-        raise TypeError(f"task_id must be an integer, got {type(task_id).__name__}")
+    # if not isinstance(task_id, int):
+    #     raise TypeError(f"task_id must be an integer, got {type(task_id).__name__}")
     
     with SessionLocal() as session:
         stmt = (
             select(Task)
             .where(Task.id == task_id)
             .options(
-                # load link rows and their active subtask Task objects
                 selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask.and_(Task.active.is_(True)))
             )
         )

@@ -1,8 +1,8 @@
 """
 Services module initialization
 """
-from .email_service import EmailService, get_email_service
-from .notification_service import NotificationService, get_notification_service
+from .email import EmailService, get_email_service
+from .notification import NotificationService, get_notification_service
 
 __all__ = [
     "EmailService",

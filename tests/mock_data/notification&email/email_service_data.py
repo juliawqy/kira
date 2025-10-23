@@ -1,6 +1,8 @@
-"""Mock data for email service tests"""
+CUSTOM_MESSAGE_ID = "custom-id@example.com"
+SIMPLE_TASK_ID = 1
+UNIT_TEST_EMAIL = "unit+test@example.com"
 
-# Valid email settings configurations
+
 VALID_EMAIL_SETTINGS = {
     "smtp_server": "smtp.fastmail.com",
     "smtp_port": 587,
@@ -19,7 +21,7 @@ ALTERNATIVE_EMAIL_SETTINGS = {
     "app_url": "https://kira.example.com"
 }
 
-# Invalid email settings for testing validation
+
 INVALID_EMAIL_SETTINGS_EMPTY = {
     "smtp_server": "",
     "smtp_port": 587,
@@ -38,7 +40,7 @@ INVALID_EMAIL_SETTINGS_MISSING_PORT = {
     "app_url": "http://test.com"
 }
 
-# Sample email recipients
+
 VALID_EMAIL_RECIPIENTS = [
     {
         "email": "john.doe@fastmail.com",
@@ -72,7 +74,7 @@ EMAIL_RECIPIENTS_NO_NAMES = [
     }
 ]
 
-# Sample email content
+
 VALID_EMAIL_CONTENT_HTML_TEXT = {
     "subject": "Task Update Notification",
     "html_body": "<p>Your task has been updated.</p>",
@@ -99,7 +101,7 @@ VALID_EMAIL_CONTENT_TEMPLATE = {
     }
 }
 
-# Sample complete email messages
+
 VALID_EMAIL_MESSAGE_SIMPLE = {
     "recipients": SINGLE_EMAIL_RECIPIENT,
     "content": VALID_EMAIL_CONTENT_HTML_TEXT,
@@ -121,7 +123,7 @@ VALID_EMAIL_MESSAGE_WITH_CC_BCC = {
     "email_type": "general_notification"
 }
 
-# Task update notification data
+
 VALID_TASK_UPDATE_NOTIFICATION = {
     "task_id": 456,
     "task_title": "Fix Authentication Bug",
@@ -164,7 +166,7 @@ COMPLEX_TASK_UPDATE_NOTIFICATION = {
     "task_url": "http://localhost:8000/tasks/999"
 }
 
-# Email response test data
+
 SUCCESSFUL_EMAIL_RESPONSE = {
     "success": True,
     "message": "Email sent successfully",
@@ -183,12 +185,12 @@ MULTIPLE_RECIPIENTS_EMAIL_RESPONSE = {
     "recipients_count": 3
 }
 
-# SMTP test scenarios
+
 SMTP_CONNECTION_ERROR = "Connection to SMTP server failed"
 SMTP_AUTH_ERROR = "SMTP authentication failed"
 SMTP_SEND_ERROR = "Failed to send message via SMTP"
 
-# Environment variable test data
+
 ENV_VARS_COMPLETE = {
     'EMAIL_SMTP_SERVER': 'smtp.testmail.com',
     'EMAIL_SMTP_PORT': '587',
