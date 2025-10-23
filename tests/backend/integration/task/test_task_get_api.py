@@ -30,10 +30,7 @@ from tests.mock_data.task.integration_data import (
     VALID_PROJECT,
     VALID_PROJECT_2,
     INVALID_PROJECT_ID,
-    VALID_USER_ID,
-    INVALID_USER_ID,
     VALID_USER,
-    VALID_TASK_ASSIGNMENT,
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -67,20 +64,18 @@ def test_db_session(test_engine):
         yield session
 
 @pytest.fixture(autouse=True)
-def create_test_project(test_db_session):
+def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
+    
+    manager = User(**VALID_USER)
+    test_db_session.add(manager)
+    test_db_session.flush()
 
     project = Project(**VALID_PROJECT)
     project.project_id = VALID_PROJECT["project_id"]
     project2 = Project(**VALID_PROJECT_2)
     project2.project_id = VALID_PROJECT_2["project_id"]
     test_db_session.add_all([project, project2])
-    test_db_session.commit()
-
-@pytest.fixture(autouse=True)
-def create_test_user(test_db_session):
-    user = User(**VALID_USER)
-    test_db_session.add(user)
     test_db_session.commit()
 
 # INT-002/001

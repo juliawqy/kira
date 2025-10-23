@@ -40,7 +40,7 @@ ANOTHER_USER = {
 VALID_PROJECT = {
     "project_id": 1,
     "project_name": "Integration Test Project",
-    "project_manager": VALID_USER_ID,
+    "project_manager": 1,
     "active": True,
 }
 

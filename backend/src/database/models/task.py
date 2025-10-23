@@ -24,7 +24,7 @@ class Task(Base):
     tag         = Column(String(128))
     
     project = relationship("Project", back_populates="tasks")
-    #Link FK to Project table later: ForeignKey("project.id", ondelete="SET NULL")
+
     project_id  = Column(Integer, ForeignKey("project.project_id", ondelete="SET NULL"), nullable=True)
     active      = Column(Boolean, nullable=False, default=True)
 

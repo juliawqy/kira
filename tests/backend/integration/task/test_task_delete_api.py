@@ -5,6 +5,7 @@ from sqlalchemy import text
 import pytest
 from datetime import date, datetime
 from backend.src.database.models.project import Project
+from backend.src.database.models.user import User
 
 from tests.mock_data.task.integration_data import (
     TASK_CREATE_PAYLOAD,
@@ -19,7 +20,8 @@ from tests.mock_data.task.integration_data import (
     TASK_CREATE_CHILD,
     EXPECTED_TASK_CHILD_RESPONSE,
     VALID_PROJECT,
-    VALID_PROJECT_2
+    VALID_PROJECT_2,
+    VALID_USER
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -53,8 +55,12 @@ def test_db_session(test_engine):
         yield session
 
 @pytest.fixture(autouse=True)
-def create_test_project(test_db_session):
+def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
+    
+    manager = User(**VALID_USER)
+    test_db_session.add(manager)
+    test_db_session.flush()
 
     project = Project(**VALID_PROJECT)
     project2 = Project(**VALID_PROJECT_2)
