@@ -14,6 +14,7 @@ from tests.mock_data.team_data import (
     MANAGER_USER,
     NOT_FOUND_ID,
     DIRECTOR_USER,
+    VALID_TEAM
 )
 
 
@@ -59,9 +60,10 @@ def seed_task_and_user(test_engine):
 # INT-062/001
 def test_assign_to_team_not_found():
     team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], MANAGER_USER["user_id"],
+        VALID_TEAM_CREATE["team_name"], 
+        VALID_TEAM_CREATE["manager_id"],
         department_id=VALID_TEAM_CREATE["department_id"],
-        team_number=VALID_TEAM_CREATE["team_number"],
+        prefix=str(VALID_TEAM_CREATE["department_id"]),
     )
 
     with pytest.raises(ValueError) as exc:
@@ -73,19 +75,20 @@ def test_assign_to_team_not_found():
 def test_assign_to_team_success(isolated_test_db):
 
     team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], MANAGER_USER["user_id"],
+        VALID_TEAM_CREATE["team_name"], 
+        VALID_TEAM_CREATE["manager_id"],
         department_id=VALID_TEAM_CREATE["department_id"],
-        team_number=VALID_TEAM_CREATE["team_number"],
+        prefix=str(VALID_TEAM_CREATE["department_id"]),
     )
 
-    result = team_service.assign_to_team(team["team_id"], STAFF_USER["user_id"])
+    result = team_service.assign_to_team(VALID_TEAM["team_id"], STAFF_USER["user_id"])
 
-    assert result["team_id"] == team["team_id"]
+    assert result["team_id"] == VALID_TEAM["team_id"]
     assert result["user_id"] == STAFF_USER["user_id"]
 
     sess = Session(bind=isolated_test_db)
     try:
-        assignment = sess.query(TeamAssignment).filter_by(team_id=team["team_id"], user_id=STAFF_USER["user_id"]).one_or_none()
+        assignment = sess.query(TeamAssignment).filter_by(team_id=VALID_TEAM["team_id"], user_id=STAFF_USER["user_id"]).one_or_none()
         assert assignment is not None
     finally:
         sess.close()
@@ -95,20 +98,21 @@ def test_assign_to_team_success(isolated_test_db):
 def test_duplicate_assignment_raises_and_only_one_record_exists(isolated_test_db):
 
     team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], MANAGER_USER["user_id"],
+        VALID_TEAM_CREATE["team_name"], 
+        VALID_TEAM_CREATE["manager_id"],
         department_id=VALID_TEAM_CREATE["department_id"],
-        team_number=VALID_TEAM_CREATE["team_number"],
+        prefix=str(VALID_TEAM_CREATE["department_id"]),
     )
 
     assignee_id = STAFF_USER["user_id"]
-    team_service.assign_to_team(team["team_id"], assignee_id)
+    team_service.assign_to_team(VALID_TEAM["team_id"], assignee_id)
 
     with pytest.raises(ValueError):
-        team_service.assign_to_team(team["team_id"], assignee_id)
+        team_service.assign_to_team(VALID_TEAM["team_id"], assignee_id)
 
     sess = Session(bind=isolated_test_db)
     try:
-        assignments = sess.query(TeamAssignment).filter_by(team_id=team["team_id"], user_id=assignee_id).all()
+        assignments = sess.query(TeamAssignment).filter_by(team_id=VALID_TEAM["team_id"], user_id=assignee_id).all()
         assert len(assignments) == 1
     finally:
         sess.close()

@@ -14,6 +14,7 @@ from tests.mock_data.team_data import (
     MANAGER_USER,
     NOT_FOUND_ID,
     DIRECTOR_USER,
+    VALID_TEAM
 )
 
 
@@ -59,17 +60,23 @@ def seed_task_and_user(test_engine):
 # INT-061/001
 def test_get_team():
     team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], MANAGER_USER["user_id"], department_id=VALID_TEAM_CREATE["department_id"], team_number=VALID_TEAM_CREATE["team_number"]
+        VALID_TEAM_CREATE["team_name"], 
+        VALID_TEAM_CREATE["manager_id"], 
+        department_id=VALID_TEAM_CREATE["department_id"], 
+        prefix=str(VALID_TEAM_CREATE["department_id"])
     )
 
-    fetched = team_service.get_team_by_id(team["team_id"])
-    assert fetched["team_id"] == team["team_id"]
-    assert fetched["team_name"] == team["team_name"]
+    fetched = team_service.get_team_by_id(VALID_TEAM["team_id"])
+    assert fetched["team_id"] == VALID_TEAM["team_id"]
+    assert fetched["team_name"] == VALID_TEAM["team_name"]
 
 # INT-061/002
 def test_get_team_nonexistent():
     team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], MANAGER_USER["user_id"], department_id=VALID_TEAM_CREATE["department_id"], team_number=VALID_TEAM_CREATE["team_number"]
+        VALID_TEAM_CREATE["team_name"], 
+        VALID_TEAM_CREATE["manager_id"], 
+        department_id=VALID_TEAM_CREATE["department_id"], 
+        prefix=str(VALID_TEAM_CREATE["department_id"])
     )
     
     with pytest.raises(ValueError):

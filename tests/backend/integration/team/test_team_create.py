@@ -13,6 +13,7 @@ from tests.mock_data.team_data import (
     STAFF_USER,
     MANAGER_USER,
     DIRECTOR_USER,
+    VALID_TEAM,
 )
 
 
@@ -58,10 +59,13 @@ def seed_task_and_user(test_engine):
 def test_create_team():
 
     team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], MANAGER_USER["user_id"], department_id=VALID_TEAM_CREATE["department_id"], team_number=VALID_TEAM_CREATE["team_number"]
+        VALID_TEAM_CREATE["team_name"], 
+        VALID_TEAM_CREATE["manager_id"], 
+        department_id=VALID_TEAM_CREATE["department_id"], 
+        prefix=str(VALID_TEAM_CREATE["department_id"])
     )
 
-    assert team["team_name"] == VALID_TEAM_CREATE["team_name"]
-    assert team["manager_id"] == MANAGER_USER["user_id"]
-
-
+    assert team["team_name"] == VALID_TEAM["team_name"]
+    assert team["manager_id"] == VALID_TEAM["manager_id"]
+    assert team["department_id"] == VALID_TEAM["department_id"]
+    assert team["team_number"] == VALID_TEAM["team_number"]
