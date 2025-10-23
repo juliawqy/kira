@@ -11,27 +11,24 @@ def view_teams_in_department(department_id: int):
     teams = team_service.get_teams_by_department(department_id)
     return teams
 
-def add_team_to_department(department_id: int, team_name: str, team_number: int, manager_id: int):
+def add_team_to_department(department_id: int, team_name: str, manager_id: int):
     department = dept_service.get_department_by_id(department_id)
     if not department:
         raise ValueError(f"Department {department_id} not found")
 
-    team = team_service.create_team(
-        team_name=team_name,
-        department_id=department_id,
-        team_number=team_number,
-        manager_id=manager_id
-    )
+    team = team_service.create_team(team_name, manager_id, department_id, str(department_id).zfill(2))
+
     return team
 
-def add_team_to_team(department_id: int, team_name: str, team_number: int):
-    department = dept_service.get_department(department_id)
-    if not department:
-        raise ValueError(f"Department {department_id} not found")
+def add_team_to_team(team_id: int, team_name: str, manager_id: int):
+    team = team_service.get_team_by_id(team_id)
+    if not team:
+        raise ValueError(f"Team {team_id} not found")
 
-    team = team_service.create_team(
+    subteam = team_service.create_team(
         team_name=team_name,
-        department_id=department_id,
-        team_number=team_number
+        user_id=manager_id,
+        department_id=team.department_id,
+        prefix=team["team_number"][0:5]
     )
-    return team
+    return subteam

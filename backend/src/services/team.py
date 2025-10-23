@@ -5,21 +5,28 @@ from backend.src.database.models.team_assignment import TeamAssignment
 from sqlalchemy.exc import IntegrityError
 
 
-def create_team(team_name: str, user_id, department_id: int, team_number: str) -> dict:
+def create_team(team_name: str, user_id, department_id: int, prefix: str) -> dict:
     """Create a team and return it. Only managers can create a team.
     """
 
-    with SessionLocal.begin() as session:
+    with SessionLocal() as session:
         team_name_clean = team_name.strip()
         team = Team(
             team_name=team_name_clean,
             manager_id=user_id,
             department_id=department_id,
-            team_number=team_number,
+            team_number=str(prefix),
         )
         session.add(team)
-        session.flush()
+        session.flush()                
+        session.refresh(team)          
+        
+        team_number = f"{str(prefix).zfill(2)}{str(team.team_id).zfill(2)}00"
+        team.team_number = team_number
+        
+        session.commit()             
         session.refresh(team)
+        
         return {
             "team_id": team.team_id,
             "team_name": team.team_name,
