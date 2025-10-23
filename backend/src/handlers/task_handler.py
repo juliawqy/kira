@@ -1,11 +1,15 @@
+import logging
 # backend/src/handlers/task_handler.py
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
 from backend.src.services import comment as comment_service
-from backend.src.services.notification_service import get_notification_service
+from backend.src.services.notification import get_notification_service
 from backend.src.services import task_assignment as assignment_service
 from backend.src.enums.notification import NotificationType
 
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def add_comment(task_id: int, user_id: int, comment_text: str):
@@ -68,7 +72,6 @@ def update_task(
     recurring: int | None = None,
     tag: str | None = None,
     project_id: int | None = None,
-    to_recipients: list[str] | None = None,
     **kwargs,
 ):
     
@@ -126,15 +129,13 @@ def update_task(
             new_values[f] = after
 
     if updated_fields:
-        recipients = to_recipients
-        if recipients is None:
-            try:
-                assignees = assignment_service.list_assignees(task_id)
-                recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
-            except Exception:
-                recipients = None
+        try:
+            assignees = assignment_service.list_assignees(task_id)
+            recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
+        except Exception:
+            recipients = None
 
-        get_notification_service().notify_activity(
+        resp = get_notification_service().notify_activity(
             user_email="system@kira.local",
             task_id=updated.id,
             task_title=updated.title or "",
@@ -144,5 +145,20 @@ def update_task(
             new_values=new_values,
             to_recipients=recipients,
         )
+        try:
+            logger.info(
+                "Notification response",
+                extra={
+                    "task_id": updated.id,
+                    "type": NotificationType.TASK_UPDATE.value,
+                    "success": getattr(resp, "success", None),
+                    "message": getattr(resp, "message", None),
+                    "recipients_count": getattr(resp, "recipients_count", None),
+                    "email_id": getattr(resp, "email_id", None),
+                },
+            )
+        except Exception:
+            # Ensure handler never raises due to logging issues
+            pass
 
     return updated

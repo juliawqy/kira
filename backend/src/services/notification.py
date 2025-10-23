@@ -2,7 +2,7 @@ import logging
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 
-from .email_service import get_email_service
+from .email import get_email_service
 from ..schemas.email import EmailResponse, EmailMessage, EmailRecipient, EmailType
 from ..enums.notification import NotificationType
 
@@ -43,14 +43,12 @@ class NotificationService:
                 },
             )
 
-            # Validate inputs based on alert type
             self._validate_activity_inputs(
                 type_of_alert=type_of_alert,
                 comment_user=comment_user,
                 updated_fields=updated_fields,
             )
 
-            # Determine recipients
             recipients, cc = self._resolve_recipients(
                 task_id=task_id, to_recipients=to_recipients, cc_recipients=cc_recipients
             )
@@ -63,7 +61,6 @@ class NotificationService:
                     recipients_count=0,
                 )
 
-            # Build subject and message bodies
             subject, text_body, html_body = self._build_activity_message(
                 type_of_alert=type_of_alert,
                 task_id=task_id,
@@ -75,7 +72,6 @@ class NotificationService:
                 new_values=new_values or {},
             )
 
-            # Construct EmailMessage
             email_message = EmailMessage(
                 recipients=[EmailRecipient(email=e) for e in recipients],
                 cc=[EmailRecipient(email=e) for e in cc] if cc else None,
@@ -87,7 +83,6 @@ class NotificationService:
                 email_type=EmailType.GENERAL_NOTIFICATION,
             )
 
-            # Audit log
             logger.info(
                 "Dispatching activity notification",
                 extra={
@@ -101,27 +96,26 @@ class NotificationService:
             resp = self.email_service.send_email(email_message)
 
             if resp.success:
-                # Additional detailed message for easier debugging
                 logger.info(
                     f"Activity notification sent for task {task_id}, type={type_of_alert}, msgid={getattr(resp, 'email_id', None)}, recipients={resp.recipients_count}"
                 )
-                # Legacy message kept for tests and external expectations (must be last)
                 logger.info(f"Activity notification '{type_of_alert}' sent for task {task_id}")
             else:
-                # Additional detailed message for easier debugging
                 logger.error(
                     f"Activity notification FAILED for task {task_id}, type={type_of_alert}, error={resp.message}"
                 )
-                # Legacy message kept for tests and external expectations (must be last)
                 logger.error(f"Failed to send activity notification '{type_of_alert}': {resp.message}")
 
             return resp
 
         except Exception as e:
-            logger.error(f"Error in notify_activity: {str(e)}")
+            msg = str(e)
+            if isinstance(e, ValueError) and "Invalid type_of_alert" not in msg and "valid NotificationType" in msg:
+                msg = f"Invalid type_of_alert: {type_of_alert}"
+            logger.error(f"Error in notify_activity: {msg}")
             return EmailResponse(
                 success=False,
-                message=f"Notification service error: {str(e)}",
+                message=f"Notification service error: {msg}",
                 recipients_count=0,
             )
 
@@ -132,12 +126,9 @@ class NotificationService:
         comment_user: Optional[str],
         updated_fields: Optional[List[str]],
     ) -> None:
-        try:
-            alert = NotificationType(type_of_alert)
-        except ValueError:
-            raise ValueError(f"Invalid type_of_alert: {type_of_alert}")
+        alert = NotificationType(type_of_alert)
+        
 
-        # Per-type minimal validations
         if alert in {
             NotificationType.COMMENT_CREATE,
             NotificationType.COMMENT_MENTION,
@@ -156,7 +147,6 @@ class NotificationService:
         if to_recipients:
             to_list = to_recipients
         else:
-            # Fallback to default recipients resolution via EmailService helper
             default_recipients = self.email_service._get_task_notification_recipients(task_id)
             to_list = [r.email for r in default_recipients]
 
@@ -175,30 +165,17 @@ class NotificationService:
         old_values: Dict[str, Any],
         new_values: Dict[str, Any],
     ) -> Tuple[str, str, str]:
-        # Subject line via enum
         try:
             alert = NotificationType(type_of_alert)
         except ValueError:
             alert = None
 
-        verb_map = {
-            NotificationType.TASK_CREATE: "created",
-            NotificationType.TASK_UPDATE: "updated",
-            NotificationType.TASK_ASSIGN: "assigned",
-            NotificationType.TASK_UNASSIGN: "unassigned",
-            NotificationType.COMMENT_CREATE: "commented",
-            NotificationType.COMMENT_MENTION: "mentioned",
-            NotificationType.COMMENT_UPDATE: "updated comment",
-            NotificationType.DELETE_TASK: "deleted task",
-            NotificationType.DELETE_COMMENT: "deleted comment",
-        }
         if alert:
-            verb = verb_map.get(alert, alert.value)
+            verb = alert.verb()
         else:
             verb = type_of_alert
         subject = f"[{self.sender_display_name}] {verb.title()} — {task_title} (#{task_id})"
 
-        # Change lines for updates
         def fmt_val(v: Any) -> str:
             return "Yes" if isinstance(v, bool) and v else ("No" if isinstance(v, bool) else str(v))
 
@@ -217,7 +194,6 @@ class NotificationService:
         actor_html = f"<p><em>Triggered by:</em> {comment_user or user_email}</p>"
         actor_text = f"Triggered by: {comment_user or user_email}\n"
 
-        # Assemble HTML
         html_sections = [
             f"<p><strong>{verb.title()}</strong> — <em>{task_title}</em> (#{task_id})</p>",
             actor_html,
@@ -226,7 +202,6 @@ class NotificationService:
             html_sections.append("<ul>" + "".join(change_lines) + "</ul>")
         html_body = "\n".join([s for s in html_sections if s])
 
-        # Assemble Text
         text_sections = [
             f"{verb.title()} — {task_title} (#{task_id})",
             actor_text,
@@ -248,7 +223,6 @@ class NotificationService:
         try:
             logger.info(f"Processing task update notification for task {task_id}")
 
-            # Prefer the centralized path to build consistent content
             return self.notify_activity(
                 user_email="system@kira.local",
                 task_id=task_id,
@@ -267,9 +241,7 @@ class NotificationService:
                 recipients_count=0,
             )
     
-# Global notification service instance
 notification_service = NotificationService()
 
 def get_notification_service() -> NotificationService:
-    """Get notification service instance"""
     return notification_service

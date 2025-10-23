@@ -37,18 +37,18 @@ def patched_email_settings():
     from backend.src.config.email_config import EmailSettings
     settings_dict = _email_config.EMAIL_SETTINGS
     settings_obj = EmailSettings(**settings_dict)
-    with patch('backend.src.services.email_service.get_email_settings', return_value=settings_obj):
+    with patch('backend.src.services.email.get_email_settings', return_value=settings_obj):
         yield settings_obj
 
 
 @pytest.fixture
 def email_service_with_patches(patched_email_settings):
-    from backend.src.services.email_service import EmailService
+    from backend.src.services.email import EmailService
     return EmailService()
 
 @pytest.fixture
 def patched_smtp():
-    with patch('backend.src.services.email_service.smtplib.SMTP', autospec=True) as mock_smtp:
+    with patch('backend.src.services.email.smtplib.SMTP', autospec=True) as mock_smtp:
         server = MagicMock(name='SMTPServer')
         mock_smtp.return_value = server
         yield server
@@ -56,7 +56,7 @@ def patched_smtp():
 
 @pytest.fixture
 def patched_smtp_ssl():
-    with patch('backend.src.services.email_service.smtplib.SMTP_SSL', autospec=True) as mock_smtp_ssl:
+    with patch('backend.src.services.email.smtplib.SMTP_SSL', autospec=True) as mock_smtp_ssl:
         server = MagicMock(name='SMTPSSLServer')
         mock_smtp_ssl.return_value = server
         yield server

@@ -11,3 +11,17 @@ class NotificationType(str, Enum):
     COMMENT_UPDATE = "comment_update"
     DELETE_TASK = "delete_task"
     DELETE_COMMENT = "delete_comment"
+
+    def verb(self) -> str:
+        mapping = {
+            NotificationType.TASK_CREATE: "created",
+            NotificationType.TASK_UPDATE: "updated",
+            NotificationType.TASK_ASSIGN: "assigned",
+            NotificationType.TASK_UNASSIGN: "unassigned",
+            NotificationType.COMMENT_CREATE: "commented",
+            NotificationType.COMMENT_MENTION: "mentioned",
+            NotificationType.COMMENT_UPDATE: "updated comment",
+            NotificationType.DELETE_TASK: "deleted task",
+            NotificationType.DELETE_COMMENT: "deleted comment",
+        }
+        return mapping.get(self, self.value)

@@ -1,14 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any
-from enum import Enum
-
-
-class EmailType(str, Enum):
-    TASK_UPDATED = "task_updated"
-    TASK_ASSIGNED = "task_assigned"
-    TASK_COMPLETED = "task_completed"
-    TASK_OVERDUE = "task_overdue"
-    GENERAL_NOTIFICATION = "general_notification"
+from backend.src.enums.email import EmailType
 
 
 class EmailRecipient(BaseModel):
@@ -29,7 +21,7 @@ class EmailMessage(BaseModel):
     content: EmailContent
     email_type: EmailType = EmailType.GENERAL_NOTIFICATION
     cc: Optional[List[EmailRecipient]] = None
-    priority: Optional[int] = 1 
+    priority: Optional[int] = None 
 
 
 class TaskUpdateEmailData(BaseModel):

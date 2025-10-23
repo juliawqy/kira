@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import smtplib
 from email.mime.multipart import MIMEMultipart
 
-from backend.src.services.email_service import EmailService, get_email_service
+from backend.src.services.email import EmailService, get_email_service
 from backend.src.schemas.email import EmailRecipient, EmailResponse
 
 class TestEmailService:
@@ -20,7 +20,7 @@ class TestEmailService:
 
     # UNI-124/003
     def test_validate_settings_failure(self, invalid_email_settings_obj):
-        with patch('backend.src.services.email_service.get_email_settings', return_value=invalid_email_settings_obj):
+        with patch('backend.src.services.email.get_email_settings', return_value=invalid_email_settings_obj):
             email_service = EmailService()
             result = email_service._validate_settings()
             assert result is False
@@ -111,7 +111,7 @@ class TestEmailService:
         assert all(c.email in to_addrs for c in cc)
 
     # UNI-124/009
-    @patch('backend.src.services.email_service.smtplib.SMTP')
+    @patch('backend.src.services.email.smtplib.SMTP')
     def test_send_smtp_message_failure(self, mock_smtp, email_service_with_patches):
         mock_smtp.side_effect = smtplib.SMTPException("SMTP Error")
         
@@ -332,7 +332,7 @@ class TestEmailService:
 
 class TestEmailServiceEdgeCases:
     # UNI-124/027
-    @patch('backend.src.services.email_service.get_email_settings')
+    @patch('backend.src.services.email.get_email_settings')
     def test_email_service_init_with_exception(self, mock_get_settings):
         mock_get_settings.side_effect = Exception("Settings error")
         

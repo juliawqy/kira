@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from backend.src.handlers.task_handler import update_task
-from backend.src.services.email_service import EmailService
+from backend.src.services.email import EmailService
 from backend.src.schemas.email import EmailRecipient
 from backend.src.config.email_config import EmailSettings
 
@@ -32,8 +32,8 @@ def patched_email_settings_tls(monkeypatch):
     monkeypatch.setenv("USE_TLS", "True")
     monkeypatch.setenv("USE_SSL", "False")
     monkeypatch.setenv("TIMEOUT", str(settings.timeout))
-    import backend.src.services.email_service as email_service_module
-    import backend.src.services.notification_service as notification_service_module
+    import backend.src.services.email as email_service_module
+    import backend.src.services.notification as notification_service_module
     email_service_module.email_service = EmailService()
     notification_service_module.notification_service.email_service = email_service_module.email_service
     return settings
@@ -41,7 +41,7 @@ def patched_email_settings_tls(monkeypatch):
 
 @pytest.fixture
 def patched_smtp_tls():
-    with patch("backend.src.services.email_service.smtplib.SMTP", autospec=True) as mock_smtp:
+    with patch("backend.src.services.email.smtplib.SMTP", autospec=True) as mock_smtp:
         server = MagicMock(name="SMTPServerTLS")
         mock_smtp.return_value = server
         yield server
@@ -61,8 +61,8 @@ def patched_email_settings_ssl(monkeypatch):
     monkeypatch.setenv("USE_TLS", "False")
     monkeypatch.setenv("USE_SSL", "True")
     monkeypatch.setenv("TIMEOUT", str(settings.timeout))
-    import backend.src.services.email_service as email_service_module
-    import backend.src.services.notification_service as notification_service_module
+    import backend.src.services.email as email_service_module
+    import backend.src.services.notification as notification_service_module
     email_service_module.email_service = EmailService()
     notification_service_module.notification_service.email_service = email_service_module.email_service
     return settings
@@ -70,7 +70,7 @@ def patched_email_settings_ssl(monkeypatch):
 
 @pytest.fixture
 def patched_smtp_ssl():
-    with patch("backend.src.services.email_service.smtplib.SMTP_SSL", autospec=True) as mock_smtp_ssl:
+    with patch("backend.src.services.email.smtplib.SMTP_SSL", autospec=True) as mock_smtp_ssl:
         server = MagicMock(name="SMTPServerSSL")
         mock_smtp_ssl.return_value = server
         yield server
@@ -99,8 +99,8 @@ def patched_email_settings_plain(monkeypatch):
     monkeypatch.setenv("USE_TLS", "False")
     monkeypatch.setenv("USE_SSL", "False")
     monkeypatch.setenv("TIMEOUT", str(settings.timeout))
-    import backend.src.services.email_service as email_service_module
-    import backend.src.services.notification_service as notification_service_module
+    import backend.src.services.email as email_service_module
+    import backend.src.services.notification as notification_service_module
     email_service_module.email_service = EmailService()
     notification_service_module.notification_service.email_service = email_service_module.email_service
     return settings
@@ -164,7 +164,7 @@ class TestNotificationEmailIntegration:
     # INT-124/006
     def test_notification_service_handles_email_exception(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory, monkeypatch):
         task = task_factory(**_integration_data.TASK_FACTORY_OOPS)
-        import backend.src.services.email_service as email_service_module
+        import backend.src.services.email as email_service_module
         monkeypatch.setattr(email_service_module.email_service, "send_task_update_notification", None, raising=False)
         def boom(*args, **kwargs):
             raise Exception("SMTP boom")
