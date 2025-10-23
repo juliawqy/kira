@@ -1,5 +1,4 @@
 import logging
-# backend/src/handlers/task_handler.py
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
 from backend.src.services import comment as comment_service
@@ -75,10 +74,10 @@ def update_task(
     **kwargs,
 ):
     
-    try:
-        pre = task_service.get_task_with_subtasks(task_id)
-    except ValueError as e:
-        raise ValueError(str(e))
+
+    pre = task_service.get_task_with_subtasks(task_id)
+    if not pre:
+        raise ValueError(f"Task {task_id} not found")
 
     prev_values = {
         'title': getattr(pre, 'title', None),
