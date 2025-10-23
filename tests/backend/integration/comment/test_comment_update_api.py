@@ -26,7 +26,12 @@ def use_test_db(test_engine, monkeypatch):
 def seed_task_and_user(test_engine):
     TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
     with TestingSessionLocal.begin() as db:
-        db.add_all([User(**VALID_USER), Project(**VALID_PROJECT), Task(**VALID_TASK)])
+        user = User(**VALID_USER)
+        db.add(user)
+        db.flush()
+        project = Project(**VALID_PROJECT)
+        task = Task(**VALID_TASK)
+        db.add_all([project, task])
     yield
 
 # INT-027/001

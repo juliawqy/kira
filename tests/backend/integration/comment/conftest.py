@@ -81,6 +81,6 @@ def clean_db(test_engine):
     with TestingSession.begin() as s:
         s.execute(delete(Comment))
         s.execute(delete(Task))
-        s.execute(delete(User))
         s.execute(delete(Project))
+        s.execute(delete(User))
     yield
