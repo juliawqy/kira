@@ -34,11 +34,9 @@ DIRECTOR_USER = {
 INVALID_USER_ID = 99999
 
 VALID_TEAM_CREATE = {
-    # "team_id": 1,
     "team_name": "Cong is the baddie",
     "manager_id": 2,
     "department_id": 1,
-    # "team_number": "1",
 }
 
 VALID_TEAM = {
@@ -48,8 +46,6 @@ VALID_TEAM = {
     "department_id": 1,
     "team_number": "010100",
 }
-
-
 
 NOT_FOUND_ID = 9999
 
