@@ -8,7 +8,7 @@ from pathlib import Path
 
 def _load_mock_module(file_name: str):
     import importlib.util
-    mock_dir = Path(__file__).parents[3] / 'mock_data' / 'notification&email'
+    mock_dir = Path(__file__).parents[3] / 'mock_data' / 'notification_email'
     file_path = mock_dir / file_name
     spec = importlib.util.spec_from_file_location(f"mock_{file_name.replace('.', '_')}", str(file_path))
     module = importlib.util.module_from_spec(spec)
@@ -17,7 +17,7 @@ def _load_mock_module(file_name: str):
     return module
 
 
-_mock_base = Path(__file__).parents[3] / 'mock_data' / 'notification&email'
+_mock_base = Path(__file__).parents[3] / 'mock_data' / 'notification_email'
 _email_config = _load_mock_module('email_config_data.py')
 _email_service_data = _load_mock_module('email_service_data.py')
 _email_templates_data = _load_mock_module('email_templates_data.py')

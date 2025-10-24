@@ -8,12 +8,14 @@ class Project(Base):
 
     project_id = Column(Integer, primary_key=True, index=True)
     project_name = Column(String, nullable=False)
-    project_manager = Column(Integer, nullable=False)
+    project_manager = (Column(Integer, ForeignKey("user.user_id"), nullable=True))
     active = Column(Boolean, nullable=False, default=True)
 
     tasks = relationship(
         "Task", back_populates="project", cascade="all, delete-orphan"
     )
+
+    project_manager_user = relationship("User", back_populates="managed_projects")
 
 
 class ProjectAssignment(Base):

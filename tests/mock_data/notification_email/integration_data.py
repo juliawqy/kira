@@ -1,3 +1,5 @@
+from backend.src.enums.user_role import UserRole
+
 INTEGRATION_SINGLE_TITLE_UPDATE = {
     "original_task": {
         "id": 1001,
@@ -303,4 +305,21 @@ INTEGRATION_TEST_CONFIG = {
         "level": "DEBUG",
         "capture_logs": True
     }
+}
+
+VALID_USER = {
+    "user_id": 1,
+    "email": "tester@example.com",
+    "name": "Tester",
+    "role": UserRole.MANAGER.value,
+    "admin": False,
+    "hashed_pw": "hashed_pw",
+    "department_id": None,
+}
+
+VALID_PROJECT = {
+    "project_id": 1,
+    "project_name": "Integration Test Project",
+    "project_manager": 1,
+    "active": True,
 }

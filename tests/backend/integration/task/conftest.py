@@ -6,16 +6,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, delete
 from sqlalchemy.orm import sessionmaker
 
-# Import service first so models register once under backend.src.*
-import backend.src.services.task as svc
-import backend.src.services.task_assignment as assignment_svc
-import backend.src.services.project as project_svc
-import backend.src.services.task_assignment as task_assignment_svc
+from backend.src.main import app
 from backend.src.database.db_setup import Base
+
+import backend.src.services.task as svc
+import backend.src.services.task_assignment as task_assignment_svc
+import backend.src.services.project as project_svc
+
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
 from backend.src.database.models.project import Project
-from backend.src.main import app
+from backend.src.database.models.task_assignment import TaskAssignment
+from backend.src.database.models.user import User
 
 
 @pytest.fixture(scope="session")
@@ -59,7 +61,6 @@ def client(test_engine):
     )
     # Point the service layer to the test DB
     svc.SessionLocal = TestingSessionLocal
-    assignment_svc.SessionLocal = TestingSessionLocal
     project_svc.SessionLocal = TestingSessionLocal
     task_assignment_svc.SessionLocal = TestingSessionLocal
 
@@ -84,15 +85,12 @@ def task_base_path() -> str:
 
 @pytest.fixture(autouse=True)
 def clean_db(test_engine):
-    """Clean tables BEFORE each test: links first (FK), then tasks."""
-    from backend.src.database.models.task_assignment import TaskAssignment
-    from backend.src.database.models.user import User
-    
+
     TestingSession = sessionmaker(bind=test_engine, future=True)
     with TestingSession.begin() as s:
         s.execute(delete(TaskAssignment))
         s.execute(delete(ParentAssignment))
         s.execute(delete(Task))
-        s.execute(delete(User))
         s.execute(delete(Project))
+        s.execute(delete(User))
     yield
