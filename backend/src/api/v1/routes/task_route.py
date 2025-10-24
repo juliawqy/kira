@@ -32,9 +32,9 @@ def create_task(payload: TaskCreate):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/", response_model=List[TaskWithSubTasks], name="list_tasks")
-def list_tasks(sort_by="priority_desc"):
+def list_tasks(sort_by="priority_desc", active_only: bool = Query(False, description="Only return active tasks")):
     """Return all top-level tasks with their subtasks."""
-    tasks = task_service.list_tasks(sort_by=sort_by)
+    tasks = task_service.list_tasks(sort_by=sort_by, active_only=active_only)
     return tasks
 
 @router.get("/filter", response_model=List[TaskWithSubTasks], name="list_tasks_filtered_sorted")
