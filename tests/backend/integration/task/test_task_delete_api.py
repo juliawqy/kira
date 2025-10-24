@@ -80,7 +80,7 @@ def test_delete_task_success(client, task_base_path):
     assert data["id"] == EXPECTED_TASK_RESPONSE["id"]
     assert data["active"] is False
 
-    response = client.get(f"{task_base_path}/")
+    response = client.get(f"{task_base_path}/?active_only=true")
     assert len(response.json()) == 0
 
 # INT-004/002
@@ -130,7 +130,7 @@ def test_delete_task_with_subtasks_success(client, task_base_path, test_db_sessi
     assert data["id"] == parent_task_id
     assert data["active"] is False
 
-    response = client.get(f"{task_base_path}/")
+    response = client.get(f"{task_base_path}/?active_only=true")
     assert len(response.json()) == 1
 
     response = client.get(f"{task_base_path}/{child_task_id}")
@@ -176,7 +176,7 @@ def test_delete_task_parent_assignment_success(client, task_base_path, test_db_s
     ).scalar()
     assert db_assignment == 0
 
-    response = client.get(f"{task_base_path}/")
+    response = client.get(f"{task_base_path}/?active_only=true")
     assert len(response.json()) == 2
 
 # INT-023/003
