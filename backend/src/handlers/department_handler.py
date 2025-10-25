@@ -1,6 +1,7 @@
 # backend/src/handlers/department_handler.py
 from backend.src.services import department as dept_service
 from backend.src.services import team as team_service
+from backend.src.services import user as user_service
 
 
 def view_teams_in_department(department_id: int):
@@ -41,3 +42,43 @@ def create_team_under_team(team_id: int, team_name: str, manager_id: int):
         prefix=team["team_number"][0:4]
     )
     return subteam
+
+def view_department(department_id: int):
+    department = dept_service.get_department_by_id(department_id)
+    if not department:
+        raise ValueError(f"Department {department_id} not found")
+
+    users = user_service.get_users_by_department(department_id)
+    users_payload = [
+        {
+            "user_id": u.user_id,
+            "name": u.name,
+            "email": u.email,
+            "role": u.role,
+            "admin": u.admin,
+        }
+        for u in users
+    ]
+
+    return {
+        **department,
+        "users": users_payload,
+    }
+
+
+def view_users_in_department(department_id: int):
+    department = dept_service.get_department_by_id(department_id)
+    if not department:
+        raise ValueError(f"Department {department_id} not found")
+
+    users = user_service.get_users_by_department(department_id)
+    return [
+        {
+            "user_id": u.user_id,
+            "name": u.name,
+            "email": u.email,
+            "role": u.role,
+            "admin": u.admin,
+        }
+        for u in users
+    ]
