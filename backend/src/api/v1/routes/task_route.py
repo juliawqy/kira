@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, validator
@@ -10,6 +10,7 @@ import backend.src.services.task as task_service
 from backend.src.schemas.comment import CommentCreate, CommentRead, CommentUpdate
 import backend.src.services.comment as comment_service
 import backend.src.services.task_assignment as assignment_service
+import backend.src.handlers.task_assignment_handler as assignment_handler
 import backend.src.handlers.task_handler as task_handler
 
 router = APIRouter(prefix="/task", tags=["task"])
@@ -273,7 +274,7 @@ def list_assignees(task_id: int):
 def assign_users(task_id: int, payload: AssignUsersPayload):
     """Assign one or more users to a task (idempotent)."""
     try:
-        created = assignment_service.assign_users(task_id, payload.user_ids)
+        created = assignment_handler.assign_users(task_id, payload.user_ids)
         return {"created": created}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -285,7 +286,7 @@ class UnassignUsersPayload(BaseModel):
 def unassign_users(task_id: int, payload: UnassignUsersPayload):
     """Unassign users from a task."""
     try:
-        deleted = assignment_service.unassign_users(task_id, payload.user_ids)
+        deleted = assignment_handler.unassign_users(task_id, payload.user_ids)
         return {"Removed": deleted}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
