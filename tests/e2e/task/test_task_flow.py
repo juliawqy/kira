@@ -5,7 +5,7 @@ from backend.src.database.db_setup import Base
 import pytest
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, delete
 
 
 from sqlalchemy.orm import sessionmaker
@@ -19,12 +19,12 @@ from backend.src.database.models.user import User
 from backend.src.main import app
 
 @pytest.fixture(scope="session")
-def test_engine(tmp_path_factory):
+def test_engine_task(tmp_path_factory):
     """
     Session-scoped file-backed SQLite engine with FK support.
     Creates schema once, drops at the end.
     """
-    db_file = tmp_path_factory.mktemp("kira_integration") / "itest.db"
+    db_file = tmp_path_factory.mktemp("kira_e2e_task") / "e2e_task.db"
     engine = create_engine(
         f"sqlite:///{db_file}",
         connect_args={"check_same_thread": False},
@@ -45,14 +45,14 @@ def test_engine(tmp_path_factory):
         engine.dispose()
 
 @pytest.fixture
-def isolated_database(test_engine):
+def isolated_database(test_engine_task):
     """
     Enterprise-grade database isolation using transaction rollback.
     This ensures each test starts with a clean database state.
     """
 
     TestingSessionLocal = sessionmaker(
-        bind=test_engine,
+        bind=test_engine_task,
         autoflush=False,
         autocommit=False,
         expire_on_commit=False,
@@ -66,13 +66,15 @@ def isolated_database(test_engine):
             session.close()
 
 @pytest.fixture(autouse=True)
-def reset_database_tables(test_engine):
-    """Drop and recreate all tables before each test to reset ID sequences."""
-    Base.metadata.drop_all(bind=test_engine)
-    Base.metadata.create_all(bind=test_engine)
+def reset_database_tables(test_engine_task):
+    """Drop and recreate all tables before each test to reset ID sequences."""        
 
-    Session = sessionmaker(bind=test_engine, future=True)
+    Session = sessionmaker(bind=test_engine_task, future=True)
     with Session() as session:
+        session.execute(delete(Project))
+        session.execute(delete(User))
+        session.commit()
+
         user = User(**VALID_USER)
         session.add(user)
         session.flush()
@@ -86,10 +88,10 @@ def reset_database_tables(test_engine):
     yield
 
 @pytest.fixture(scope="session")
-def app_server(test_engine):
+def app_server(test_engine_task):
     """Run FastAPI app with SessionLocal overridden to the isolated test engine."""
     TestingSessionLocal = sessionmaker(
-        bind=test_engine,
+        bind=test_engine_task,
         autoflush=False,
         autocommit=False,
         expire_on_commit=False,

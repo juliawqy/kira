@@ -55,8 +55,8 @@
   <p id="status"></p>
 
   <script>
-    // 🔑 Central API base
-    const API_BASE = "http://127.0.0.1:8000/kira/app/api/v1";
+    const params = new URLSearchParams(location.search);
+    const API_BASE = params.get('api') || "http://127.0.0.1:8000/kira/app/api/v1/user";
 
     function setStatus(message, isError = false) {
       const statusEl = document.getElementById("status");
@@ -66,7 +66,7 @@
 
     async function loadUsers() {
       try {
-        const resp = await fetch(`${API_BASE}/user/`);
+        const resp = await fetch(API_BASE + `/`);
         if (!resp.ok) {
           const err = await resp.json();
           throw new Error(err.detail || "Unknown error");
@@ -145,7 +145,7 @@
       }
 
       try {
-        const resp = await fetch(`${API_BASE}/user/${userId}`, {
+        const resp = await fetch(API_BASE + `/${userId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -177,7 +177,7 @@
       }
 
       try {
-        const resp = await fetch(`${API_BASE}/user/${userId}`, {
+        const resp = await fetch(API_BASE + `/${userId}`, {
           method: 'DELETE'
         });
 
@@ -196,9 +196,10 @@
     document.getElementById("refresh").addEventListener("click", loadUsers);
     
     // Navigate to create user page
-    document.getElementById("createUser").addEventListener("click", function() {
-      const createUserPath = window.location.href.replace('user.html', 'create_user.html');
-      window.location.href = createUserPath;
+    document.getElementById("createUser").addEventListener("click", () => {
+      const u = new URL('create_user.html', location.href);
+      u.search = location.search; 
+      location.href = u.href;
     });
 
     // Auto-load on page open

@@ -47,10 +47,10 @@ class Task(Base):
     )
 
     comments = relationship(
-    "Comment",
-    back_populates="task",
-    cascade="all, delete-orphan",
-    passive_deletes=True
+        "Comment",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
     assigned_users = relationship(

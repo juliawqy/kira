@@ -60,7 +60,14 @@
 </head>
 <body>
   <div class="navigation">
-    <button class="btn-back" onclick="window.location.href='user.html'">← Back to Users</button>
+    <button class="btn-back" onclick="goBack()">← Back to Users</button>
+    <script>
+      function goBack() {
+        const u = new URL('user.html', location.href);
+        u.search = location.search;
+        location.href = u.href;
+      }
+    </script>
   </div>
   
   <h1>Create User</h1>
@@ -110,8 +117,8 @@
   <p id="status"></p>
 
   <script>
-    // 🔑 Central API base
-    const API_BASE = "http://127.0.0.1:8000/kira/app/api/v1";
+    const params = new URLSearchParams(location.search);
+    const API_BASE = params.get('api') || "http://127.0.0.1:8000/kira/app/api/v1/user";
 
     function setStatus(message, isError = false) {
       const statusEl = document.getElementById("status");
@@ -148,7 +155,7 @@
       try {
         setStatus("Creating user...");
         
-        const resp = await fetch(`${API_BASE}/user/`, {
+        const resp = await fetch(API_BASE + `/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -168,7 +175,9 @@
         // Show success message and option to go back
         setTimeout(() => {
           if (confirm("User created successfully! Would you like to go back to the users list?")) {
-            window.location.href = 'user.html';
+            const u = new URL('user.html', location.href);
+            u.search = location.search; // keep ?api=...
+            location.href = u.href;
           }
         }, 1000);
         

@@ -17,7 +17,7 @@ E2E_USER_WORKFLOW = {
         "email": "e2e.test@example.com",
         "role": UserRole.STAFF,
         "password": "E2ETest@123",
-        "department_id": "1",
+        "department_id": 1,
         "created_by_admin": True
     },
     "update": {
@@ -124,4 +124,20 @@ E2E_SELECTORS = {
         "status_element": "status",
         "refresh_button": "refresh"
     }
+}
+
+VALID_DEPARTMENT = {
+    "department_id": 1,
+    "department_name": "Engineering",
+    "manager_id": 1
+}
+
+SEED_USER = {
+    "user_id": 1,
+    "email": "tester@example.com",
+    "name": "Tester",
+    "role": UserRole.STAFF.value,
+    "admin": False,
+    "hashed_pw": "hashed_pw",
+    "department_id": None,
 }
