@@ -19,10 +19,11 @@ app = FastAPI(title="KIRA API")
 # Add CORS middleware BEFORE including routers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow all origins for development
+    allow_origins=["http://127.0.0.1:3000", "http://localhost:3000"],  # explicit origins
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.include_router(v1_router)
@@ -30,3 +31,8 @@ app.include_router(v1_router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    """Handle preflight OPTIONS requests"""
+    return {"message": "OK"}
