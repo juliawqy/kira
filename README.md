@@ -19,8 +19,9 @@
    `uvicorn backend.src.main:app --reload`
    Access swagger docs: http://localhost:8000/docs
 
-6. run frontend (in a separate terminal)
-   `cd frontend && npm start`
+6. install frontend dependencies and run frontend (in a separate terminal)
+   `cd frontend && npm install`
+   `npm start`
 
    Access frontend: http://localhost:3000
 
