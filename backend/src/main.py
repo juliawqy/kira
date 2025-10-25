@@ -15,7 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="KIRA API")
-app.include_router(v1_router)
+
+# Add CORS middleware BEFORE including routers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # allow all origins for development
@@ -23,6 +24,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(v1_router)
 
 @app.get("/health")
 def health():
