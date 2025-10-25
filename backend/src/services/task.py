@@ -204,12 +204,9 @@ def list_tasks(
         stmt = (
             select(Task)
             .where(not_a_subtask)
+            .where(Task.active.is_(active_only))
             .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
         )
-        
-        # Only filter by active if active_only is True
-        if active_only:
-            stmt = stmt.where(Task.active.is_(True))
             
         # Apply filters if provided
         if filter_by:

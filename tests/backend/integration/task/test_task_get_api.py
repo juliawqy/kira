@@ -90,7 +90,7 @@ def test_list_tasks_success(client, task_base_path):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    response = client.get(f"{task_base_path}/?active_only=true")
+    response = client.get(f"{task_base_path}/")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -346,7 +346,7 @@ def test_get_task_not_found(client, task_base_path):
 
 # INT-002/011
 def test_list_tasks_excludes_inactive(client, task_base_path):
-    """Inactive tasks should not appear in list when active_only=True."""
+    """Inactive tasks should not appear in list."""
 
     for payload in (
         TASK_CREATE_PAYLOAD,
