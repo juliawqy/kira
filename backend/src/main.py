@@ -18,8 +18,8 @@ app = FastAPI(title="KIRA API")
 app.include_router(v1_router)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],  # allow both localhost formats
-    allow_credentials=True,
+    allow_origins=["*"],  # allow all origins for development
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
