@@ -5,7 +5,7 @@ VALID_USER_ADMIN = {
     "name": "Alice Admin",
     "email": "alice.admin@example.com",
     "role": UserRole.MANAGER.value,
-    "department_id": 10,
+    "department_id": None,
     "admin": True,
     "password": "Adm!nPass123",
 }
@@ -15,7 +15,7 @@ VALID_USER = {
     "name": "Bob Employee",
     "email": "bob.employee@example.com",
     "role": UserRole.STAFF.value,
-    "department_id": 20,
+    "department_id": None,
     "admin": False,
     "password": "Empl@yee123",
 }
@@ -25,7 +25,7 @@ VALID_CREATE_PAYLOAD_ADMIN = {
     "email": "alice.admin@example.com",
     "role": UserRole.MANAGER,
     "password": "Adm!nPass123",
-    "department_id": 10,
+    "department_id": None,
     "admin": True,
     "created_by_admin": True,  
 }
@@ -35,7 +35,7 @@ VALID_CREATE_PAYLOAD_USER = {
     "email": "bob.employee@example.com",
     "role": UserRole.STAFF,
     "password": "Empl@yee123",
-    "department_id": 20,
+    "department_id": None,
     "admin": False,
     "created_by_admin": True, 
 }

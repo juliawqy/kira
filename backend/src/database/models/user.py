@@ -15,10 +15,9 @@ class User(Base):
     department_id = Column(
         Integer,
         ForeignKey("department.department_id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
+        nullable=True
     )
-    department = relationship("Department", back_populates="users", lazy="joined")
+    department = relationship("Department", back_populates="users", foreign_keys=[department_id], lazy="joined")
 
     assigned_tasks = relationship(
         "TaskAssignment", back_populates="user", cascade="all, delete-orphan"

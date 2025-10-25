@@ -111,7 +111,7 @@ def user_factory(db_session):
             "email": "test@example.com",
             "role": UserRole.STAFF,
             "password_hash": "hashed_password",
-            "department_id": 1,
+            "department_id": None,
             "admin": False,
             "created_by_admin": True
         }
