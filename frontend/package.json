@@ -1,5 +1,7 @@
 {
     "scripts": {
+      "start": "cd app && npx http-server -p 3000 -o",
+      "dev": "cd app && npx http-server -p 3000 -o",
       "test": "vitest run --dir tests",
       "test:unit": "vitest run --dir tests/unit",
       "test:integration": "vitest run --dir tests/integration",
