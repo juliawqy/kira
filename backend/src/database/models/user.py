@@ -27,6 +27,8 @@ class User(Base):
         "TeamAssignment", back_populates="user", cascade="all, delete-orphan"
     )
 
+    managed_teams = relationship("Team", back_populates="manager", foreign_keys="Team.manager_id")
+
     managed_projects = relationship("Project", back_populates="project_manager_user")
 
     __table_args__ = (
