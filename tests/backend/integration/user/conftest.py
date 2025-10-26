@@ -61,6 +61,10 @@ def client(test_engine):
     )
     # Point the service layer to the test DB
     svc.SessionLocal = TestingSessionLocal
+    
+    # Also override comment service SessionLocal
+    import backend.src.services.comment as comment_svc
+    comment_svc.SessionLocal = TestingSessionLocal
 
     with TestClient(app) as c:
         yield c
@@ -81,12 +85,37 @@ def user_base_path() -> str:
     return "/user"  # fallback
 
 
+@pytest.fixture
+def test_db_session(test_engine):
+    """
+    Create a database session using the same SessionLocal as the API.
+    """
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
+
+    with TestingSessionLocal() as session:
+        yield session
+
+
 @pytest.fixture(autouse=True)
 def clean_db(test_engine):
-    """Clean tables BEFORE each test: user-related tables first (FK-safe)."""
+    """Clean tables BEFORE each test: handle FK-safe cleanup for user-comment integration."""
     TestingSession = sessionmaker(bind=test_engine, future=True)
     with TestingSession.begin() as s:
-        # Delete in FK-safe order if needed
-        s.execute(delete(User))
-        # s.execute(delete(Team))
+        # Temporarily disable foreign key constraints for cleanup
+        s.execute(text("PRAGMA foreign_keys=OFF"))
+        
+        # Clean all tables that might interfere with user tests
+        s.execute(text("DELETE FROM comment"))
+        s.execute(text("DELETE FROM task"))
+        s.execute(text("DELETE FROM project"))
+        s.execute(text("DELETE FROM user"))
+        
+        # Re-enable foreign key constraints
+        s.execute(text("PRAGMA foreign_keys=ON"))
     yield

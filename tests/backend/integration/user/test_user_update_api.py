@@ -15,23 +15,6 @@ from tests.mock_data.user.integration_data import (
 )
 
 @pytest.fixture
-def test_db_session(test_engine):
-    """
-    Create a database session using the same SessionLocal as the API.
-    """
-    from sqlalchemy.orm import sessionmaker
-    TestingSessionLocal = sessionmaker(
-        bind=test_engine,
-        autoflush=False,
-        autocommit=False,
-        expire_on_commit=False,
-        future=True,
-    )
-
-    with TestingSessionLocal() as session:
-        yield session
-
-@pytest.fixture
 def verify_database_state(test_db_session):
     """
     Fixture to verify database state before and after tests.

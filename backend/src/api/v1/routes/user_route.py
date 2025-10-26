@@ -5,8 +5,10 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from backend.src.schemas.user import UserCreate, UserUpdate, UserRead, UserPasswordChange
+from backend.src.schemas.comment import CommentRead
 from backend.src.enums.user_role import UserRole
 import backend.src.services.user as user_service
+import backend.src.services.comment as comment_service
 import backend.src.handlers.department_handler as department_handler
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -144,3 +146,39 @@ def change_password(user_id: int, payload: UserPasswordChange):
         if msg.lower().startswith("current password is incorrect"):
             raise HTTPException(status_code=403, detail=msg)
         raise HTTPException(status_code=400, detail=msg)
+
+
+# ---- Comments ---------------------------------------------------------------
+
+@router.get("/{user_id}/comments", response_model=List[CommentRead], name="get_user_comments")
+def get_user_comments(user_id: int):
+    """
+    Get all comments made by a specific user.
+    """
+    try:
+        # Verify user exists
+        user = user_service.get_user(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+        
+        comments = comment_service.list_comments_by_user(user_id)
+        return comments
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/{user_id}/comments/count", response_model=int, name="get_user_comment_count")
+def get_user_comment_count(user_id: int):
+    """
+    Get the total number of comments made by a user.
+    """
+    try:
+        # Verify user exists
+        user = user_service.get_user(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+        
+        count = comment_service.get_user_comment_count(user_id)
+        return count
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

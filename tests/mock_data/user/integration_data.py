@@ -23,7 +23,7 @@ VALID_USER = {
 VALID_CREATE_PAYLOAD_ADMIN = {
     "name": "Alice Admin",
     "email": "alice.admin@example.com",
-    "role": UserRole.MANAGER,
+    "role": UserRole.MANAGER.value,
     "password": "Adm!nPass123",
     "department_id": None,
     "admin": True,
@@ -33,7 +33,7 @@ VALID_CREATE_PAYLOAD_ADMIN = {
 VALID_CREATE_PAYLOAD_USER = {
     "name": "Bob Employee",
     "email": "bob.employee@example.com",
-    "role": UserRole.STAFF,
+    "role": UserRole.STAFF.value,
     "password": "Empl@yee123",
     "department_id": None,
     "admin": False,
@@ -44,7 +44,7 @@ VALID_CREATE_PAYLOAD_USER = {
 INVALID_CREATE_SHORT_PASSWORD = {
     "name": "Short Pass",
     "email": "short.pass@example.com",
-    "role": UserRole.STAFF,
+    "role": UserRole.STAFF.value,
     "password": "short",
     "department_id": None,
     "admin": False,
@@ -54,7 +54,7 @@ INVALID_CREATE_SHORT_PASSWORD = {
 INVALID_CREATE_NO_SPECIAL = {
     "name": "No Special",
     "email": "nospecial@example.com",
-    "role": UserRole.STAFF,
+    "role": UserRole.STAFF.value,
     "password": "LongButNoSpecial1",
     "department_id": None,
     "admin": False,
@@ -64,7 +64,7 @@ INVALID_CREATE_NO_SPECIAL = {
 INVALID_CREATE_BAD_EMAIL = {
     "name": "Bad Email",
     "email": None,
-    "role": UserRole.STAFF,
+    "role": UserRole.STAFF.value,
     "password": "Valid!Pass1",
     "department_id": None,
     "admin": False,
@@ -84,7 +84,7 @@ INVALID_CREATE_BAD_ROLE = {
 INVALID_CREATE_NO_NAME = {
     "name": None,
     "email": "no.name@example.com",
-    "role": UserRole.STAFF,
+    "role": UserRole.STAFF.value,
     "password": "Valid!Pass1",
     "department_id": None,
     "admin": False,
@@ -94,7 +94,7 @@ INVALID_CREATE_NO_NAME = {
 INVALID_CREATE_BAD_ADMIN = {
     "name": "Bad Admin",
     "email": "bad.admin@example.com",
-    "role": UserRole.MANAGER,
+    "role": UserRole.MANAGER.value,
     "password": "Adm!nPass123",
     "department_id": 10,
     "admin": "not_a_boolean",
@@ -104,7 +104,7 @@ INVALID_CREATE_BAD_ADMIN = {
 INVALID_CREATE_UNAUTHORISED = {
     "name": "Unauth User",
     "email": "unauth.user@example.com",
-    "role": UserRole.STAFF,
+    "role": UserRole.STAFF.value,
     "password": "Unauth!Pass123",
     "department_id": 20,
     "admin": False,
