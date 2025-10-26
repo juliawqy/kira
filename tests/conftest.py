@@ -8,7 +8,7 @@ import time
 import multiprocessing
 import requests
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 
 from backend.src.database.db_setup import Base
@@ -47,6 +47,7 @@ def live_server(test_db_path):
     proc.terminate()
     proc.join()
 
+
 @pytest.fixture(scope="session")
 def test_db_path():
     """Create a temp DB file path shared between test + live server processes."""
@@ -70,7 +71,7 @@ def test_engine(test_db_path):
         future=True,
     )
 
-    # Enforce foreign key constraints
+    # Enforce foreign key constraints for normal test operation
     @event.listens_for(engine, "connect")
     def _fk_pragma(dbapi_connection, connection_record):  # pragma: no cover
         cursor = dbapi_connection.cursor()
@@ -79,7 +80,20 @@ def test_engine(test_db_path):
 
     Base.metadata.create_all(bind=engine)
     yield engine
-    engine.dispose()
+
+    # Teardown: disable FK checks on the same connection used for drop_all,
+    # so dropping parent tables won't fail due to FK checks on this connection.
+    # Using a connection and passing it to drop_all ensures the PRAGMA is in effect
+    # for the drop operation.
+    try:
+        with engine.connect() as conn:
+            # Ensure the PRAGMA is executed on this connection
+            conn.execute(text("PRAGMA foreign_keys=OFF"))
+            # Pass the connection to drop_all so it runs on the same connection
+            Base.metadata.drop_all(bind=conn)
+            conn.execute(text("PRAGMA foreign_keys=ON"))
+    finally:
+        engine.dispose()
 
 
 @pytest.fixture
@@ -111,7 +125,7 @@ def user_factory(db_session):
             "email": "test@example.com",
             "role": UserRole.STAFF,
             "password_hash": "hashed_password",
-            "department_id": 1,
+            "department_id": None,
             "admin": False,
             "created_by_admin": True
         }

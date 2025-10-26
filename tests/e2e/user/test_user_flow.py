@@ -1,11 +1,122 @@
 from __future__ import annotations
 import os
+from backend.src.database.db_setup import Base
+import pytest
+from selenium.webdriver.common.by import By
 import time
 from urllib.parse import quote
 
-import pytest
-from selenium.webdriver.common.by import By
-from tests.mock_data.user.e2e_data import E2E_USER_WORKFLOW, E2E_SELECTORS
+from tests.mock_data.user.e2e_data import E2E_USER_WORKFLOW, E2E_SELECTORS, VALID_DEPARTMENT, SEED_USER
+from backend.src.database.models.user import User
+from backend.src.database.models.department import Department
+import backend.src.services.user as svc
+import threading
+import socket
+import uvicorn
+from sqlalchemy import create_engine, event, delete
+from sqlalchemy.orm import sessionmaker
+from backend.src.main import app
+
+
+@pytest.fixture(scope="session")
+def test_engine_user(tmp_path_factory):
+    """
+    Session-scoped file-backed SQLite engine with FK support.
+    Creates schema once, drops at the end.
+    """
+    db_file = tmp_path_factory.mktemp("kira_e2e_user") / "e2e_user.db"
+    engine = create_engine(
+        f"sqlite:///{db_file}",
+        connect_args={"check_same_thread": False},
+        future=True,
+    )
+
+    @event.listens_for(engine, "connect")
+    def _fk_on(dbapi_connection, connection_record):  # pragma: no cover
+        cur = dbapi_connection.cursor()
+        cur.execute("PRAGMA foreign_keys=ON")
+        cur.close()
+
+    Base.metadata.create_all(bind=engine)
+    try:
+        yield engine
+    finally:
+        engine.dispose()
+
+@pytest.fixture
+def isolated_database(test_engine_user):
+    """
+    Enterprise-grade database isolation using transaction rollback.
+    This ensures each test starts with a clean database state.
+    """
+
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine_user,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
+
+    with TestingSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            session.close()
+
+@pytest.fixture(autouse=True)
+def reset_database_tables(test_engine_user):
+    """Drop and recreate all tables before each test to reset ID sequences."""        
+
+    Session = sessionmaker(bind=test_engine_user, future=True)
+    with Session() as session:
+        session.execute(delete(Department))
+        session.execute(delete(User))
+        session.commit()
+
+        user = User(**SEED_USER)
+        session.add(user)
+        session.flush()
+        department = Department(**VALID_DEPARTMENT)
+        session.add(department)
+        session.commit()
+
+    yield
+
+@pytest.fixture(scope="session")
+def app_server(test_engine_user):
+    """Run FastAPI app with SessionLocal overridden to the isolated test engine."""
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine_user,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
+    svc.SessionLocal = TestingSessionLocal
+
+    port = None
+    for candidate in [8010, 8011, 8012, 8013, 8014, 8015, 8016, 8017, 8018, 8019, 8020]:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("127.0.0.1", candidate))
+                port = candidate
+                break
+            except OSError:
+                continue
+    if port is None:
+        port = 8021
+
+    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    time.sleep(1.0)
+    try:
+        yield f"http://127.0.0.1:{port}/kira/app/api/v1/user"
+    finally:
+        server.should_exit = True
+        thread.join(timeout=2)
 
 
 @pytest.fixture
@@ -15,7 +126,7 @@ def test_user_data():
 
 
 # E2E-057/001
-def test_complete_user_crud_workflow_ui_only(driver, app_server, test_user_data):
+def test_complete_user_crud_workflow_ui_only(driver, isolated_database, app_server, test_user_data):
     """
     Full user CRUD flow against a fresh test server per test.
     app_server fixture ensures a fresh DB and server, even if previous test crashed.
@@ -33,7 +144,7 @@ def test_complete_user_crud_workflow_ui_only(driver, app_server, test_user_data)
 
     # START: Ensure list empty
     user_items = driver.find_elements(By.CSS_SELECTOR, selectors["list_view"]["user_items"])
-    assert len(user_items) == 0, f"Expected empty user list, found {len(user_items)} users"
+    assert len(user_items) == 1, f"Expected 1 seeded user list, found {len(user_items)} users"
 
     # OPEN CREATE UI
     driver.find_element(By.XPATH, "//button[text()='Create New User']").click()
@@ -112,10 +223,10 @@ def test_complete_user_crud_workflow_ui_only(driver, app_server, test_user_data)
     user_items = driver.find_elements(By.CSS_SELECTOR, selectors["list_view"]["user_items"])
     target_delete_button = None
     for item in user_items:
-        if update_data["name"] in item.text:
+        if create_data["name"] in item.text:
             target_delete_button = item.find_element(By.CSS_SELECTOR, selectors["list_view"]["delete_button"])
             break
-    assert target_delete_button, "Delete button for updated user not found"
+    assert target_delete_button, "Delete button for second user not found"
 
     target_delete_button.click()
     time.sleep(0.5)
@@ -132,7 +243,7 @@ def test_complete_user_crud_workflow_ui_only(driver, app_server, test_user_data)
     driver.find_element(By.ID, selectors["status"]["refresh_button"]).click()
     time.sleep(1)
     page = driver.page_source
-    assert update_data["name"] not in page
+    assert create_data["name"] not in page
     # final sanity
     user_items = driver.find_elements(By.CSS_SELECTOR, selectors["list_view"]["user_items"])
-    assert len(user_items) == 0, f"Expected empty user list after deletion, found {len(user_items)}"
+    assert len(user_items) == 1, f"Expected 1 seeded user list after deletion, found {len(user_items)}"

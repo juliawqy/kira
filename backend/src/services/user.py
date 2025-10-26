@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
+from typing import Optional, List
 
 from sqlalchemy import select
 from passlib.context import CryptContext
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.user import User
+from backend.src.database.models.department import Department
 from backend.src.enums.user_role import UserRole, ALLOWED_ROLES
 
 # ---- Password Hashing -----------------------------------------------------
@@ -105,7 +106,7 @@ def update_user(
     *,
     name: Optional[str] = None,
     email: Optional[str] = None,
-    role: Optional[str] = None,
+    role: Optional[UserRole] = None,
     department_id: Optional[int] = None,
     admin: Optional[bool] = None,
 ) -> Optional[User]:
@@ -127,6 +128,7 @@ def update_user(
         if role is not None:
             user.role = role.value
         if department_id is not None:
+            dept = session.get(Department, department_id)
             user.department_id = department_id
         if admin is not None:
             user.admin = admin
@@ -163,3 +165,32 @@ def change_password(user_id: int, current_password: str, new_password: str) -> b
         user.hashed_pw = _hash_password(new_password)
         session.add(user)
         return True
+
+def get_users_by_department(department_id: int) -> List[User]:
+    """Return all users assigned to a department."""
+    with SessionLocal() as session:
+        stmt = (
+            select(User)
+            .where(User.department_id == department_id)
+            .order_by(User.user_id.asc())
+        )
+        return list(session.execute(stmt).scalars().all())
+
+
+def assign_user_to_department(user_id: int, department_id: Optional[int]) -> User:
+    """Assign (or unassign with None) a user to a department."""
+    with SessionLocal.begin() as session:
+        user = session.get(User, user_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+
+        if department_id is not None:
+            dept = session.get(Department, department_id)
+            if not dept:
+                raise ValueError(f"Department {department_id} not found")
+
+        user.department_id = department_id
+        session.add(user)
+        session.flush()
+        session.refresh(user)
+        return user

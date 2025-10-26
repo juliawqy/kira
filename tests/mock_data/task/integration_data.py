@@ -286,7 +286,7 @@ VALID_CREATE_PAYLOAD_USER = {
     "email": "bob.employee@example.com",
     "role": UserRole.STAFF,
     "hashed_pw": "Empl@yee123",
-    "department_id": 20,
+    "department_id": None,
     "admin": False,
 }
 
@@ -295,8 +295,8 @@ VALID_CREATE_PAYLOAD_ADMIN = {
     "email": "alice.admin@example.com",
     "role": UserRole.MANAGER,
     "hashed_pw": "Adm!nPass123",
-    "department_id": 10,
-    "admin": True,
+    "department_id": None,
+    "admin": True
 }
 
 VALID_TASK_ASSIGNMENT = {
@@ -319,7 +319,7 @@ VALID_USER_ADMIN_TASK_ASSIGNMENT = {
     "name": "Alice Admin",
     "email": "alice.admin@example.com",
     "role": UserRole.MANAGER.value,
-    "department_id": 10,
+    "department_id": None,
     "admin": True,
     "password": "Adm!nPass123",
 }
@@ -329,7 +329,7 @@ VALID_USER_EMPLOYEE_TASK_ASSIGNMENT = {
     "name": "Bob Employee",
     "email": "bob.employee@example.com",
     "role": UserRole.STAFF.value,
-    "department_id": 20,
+    "department_id": None,
     "admin": False,
     "hashed_pw": "Empl@yee123",
 }

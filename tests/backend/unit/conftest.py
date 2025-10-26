@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import create_engine, event, delete
+from sqlalchemy import create_engine, event, delete, text
 from sqlalchemy.orm import sessionmaker
 
 # Import the service layer (keeps one consistent import path: backend.src.*)
@@ -40,7 +40,14 @@ def test_engine(tmp_path_factory):
     try:
         yield engine
     finally:
-        Base.metadata.drop_all(bind=engine)
+        # Teardown: disable FK checks before dropping tables to avoid circular dependency issues
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("PRAGMA foreign_keys=OFF"))
+                Base.metadata.drop_all(bind=conn)
+                conn.execute(text("PRAGMA foreign_keys=ON"))
+        finally:
+            engine.dispose()
 
 
 @pytest.fixture(scope="session", autouse=True)
