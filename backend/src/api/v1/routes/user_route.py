@@ -6,7 +6,8 @@ from pydantic import BaseModel
 
 from backend.src.schemas.user import UserCreate, UserUpdate, UserRead, UserPasswordChange
 from backend.src.enums.user_role import UserRole
-import backend.src.services.user as user_service  
+import backend.src.services.user as user_service
+import backend.src.handlers.department_handler as department_handler
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -70,6 +71,15 @@ def list_users():
     List all users.
     """
     users = user_service.list_users()
+    return [UserRead.model_validate(u, from_attributes=True) for u in users]
+
+
+@router.get("department/{department_id}", response_model=List[UserRead],name="list_users_in_department")
+def list_users_in_department(department_id: int):
+    """
+    List all users in a specific department.
+    """
+    users = department_handler.view_users_in_department(department_id)
     return [UserRead.model_validate(u, from_attributes=True) for u in users]
 
 

@@ -129,8 +129,6 @@ def update_user(
             user.role = role.value
         if department_id is not None:
             dept = session.get(Department, department_id)
-            if not dept:
-                raise ValueError(f"Department {department_id} not found")
             user.department_id = department_id
         if admin is not None:
             user.admin = admin
