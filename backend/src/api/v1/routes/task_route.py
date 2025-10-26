@@ -299,6 +299,68 @@ def clear_task_assignees(task_id: int):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+# ------------------ Team-Based Task Assignment ------------------
+
+class AssignTeamToTaskPayload(BaseModel):
+    team_id: int
+
+@router.post("/{task_id}/teams/assign", name="assign_team_to_task")
+def assign_team_to_task(task_id: int, payload: AssignTeamToTaskPayload):
+    """Assign all team members to a task."""
+    try:
+        assigned = assignment_service.assign_team_to_task(payload.team_id, task_id)
+        return {"assigned": assigned}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+class UnassignTeamFromTaskPayload(BaseModel):
+    team_id: int
+
+@router.delete("/{task_id}/teams/unassign", name="unassign_team_from_task")
+def unassign_team_from_task(task_id: int, payload: UnassignTeamFromTaskPayload):
+    """Unassign all team members from a task."""
+    try:
+        unassigned = assignment_service.unassign_team_from_task(payload.team_id, task_id)
+        return {"unassigned": unassigned}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+class AssignTeamsToTaskPayload(BaseModel):
+    team_ids: List[int]
+    
+    @validator('team_ids')
+    def validate_team_ids(cls, v):
+        if not v or len(v) < 1:
+            raise ValueError('team_ids must contain at least one team ID')
+        return v
+
+@router.post("/{task_id}/teams/assign-multiple", name="assign_teams_to_task")
+def assign_teams_to_task(task_id: int, payload: AssignTeamsToTaskPayload):
+    """Assign all members from multiple teams to a task."""
+    try:
+        assigned = assignment_service.assign_users_from_teams(task_id, payload.team_ids)
+        return {"assigned": assigned}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/{task_id}/teams", name="get_teams_assigned_to_task")
+def get_teams_assigned_to_task(task_id: int):
+    """Get all teams that have members assigned to this task."""
+    try:
+        teams = assignment_service.get_teams_assigned_to_task(task_id)
+        return [
+            {
+                "team_id": team.team_id,
+                "team_name": team.team_name,
+                "manager_id": team.manager_id,
+                "department_id": team.department_id,
+                "team_number": team.team_number,
+            }
+            for team in teams
+        ]
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
 # ------------------ Comments ------------------
 
 @router.post("/{task_id}/comment", response_model=CommentRead, name="add_comment")
