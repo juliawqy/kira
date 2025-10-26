@@ -41,18 +41,6 @@ def test_assign_to_team_success(mock_session_local):
 
 # UNI-062/002
 @patch("backend.src.services.team.SessionLocal")
-def test_assign_to_team_not_found(mock_session_local):
-	mock_session = MagicMock()
-	mock_session_local.begin.return_value.__enter__.return_value = mock_session
-	mock_session.get.return_value = None
-
-	with pytest.raises(ValueError):
-		team_service.assign_to_team(NOT_FOUND_ID, STAFF_USER["user_id"])
-
-
-
-# UNI-062/004
-@patch("backend.src.services.team.SessionLocal")
 def test_assign_to_team_adds_assignment_to_session(mock_session_local):
 	mock_session = MagicMock()
 	mock_session_local.begin.return_value.__enter__.return_value = mock_session
@@ -71,7 +59,7 @@ def test_assign_to_team_adds_assignment_to_session(mock_session_local):
 	assert result["user_id"] == STAFF_USER["user_id"]
 
 
-# UNI-062/006
+# UNI-062/003
 @patch("backend.src.services.team.SessionLocal")
 def test_assign_to_team_refresh_ignored_on_error(mock_session_local):
 	mock_session = MagicMock()

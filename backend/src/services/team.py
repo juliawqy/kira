@@ -36,7 +36,6 @@ def create_team(team_name: str, user_id, department_id: int, prefix: str) -> dic
             "team_number": team.team_number,
         }
 
-
 def get_team_by_id(team_id: int) -> dict:
     """Return team details by id. Raises ValueError if not found."""
     with SessionLocal() as session:
@@ -48,7 +47,7 @@ def get_team_by_id(team_id: int) -> dict:
             session.query(TeamAssignment).filter_by(team_id=team_id).all()
         )
         assignments_list = [
-            {"id": a.id, "team_id": a.team_id, "user_id": a.user_id} for a in assignments
+            {"team_id": a.team_id, "user_id": a.user_id} for a in assignments
         ]
 
         return {
@@ -103,14 +102,10 @@ def get_subteam_by_team_number(team_number: str) -> list[dict]:
             for t in subteams
         ]
     
-
 def assign_to_team(team_id: int, assignee_id: int) -> dict:
     """Assign a user to a team. Only managers and directors allowed."""
 
     with SessionLocal.begin() as session:
-        team = session.get(Team, team_id)
-        if not team:
-            raise ValueError(f"Team with id {team_id} not found.")
 
         assignment = TeamAssignment(team_id=team_id, user_id=assignee_id)
         session.add(assignment)
@@ -127,3 +122,51 @@ def assign_to_team(team_id: int, assignee_id: int) -> dict:
             "team_id": assignment.team_id,
             "user_id": assignment.user_id,
         }
+
+def get_users_in_team(team_id: int) -> list[dict]:
+    """Return all users assigned to a given team."""
+    with SessionLocal() as session:
+        assignments = (
+            session.query(TeamAssignment).filter_by(team_id=team_id).all()
+        )
+        user_ids = [a.user_id for a in assignments]
+        users = []
+        for uid in user_ids:
+            users.append({"user_id": uid})
+        return users
+    
+def get_teams_of_user(user_id: int) -> list[dict]:
+    """Return all teams a user is assigned to."""
+    with SessionLocal() as session:
+        assignments = (
+            session.query(TeamAssignment).filter_by(user_id=user_id).all()
+        )
+        team_ids = [a.team_id for a in assignments]
+        teams = []
+        for tid in team_ids:
+            team = session.get(Team, tid)
+            teams.append({
+                "team_id": team.team_id,
+                "team_name": team.team_name,
+                "manager_id": team.manager_id,
+                "department_id": team.department_id,
+                "team_number": team.team_number,
+            })
+        return teams
+    
+def get_team_by_manager(manager_id: int) -> list[dict]:
+    """Return all teams managed by a given user."""
+    with SessionLocal() as session:
+        teams = (
+            session.query(Team).filter_by(manager_id=manager_id).all()
+        )
+        result = []
+        for team in teams:
+            result.append({
+                "team_id": team.team_id,
+                "team_name": team.team_name,
+                "manager_id": team.manager_id,
+                "department_id": team.department_id,
+                "team_number": team.team_number,
+            })
+        return result

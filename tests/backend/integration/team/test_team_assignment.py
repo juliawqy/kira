@@ -5,7 +5,8 @@ from sqlalchemy import create_engine, delete
 from unittest.mock import patch
 from sqlalchemy.orm import Session, sessionmaker
 from backend.src.database.db_setup import Base
-from backend.src.services import team as team_service
+from backend.src.database.models.department import Department
+from backend.src.handlers import department_handler as handler
 from backend.src.database.models.team_assignment import TeamAssignment
 from backend.src.database.models.user import User
 from tests.mock_data.team_data import (
@@ -14,7 +15,8 @@ from tests.mock_data.team_data import (
     MANAGER_USER,
     NOT_FOUND_ID,
     DIRECTOR_USER,
-    VALID_TEAM
+    VALID_TEAM,
+    VALID_DEPARTMENT,
 )
 
 
@@ -24,6 +26,7 @@ def clean_db(test_engine):
     TestingSession = sessionmaker(bind=test_engine, future=True)
     with TestingSession.begin() as s:
         s.execute(delete(TeamAssignment))
+        s.execute(delete(Department))
         s.execute(delete(User))
     yield
 
@@ -37,7 +40,12 @@ def isolated_test_db():
     Base.metadata.create_all(bind=test_engine)
     TestSessionLocal = sessionmaker(bind=test_engine)
 
-    with patch('backend.src.services.team.SessionLocal', TestSessionLocal):
+    with patch('backend.src.services.team.SessionLocal', TestSessionLocal), \
+         patch('backend.src.services.department.SessionLocal', TestSessionLocal), \
+         patch('backend.src.services.user.SessionLocal', TestSessionLocal), \
+         patch('backend.src.handlers.department_handler.team_service.SessionLocal', TestSessionLocal), \
+         patch('backend.src.handlers.department_handler.user_service.SessionLocal', TestSessionLocal), \
+         patch('backend.src.handlers.department_handler.department_service.SessionLocal', TestSessionLocal):
         yield test_engine
  
     test_engine.dispose()
@@ -47,41 +55,44 @@ def isolated_test_db():
         pass 
 
 @pytest.fixture(autouse=True)
-def seed_task_and_user(test_engine):
-    """Insert a user, project, and task to satisfy comment foreign keys."""
-    TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
+def seed_user_and_dept(test_engine):
+    """Insert a user and department to satisfy comment foreign keys."""
+    from backend.src.services.team import SessionLocal as TestingSessionLocal
     with TestingSessionLocal.begin() as db:
         staff = User(**STAFF_USER)
         manager = User(**MANAGER_USER)
         director = User(**DIRECTOR_USER)
         db.add_all([staff, manager, director]) 
+        db.flush() 
+        dept_payload = {**VALID_DEPARTMENT, "manager_id": manager.user_id}
+        dept = Department(**dept_payload)
+        db.add(dept)
+        db.flush()
 
 
 # INT-062/001
 def test_assign_to_team_not_found():
-    team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], 
-        VALID_TEAM_CREATE["manager_id"],
-        department_id=VALID_TEAM_CREATE["department_id"],
-        prefix=str(VALID_TEAM_CREATE["department_id"]),
+    team = handler.create_team_under_department(
+        VALID_TEAM_CREATE["department_id"],
+        VALID_TEAM_CREATE["team_name"],
+        VALID_TEAM_CREATE["manager_id"]
     )
 
     with pytest.raises(ValueError) as exc:
-        team_service.assign_to_team(NOT_FOUND_ID, STAFF_USER["user_id"])
-    assert f"Team with id {NOT_FOUND_ID} not found" in str(exc.value)
+        handler.assign_user_to_team(NOT_FOUND_ID, STAFF_USER["user_id"], MANAGER_USER["user_id"])
+    assert "not found" in str(exc.value)
 
 
 # INT-062/002
-def test_assign_to_team_success(isolated_test_db):
+def test_assign_to_team_success(isolated_test_db, seed_user_and_dept):
 
-    team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], 
-        VALID_TEAM_CREATE["manager_id"],
-        department_id=VALID_TEAM_CREATE["department_id"],
-        prefix=str(VALID_TEAM_CREATE["department_id"]),
+    team = handler.create_team_under_department(
+        VALID_TEAM_CREATE["department_id"],
+        VALID_TEAM_CREATE["team_name"],
+        VALID_TEAM_CREATE["manager_id"]
     )
 
-    result = team_service.assign_to_team(VALID_TEAM["team_id"], STAFF_USER["user_id"])
+    result = handler.assign_user_to_team(VALID_TEAM["team_id"], STAFF_USER["user_id"], MANAGER_USER["user_id"])
 
     assert result["team_id"] == VALID_TEAM["team_id"]
     assert result["user_id"] == STAFF_USER["user_id"]
@@ -97,18 +108,17 @@ def test_assign_to_team_success(isolated_test_db):
 # INT-062/003
 def test_duplicate_assignment_raises_and_only_one_record_exists(isolated_test_db):
 
-    team = team_service.create_team(
-        VALID_TEAM_CREATE["team_name"], 
-        VALID_TEAM_CREATE["manager_id"],
-        department_id=VALID_TEAM_CREATE["department_id"],
-        prefix=str(VALID_TEAM_CREATE["department_id"]),
+    team = handler.create_team_under_department(
+        VALID_TEAM_CREATE["department_id"],
+        VALID_TEAM_CREATE["team_name"],
+        VALID_TEAM_CREATE["manager_id"]
     )
 
     assignee_id = STAFF_USER["user_id"]
-    team_service.assign_to_team(VALID_TEAM["team_id"], assignee_id)
+    handler.assign_user_to_team(VALID_TEAM["team_id"], assignee_id, MANAGER_USER["user_id"])
 
     with pytest.raises(ValueError):
-        team_service.assign_to_team(VALID_TEAM["team_id"], assignee_id)
+        handler.assign_user_to_team(VALID_TEAM["team_id"], assignee_id, MANAGER_USER["user_id"])
 
     sess = Session(bind=isolated_test_db)
     try:
@@ -116,3 +126,42 @@ def test_duplicate_assignment_raises_and_only_one_record_exists(isolated_test_db
         assert len(assignments) == 1
     finally:
         sess.close()
+
+# INT-062/004
+def test_assign_to_team_unauthorized_user_role(isolated_test_db):
+
+    team = handler.create_team_under_department(
+        VALID_TEAM_CREATE["department_id"],
+        VALID_TEAM_CREATE["team_name"],
+        VALID_TEAM_CREATE["manager_id"]
+    )
+
+    with pytest.raises(ValueError) as exc:
+        handler.assign_user_to_team(VALID_TEAM["team_id"], STAFF_USER["user_id"], STAFF_USER["user_id"])
+    assert "does not have permission" in str(exc.value)
+
+# INT-062/005
+def test_assign_to_team_user_not_found(isolated_test_db):
+
+    team = handler.create_team_under_department(
+        VALID_TEAM_CREATE["department_id"],
+        VALID_TEAM_CREATE["team_name"],
+        VALID_TEAM_CREATE["manager_id"]
+    )
+
+    with pytest.raises(ValueError) as exc:
+        handler.assign_user_to_team(VALID_TEAM["team_id"], NOT_FOUND_ID, MANAGER_USER["user_id"])
+    assert "not found" in str(exc.value)
+
+# INT-062/006
+def test_assign_to_team_manager_not_found(isolated_test_db):
+
+    team = handler.create_team_under_department(
+        VALID_TEAM_CREATE["department_id"],
+        VALID_TEAM_CREATE["team_name"],
+        VALID_TEAM_CREATE["manager_id"]
+    )
+
+    with pytest.raises(ValueError) as exc:
+        handler.assign_user_to_team(VALID_TEAM["team_id"], STAFF_USER["user_id"], NOT_FOUND_ID)
+    assert "not found" in str(exc.value)
