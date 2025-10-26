@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event, delete
+from sqlalchemy import create_engine, event, delete, text
 from sqlalchemy.orm import sessionmaker
 
 from backend.src.database.db_setup import Base
@@ -33,10 +33,14 @@ def test_engine(tmp_path_factory):
     try:
         yield engine
     finally:
-        Base.metadata.drop_all(bind=engine)
+        # Teardown: disable FK checks before dropping tables to avoid circular dependency issues
         try:
-            engine.dispose()
+            with engine.connect() as conn:
+                conn.execute(text("PRAGMA foreign_keys=OFF"))
+                Base.metadata.drop_all(bind=conn)
+                conn.execute(text("PRAGMA foreign_keys=ON"))
         finally:
+            engine.dispose()
             if os.path.exists(db_file):
                 try:
                     os.remove(db_file)
