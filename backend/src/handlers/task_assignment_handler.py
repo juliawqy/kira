@@ -34,53 +34,38 @@ def assign_users(
     if created <= 0:
         return 0
 
-    try:
-        after_assignees = assignment_service.list_assignees(task_id)
-        after_ids: Set[int] = {u.user_id for u in after_assignees}
-        newly_assigned_ids = sorted(after_ids - before_ids)
-    except Exception:
-        newly_assigned_ids = ids
+    after_assignees = assignment_service.list_assignees(task_id)
+    after_ids: Set[int] = {u.user_id for u in after_assignees}
+    newly_assigned_ids = sorted(after_ids - before_ids)
 
     recipient_emails: List[str] = []
     for uid in newly_assigned_ids:
-        try:
-            u = user_service.get_user(uid)
-            if u and getattr(u, "email", None):
-                recipient_emails.append(u.email)
-        except Exception:
-            continue
+        u = user_service.get_user(uid)
+        if u and getattr(u, "email", None):
+            recipient_emails.append(u.email)
 
-    try:
-        task_obj = task_service.get_task_with_subtasks(task_id)
-        task_title = getattr(task_obj, "title", "") if task_obj else ""
-    except Exception:
-        task_title = ""
+    task_obj = task_service.get_task_with_subtasks(task_id)
+    task_title = getattr(task_obj, "title", "") if task_obj else ""
 
     if recipient_emails:
-        try:
-            svc = get_notification_service()
-            resp = svc.notify_activity(
-                user_email=kwargs.get("user_email"),
-                task_id=task_id,
-                task_title=task_title,
-                type_of_alert=NotificationType.TASK_ASSIGN.value,
-                to_recipients=recipient_emails,
-            )
-            try:
-                logger.info(
-                    "Notification response",
-                    extra={
-                        "task_id": task_id,
-                        "type": NotificationType.TASK_ASSIGN.value,
-                        "success": getattr(resp, "success", None),
-                        "message": getattr(resp, "message", None),
-                        "recipients_count": getattr(resp, "recipients_count", None),
-                    },
-                )
-            except Exception:
-                pass
-        except Exception as e:
-            logger.error(f"Failed to send assignment notifications for task {task_id}: {e}")
+        svc = get_notification_service()
+        resp = svc.notify_activity(
+            user_email=kwargs.get("user_email"),
+            task_id=task_id,
+            task_title=task_title,
+            type_of_alert=NotificationType.TASK_ASSIGN.value,
+            to_recipients=recipient_emails,
+        )
+        logger.info(
+            "Notification response",
+            extra={
+                "task_id": task_id,
+                "type": NotificationType.TASK_ASSIGN.value,
+                "success": getattr(resp, "success", None),
+                "resp_message": getattr(resp, "message", None),
+                "recipients_count": getattr(resp, "recipients_count", None),
+            },
+        )
 
     return created
 
@@ -104,13 +89,10 @@ def unassign_users(
     if deleted <= 0:
         return 0
 
-    try:
-        after_assignees = assignment_service.list_assignees(task_id)
-        after_ids: Set[int] = {u.user_id for u in after_assignees}
-        removed_ids = sorted(before_ids - after_ids)
-        if not removed_ids:
-            removed_ids = ids
-    except Exception:
+    after_assignees = assignment_service.list_assignees(task_id)
+    after_ids: Set[int] = {u.user_id for u in after_assignees}
+    removed_ids = sorted(before_ids - after_ids)
+    if not removed_ids:
         removed_ids = ids
 
     recipient_emails: List[str] = []
@@ -119,36 +101,27 @@ def unassign_users(
         if u and getattr(u, "email", None):
             recipient_emails.append(u.email)
 
-    try:
-        task_obj = task_service.get_task_with_subtasks(task_id)
-        task_title = getattr(task_obj, "title", "") if task_obj else ""
-    except Exception:
-        task_title = ""
+    task_obj = task_service.get_task_with_subtasks(task_id)
+    task_title = getattr(task_obj, "title", "") if task_obj else ""
 
     if recipient_emails:
-        try:
-            svc = get_notification_service()
-            resp = svc.notify_activity(
-                user_email=kwargs.get("user_email"),
-                task_id=task_id,
-                task_title=task_title,
-                type_of_alert=NotificationType.TASK_UNASSIGN.value,
-                to_recipients=recipient_emails,
-            )
-            try:
-                logger.info(
-                    "Notification response",
-                    extra={
-                        "task_id": task_id,
-                        "type": NotificationType.TASK_UNASSIGN.value,
-                        "success": getattr(resp, "success", None),
-                        "message": getattr(resp, "message", None),
-                        "recipients_count": getattr(resp, "recipients_count", None),
-                    },
-                )
-            except Exception:
-                pass
-        except Exception as e:
-            logger.error(f"Failed to send unassignment notifications for task {task_id}: {e}")
+        svc = get_notification_service()
+        resp = svc.notify_activity(
+            user_email=kwargs.get("user_email"),
+            task_id=task_id,
+            task_title=task_title,
+            type_of_alert=NotificationType.TASK_UNASSIGN.value,
+            to_recipients=recipient_emails,
+        )
+        logger.info(
+            "Notification response",
+            extra={
+                "task_id": task_id,
+                "type": NotificationType.TASK_UNASSIGN.value,
+                "success": getattr(resp, "success", None),
+                "resp_message": getattr(resp, "message", None),
+                "recipients_count": getattr(resp, "recipients_count", None),
+            },
+        )
 
     return deleted
