@@ -305,7 +305,7 @@ def clear_task_assignees(task_id: int):
 @router.post("/{task_id}/comment", response_model=CommentRead, name="add_comment")
 def add_comment(task_id: int, payload: CommentCreate):
     try:
-        return task_handler.add_comment(task_id, payload.user_id, payload.comment)
+        return task_handler.add_comment(task_id, payload.user_id, payload.comment, payload.recipient_emails)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

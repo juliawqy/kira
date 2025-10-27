@@ -6,6 +6,7 @@ class CommentCreate(BaseModel):
    
     user_id: int
     comment: str
+    recipient_emails: Optional[list[str]] = None
 
 class CommentRead(BaseModel):
     comment_id: int

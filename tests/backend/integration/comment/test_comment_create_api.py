@@ -9,6 +9,7 @@ from backend.src.database.models.project import Project
 
 from tests.mock_data.comment.integration_data import (
     VALID_USER,
+    VALID_USER_ID,
     VALID_PROJECT,
     VALID_TASK,
     ANOTHER_USER,
@@ -18,7 +19,10 @@ from tests.mock_data.comment.integration_data import (
     COMMENT_MULTIPLE_RESPONSE,
     INVALID_TASK_ID,
     INVALID_USER_ID,
-    INVALID_CREATE_NONEXISTENT_USER
+    INVALID_CREATE_NONEXISTENT_USER,
+    COMMENT_CREATE_WITH_RECIPIENTS_PAYLOAD,
+    COMMENT_CREATE_NONEXISTENT_RECIPIENTS_PAYLOAD,
+    COMMENT_CREATE_VALID_RECIPIENTS_PAYLOAD,
 )
 
 @pytest.fixture(autouse=True)
@@ -47,7 +51,6 @@ def seed_task_and_users(test_engine):
 
 # INT-006/001
 def test_add_comment(client: TestClient, task_base_path, seed_task_and_users):
-    """Add a comment via API."""
     resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD)
     assert resp.status_code == 200, f"Unexpected status: {resp.status_code}, body={resp.text}"
 
@@ -62,8 +65,6 @@ def test_add_comment(client: TestClient, task_base_path, seed_task_and_users):
 
 # INT-006/002
 def test_add_multiple_comments_different_users(client: TestClient, task_base_path, seed_task_and_users):
-    """Add comments from multiple users and verify both appear."""
-
     for payload in COMMENT_MULTIPLE_USERS:
         resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=payload)
         assert resp.status_code == 200, f"Unexpected status: {resp.status_code}, body={resp.text}"
@@ -90,3 +91,33 @@ def test_add_comment_user_not_found(client: TestClient, task_base_path, seed_tas
     resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=INVALID_CREATE_NONEXISTENT_USER)
     assert resp.status_code == 404
     assert f"User {INVALID_USER_ID} not found" in resp.text
+
+# INT-006/005
+def test_add_comment_with_recipient_emails(client: TestClient, task_base_path, seed_task_and_users):
+    resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_WITH_RECIPIENTS_PAYLOAD)
+    assert resp.status_code == 200, f"Unexpected status: {resp.status_code}, body={resp.text}"
+    new_comment = resp.json()
+    assert new_comment["comment"] == COMMENT_CREATE_WITH_RECIPIENTS_PAYLOAD["comment"]
+    assert new_comment["user_id"] == COMMENT_CREATE_WITH_RECIPIENTS_PAYLOAD["user_id"]
+    assert new_comment["task_id"] == VALID_TASK["id"]
+    assert "comment_id" in new_comment
+
+# INT-006/006
+def test_add_comment_with_nonexistent_recipient_emails(client: TestClient, task_base_path, seed_task_and_users):
+    resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_NONEXISTENT_RECIPIENTS_PAYLOAD)
+    assert resp.status_code == 200, f"Unexpected status: {resp.status_code}, body={resp.text}"
+    new_comment = resp.json()
+    assert new_comment["comment"] == COMMENT_CREATE_NONEXISTENT_RECIPIENTS_PAYLOAD["comment"]
+    assert new_comment["user_id"] == COMMENT_CREATE_NONEXISTENT_RECIPIENTS_PAYLOAD["user_id"]
+    assert new_comment["task_id"] == VALID_TASK["id"]
+    assert "comment_id" in new_comment
+
+# INT-006/007
+def test_add_comment_with_valid_recipient_emails(client: TestClient, task_base_path, seed_task_and_users):
+    resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_VALID_RECIPIENTS_PAYLOAD)
+    assert resp.status_code == 200, f"Unexpected status: {resp.status_code}, body={resp.text}"
+    new_comment = resp.json()
+    assert new_comment["comment"] == COMMENT_CREATE_VALID_RECIPIENTS_PAYLOAD["comment"]
+    assert new_comment["user_id"] == COMMENT_CREATE_VALID_RECIPIENTS_PAYLOAD["user_id"]
+    assert new_comment["task_id"] == VALID_TASK["id"]
+    assert "comment_id" in new_comment
