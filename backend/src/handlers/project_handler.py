@@ -19,6 +19,10 @@ def get_project_by_id(project_id: int):
         raise ValueError("Project not found.")
     return project
 
+
+# -------- Project x User Handlers -------------------------------------------------------
+
+
 def assign_user_to_project(project_id: int, user_id: int, assigner_id: int = None):
     project = project_service.get_project_by_id(project_id)
     if not project:
