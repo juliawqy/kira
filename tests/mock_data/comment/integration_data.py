@@ -156,3 +156,15 @@ COMMENT_UPDATE_UNAUTHORIZED_PAYLOAD = {
 COMMENT_DELETE_UNAUTHORIZED_PAYLOAD = {
     "requesting_user_id": ANOTHER_USER["user_id"],
 }
+
+COMMENT_UPDATE_WITH_VALID_RECIPIENTS_PAYLOAD = {
+    "comment": "This comment has been updated with valid recipients",
+    "requesting_user_id": VALID_USER_ID,
+    "recipient_emails": ["tester@example.com", "another@example.com"]
+}
+
+COMMENT_UPDATE_WITH_NONEXISTENT_RECIPIENTS_PAYLOAD = {
+    "comment": "This comment has been updated with non-existent recipients",
+    "requesting_user_id": VALID_USER_ID,
+    "recipient_emails": ["nonexistent1@example.com", "nonexistent2@example.com"]
+}

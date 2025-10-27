@@ -19,6 +19,8 @@ from tests.mock_data.comment.integration_data import (
     COMMENT_UPDATE_ERROR_PAYLOAD,
     COMMENT_UPDATE_AUTHORIZED_PAYLOAD,
     COMMENT_UPDATE_UNAUTHORIZED_PAYLOAD,
+    COMMENT_UPDATE_WITH_VALID_RECIPIENTS_PAYLOAD,
+    COMMENT_UPDATE_WITH_NONEXISTENT_RECIPIENTS_PAYLOAD,
 )
 
 @pytest.fixture(autouse=True)
@@ -79,3 +81,21 @@ def test_update_comment_authorized(client: TestClient, task_base_path, seed_task
 def test_update_comment_value_error_handling(client: TestClient, task_base_path, seed_task_and_users):
     resp = client.patch(f"{task_base_path}/comment/{INVALID_COMMENT_ID}", json=COMMENT_UPDATE_ERROR_PAYLOAD)
     assert resp.status_code == 404
+
+# INT-027/006
+def test_update_comment_with_valid_recipient_emails(client: TestClient, task_base_path, seed_task_and_users):
+    """Test update_comment with valid recipient emails to cover recipient email handling in update_comment"""
+    resp = client.patch(f"{task_base_path}/comment/{VALID_COMMENT_ID}", json=COMMENT_UPDATE_WITH_VALID_RECIPIENTS_PAYLOAD)
+    assert resp.status_code == 200
+    updated = resp.json()
+    assert updated["comment"] == COMMENT_UPDATE_WITH_VALID_RECIPIENTS_PAYLOAD["comment"]
+    assert "comment_id" in updated
+
+# INT-027/007
+def test_update_comment_with_nonexistent_recipient_emails(client: TestClient, task_base_path, seed_task_and_users):
+    """Test update_comment with non-existent recipient emails to cover recipient email handling in update_comment"""
+    resp = client.patch(f"{task_base_path}/comment/{VALID_COMMENT_ID}", json=COMMENT_UPDATE_WITH_NONEXISTENT_RECIPIENTS_PAYLOAD)
+    assert resp.status_code == 200
+    updated = resp.json()
+    assert updated["comment"] == COMMENT_UPDATE_WITH_NONEXISTENT_RECIPIENTS_PAYLOAD["comment"]
+    assert "comment_id" in updated

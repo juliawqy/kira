@@ -327,7 +327,7 @@ def get_comment(comment_id: int):
 @router.patch("/comment/{comment_id}", response_model=CommentRead, name="update_comment")
 def update_comment(comment_id: int, payload: CommentUpdate):
     try:
-        return task_handler.update_comment(comment_id, payload.comment, payload.requesting_user_id)
+        return task_handler.update_comment(comment_id, payload.comment, payload.requesting_user_id, payload.recipient_emails)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except PermissionError as e:

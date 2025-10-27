@@ -72,7 +72,7 @@ def get_comment(comment_id: int):
         raise ValueError(f"Comment {comment_id} not found")
     return comment
 
-def update_comment(comment_id: int, updated_text: str, requesting_user_id: int):
+def update_comment(comment_id: int, updated_text: str, requesting_user_id: int, recipient_emails: list[str] = None):
     """Update a comment - only the author can update their comment."""
     
     existing_comment = comment_service.get_comment(comment_id)
@@ -82,7 +82,16 @@ def update_comment(comment_id: int, updated_text: str, requesting_user_id: int):
     if existing_comment["user_id"] != requesting_user_id:
         raise PermissionError("Only the comment author can update this comment")
     
-    return comment_service.update_comment(comment_id, updated_text)
+    comment = comment_service.update_comment(comment_id, updated_text)
+
+    if recipient_emails:
+        for email in recipient_emails:
+            recipient_user = user_service.get_user(email)
+            if not recipient_user:
+                logger.warning(f"Recipient email {email} not found in system")
+        # recipient_emails will be handled by notification_service later
+
+    return comment
 
 def delete_comment(comment_id: int, requesting_user_id: int):
     """Delete a comment - only the author can delete their comment."""
