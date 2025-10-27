@@ -31,6 +31,8 @@ class User(Base):
 
     managed_projects = relationship("Project", back_populates="project_manager_user")
 
+    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+
     __table_args__ = (
         UniqueConstraint("email", name="uq_user_email"),
     )

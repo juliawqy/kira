@@ -32,12 +32,13 @@ def use_test_db(test_engine, monkeypatch):
     monkeypatch.setattr(user, "SessionLocal", TestSessionLocal)
 
 @pytest.fixture
-def seed_task_and_user(test_engine):
-    """Insert a user, project, and task to satisfy comment foreign keys."""
+def seed_task_and_users(test_engine):
+    """Insert users, project, and task to satisfy comment foreign keys."""
     TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
     with TestingSessionLocal.begin() as db:
-        user = User(**VALID_USER)
-        db.add(user)
+        user1 = User(**VALID_USER)
+        user2 = User(**ANOTHER_USER)
+        db.add_all([user1, user2])
         db.flush()
         project = Project(**VALID_PROJECT)
         task = Task(**VALID_TASK)
@@ -45,7 +46,7 @@ def seed_task_and_user(test_engine):
     yield
 
 # INT-006/001
-def test_add_comment(client: TestClient, task_base_path, seed_task_and_user):
+def test_add_comment(client: TestClient, task_base_path, seed_task_and_users):
     """Add a comment via API."""
     resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD)
     assert resp.status_code == 200, f"Unexpected status: {resp.status_code}, body={resp.text}"
@@ -60,7 +61,7 @@ def test_add_comment(client: TestClient, task_base_path, seed_task_and_user):
     assert datetime.fromisoformat(new_comment["timestamp"]) <= after + timedelta(seconds=5)
 
 # INT-006/002
-def test_add_multiple_comments_different_users(client: TestClient, task_base_path, seed_task_and_user, test_engine):
+def test_add_multiple_comments_different_users(client: TestClient, task_base_path, seed_task_and_users, test_engine):
     """Add comments from multiple users and verify both appear."""
     TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
     with TestingSessionLocal.begin() as db:
@@ -82,13 +83,13 @@ def test_add_multiple_comments_different_users(client: TestClient, task_base_pat
     assert comments[1]["comment"] == COMMENT_MULTIPLE_RESPONSE[1]["comment"]
 
 # INT-006/003
-def test_add_comment_task_not_found(client: TestClient, task_base_path, seed_task_and_user):
+def test_add_comment_task_not_found(client: TestClient, task_base_path, seed_task_and_users):
     resp = client.post(f"{task_base_path}/{INVALID_TASK_ID}/comment", json=COMMENT_CREATE_PAYLOAD)
     assert resp.status_code == 404
     assert f"Task {INVALID_TASK_ID} not found" in resp.text
 
 # INT-006/004
-def test_add_comment_user_not_found(client: TestClient, task_base_path, seed_task_and_user):
+def test_add_comment_user_not_found(client: TestClient, task_base_path, seed_task_and_users):
     resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=INVALID_CREATE_NONEXISTENT_USER)
     assert resp.status_code == 404
     assert f"User {INVALID_USER_ID} not found" in resp.text

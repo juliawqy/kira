@@ -6,6 +6,7 @@ from backend.src.database.models.task import Task
 from backend.src.database.models.project import Project
 from tests.mock_data.comment.integration_data import (
     VALID_USER,
+    ANOTHER_USER,
     VALID_PROJECT,
     VALID_TASK,
     INVALID_COMMENT_ID,
@@ -23,11 +24,12 @@ def use_test_db(test_engine, monkeypatch):
     monkeypatch.setattr(user, "SessionLocal", TestSessionLocal)
 
 @pytest.fixture
-def seed_task_and_user(test_engine):
+def seed_task_and_users(test_engine):
     TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
     with TestingSessionLocal.begin() as db:
-        user = User(**VALID_USER)
-        db.add(user)
+        user1 = User(**VALID_USER)
+        user2 = User(**ANOTHER_USER)
+        db.add_all([user1, user2])
         db.flush()
         project = Project(**VALID_PROJECT)
         task = Task(**VALID_TASK)
@@ -35,7 +37,7 @@ def seed_task_and_user(test_engine):
     yield
 
 # INT-027/001
-def test_update_comment_text(client: TestClient, task_base_path, seed_task_and_user):
+def test_update_comment_text(client: TestClient, task_base_path, seed_task_and_users):
     c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
     resp = client.patch(f"{task_base_path}/comment/{c['comment_id']}", json=COMMENT_UPDATE_PAYLOAD)
     assert resp.status_code == 200
@@ -45,6 +47,37 @@ def test_update_comment_text(client: TestClient, task_base_path, seed_task_and_u
     assert refetched["comment"] == COMMENT_UPDATED_RESPONSE["comment"]
 
 # INT-027/002
-def test_update_comment_not_found(client: TestClient, task_base_path, seed_task_and_user):
+def test_update_comment_not_found(client: TestClient, task_base_path, seed_task_and_users):
     resp = client.patch(f"{task_base_path}/comment/{INVALID_COMMENT_ID}", json=COMMENT_UPDATE_PAYLOAD)
     assert resp.status_code == 404
+
+# INT-027/003 - Authorization Test
+def test_update_comment_unauthorized(client: TestClient, task_base_path, seed_task_and_users):
+    """Test that only the comment author can update their comment."""
+    # Create comment with user 1
+    c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
+    
+    # Try to update with user 2 (different user) - should fail
+    unauthorized_payload = {
+        **COMMENT_UPDATE_PAYLOAD,
+        "requesting_user_id": ANOTHER_USER["user_id"]
+    }
+    resp = client.patch(f"{task_base_path}/comment/{c['comment_id']}", json=unauthorized_payload)
+    assert resp.status_code == 403  # Forbidden
+    assert "Only the comment author can update this comment" in resp.json()["detail"]
+
+# INT-027/004 - Author can update their own comment
+def test_update_comment_authorized(client: TestClient, task_base_path, seed_task_and_users):
+    """Test that the comment author can update their own comment."""
+    # Create comment with user 1
+    c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
+    
+    # Update with same user (author) - should succeed
+    authorized_payload = {
+        **COMMENT_UPDATE_PAYLOAD,
+        "requesting_user_id": VALID_USER["user_id"]
+    }
+    resp = client.patch(f"{task_base_path}/comment/{c['comment_id']}", json=authorized_payload)
+    assert resp.status_code == 200
+    updated = resp.json()
+    assert updated["comment"] == COMMENT_UPDATED_RESPONSE["comment"]

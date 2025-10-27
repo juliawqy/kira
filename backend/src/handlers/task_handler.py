@@ -35,8 +35,9 @@ def list_project_tasks_by_user(project_id: int, user_id: int):
 
 # -------- Comment Handlers -------------------------------------------------------
 
-def add_comment(task_id: int, user_id: int, comment_text: str):
 
+def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails: list[str] = None):
+    """Add a comment to a task with recipient emails from frontend."""
     task = task_service.get_task_with_subtasks(task_id)
     if not task:
         raise ValueError(f"Task {task_id} not found")
@@ -47,10 +48,12 @@ def add_comment(task_id: int, user_id: int, comment_text: str):
 
     comment = comment_service.add_comment(task_id, user_id, comment_text)
 
-    # if "@" in comment_text:
-    #     mentioned_users = extract_mentions(comment_text)
-    #     for u in mentioned_users:
-    #         notification_service.notify_user(u, f"You were mentioned in a comment on task {task_id}")
+    if recipient_emails:
+        for email in recipient_emails:
+            recipient_user = user_service.get_user(email)
+            if not recipient_user:
+                logger.warning(f"Recipient email {email} not found in system")
+        # recipient_emails will be handled by notification_service later
 
     return comment
 
@@ -69,15 +72,35 @@ def get_comment(comment_id: int):
         raise ValueError(f"Comment {comment_id} not found")
     return comment
 
-def update_comment(comment_id: int, updated_text: str):
-
+def update_comment(comment_id: int, updated_text: str, requesting_user_id: int):
+    """Update a comment - only the author can update their comment."""
+    
+    # Get the existing comment to validate ownership
+    existing_comment = comment_service.get_comment(comment_id)
+    if not existing_comment:
+        raise ValueError(f"Comment {comment_id} not found")
+    
+    # Check if the requesting user is the comment author
+    if existing_comment["user_id"] != requesting_user_id:
+        raise PermissionError("Only the comment author can update this comment")
+    
     try:
         return comment_service.update_comment(comment_id, updated_text)
     except ValueError as e:
         raise ValueError(str(e))
 
-def delete_comment(comment_id: int):
-
+def delete_comment(comment_id: int, requesting_user_id: int):
+    """Delete a comment - only the author can delete their comment."""
+    
+    # Get the existing comment to validate ownership
+    existing_comment = comment_service.get_comment(comment_id)
+    if not existing_comment:
+        raise ValueError(f"Comment {comment_id} not found")
+    
+    # Check if the requesting user is the comment author
+    if existing_comment["user_id"] != requesting_user_id:
+        raise PermissionError("Only the comment author can delete this comment")
+    
     try:
         return comment_service.delete_comment(comment_id)
     except ValueError as e:
