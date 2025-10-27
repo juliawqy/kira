@@ -7,7 +7,7 @@ from pydantic import BaseModel, validator
 from backend.src.schemas.task import TaskCreate, TaskUpdate, TaskRead, TaskWithSubTasks
 from backend.src.schemas.user import UserRead
 import backend.src.services.task as task_service
-from backend.src.schemas.comment import CommentCreate, CommentRead, CommentUpdate
+from backend.src.schemas.comment import CommentCreate, CommentRead, CommentUpdate, CommentDelete
 import backend.src.services.comment as comment_service
 import backend.src.services.task_assignment as assignment_service
 import backend.src.handlers.task_assignment_handler as assignment_handler
@@ -327,13 +327,17 @@ def get_comment(comment_id: int):
 @router.patch("/comment/{comment_id}", response_model=CommentRead, name="update_comment")
 def update_comment(comment_id: int, payload: CommentUpdate):
     try:
-        return task_handler.update_comment(comment_id, payload.comment)
+        return task_handler.update_comment(comment_id, payload.comment, payload.requesting_user_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 @router.delete("/comment/{comment_id}", response_model=bool, name="delete_comment")
-def delete_comment(comment_id: int):
+def delete_comment(comment_id: int, payload: CommentDelete):
     try:
-        return task_handler.delete_comment(comment_id)
+        return task_handler.delete_comment(comment_id, payload.requesting_user_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))

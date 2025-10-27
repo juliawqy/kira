@@ -32,6 +32,10 @@
 </head>
 <body>
   <h1>Comments for Task #1</h1>
+  <div style="margin-bottom: 20px;">
+    <label for="userIdInput">User ID:</label>
+    <input type="number" id="userIdInput" value="1" min="1" style="margin-left: 10px; padding: 5px;">
+  </div>
   <textarea id="commentInput" placeholder="Write a comment..." rows="3" cols="60"></textarea><br>
   <button id="submitComment">Add Comment</button>
   <button id="refresh" class="btn-refresh">Refresh</button>
@@ -83,6 +87,7 @@
 
     async function addComment() {
         const text = document.getElementById("commentInput").value.trim();
+        const userId = parseInt(document.getElementById("userIdInput").value);
         if (!text) {
         setStatus("Comment cannot be empty", true);
         return;
@@ -91,7 +96,7 @@
         const resp = await fetch(`${API_BASE}/${TASK_ID}/comment`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_id: USER_ID, comment: text })
+            body: JSON.stringify({ user_id: userId, comment: text })
         });
         if (!resp.ok) throw new Error("Failed to add comment");
         setStatus("Comment added successfully");
@@ -109,6 +114,7 @@
 
     async function saveUpdate(id) {
         const newText = document.getElementById(`update-input-${id}`).value.trim();
+        const userId = parseInt(document.getElementById("userIdInput").value);
         if (!newText) {
         setStatus("Updated text cannot be empty", true);
         return;
@@ -117,7 +123,7 @@
         const resp = await fetch(`${API_BASE}/comment/${id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ comment: newText })
+            body: JSON.stringify({ comment: newText, requesting_user_id: userId })
         });
         if (!resp.ok) throw new Error("Failed to update comment");
         setStatus("Comment updated successfully");
@@ -129,8 +135,13 @@
 
     async function deleteComment(id) {
         if (!confirm("Delete this comment?")) return;
+        const userId = parseInt(document.getElementById("userIdInput").value);
         try {
-        const resp = await fetch(`${API_BASE}/comment/${id}`, { method: "DELETE" });
+        const resp = await fetch(`${API_BASE}/comment/${id}`, { 
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ requesting_user_id: userId })
+        });
         if (!resp.ok) throw new Error("Failed to delete comment");
         setStatus("Comment deleted successfully");
         setTimeout(loadComments, 1000);  // Delay here

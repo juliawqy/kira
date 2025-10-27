@@ -37,7 +37,8 @@ def seed_task_and_users(test_engine):
 # INT-005/001
 def test_delete_comment(client: TestClient, task_base_path, seed_task_and_users):
     c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
-    resp = client.delete(f"{task_base_path}/comment/{c['comment_id']}")
+    delete_payload = {"requesting_user_id": VALID_USER["user_id"]}
+    resp = client.request("DELETE", f"{task_base_path}/comment/{c['comment_id']}", json=delete_payload)
     assert resp.status_code == 200
     assert resp.json() is True
     resp2 = client.get(f"{task_base_path}/comment/{c['comment_id']}")
@@ -45,7 +46,8 @@ def test_delete_comment(client: TestClient, task_base_path, seed_task_and_users)
 
 # INT-005/002
 def test_delete_comment_not_found(client: TestClient, task_base_path, seed_task_and_users):
-    resp = client.delete(f"{task_base_path}/comment/{INVALID_COMMENT_ID}")
+    delete_payload = {"requesting_user_id": VALID_USER["user_id"]}
+    resp = client.request("DELETE", f"{task_base_path}/comment/{INVALID_COMMENT_ID}", json=delete_payload)
     assert resp.status_code == 404
 
 # INT-005/003 - Authorization Test
@@ -58,7 +60,7 @@ def test_delete_comment_unauthorized(client: TestClient, task_base_path, seed_ta
     unauthorized_payload = {
         "requesting_user_id": ANOTHER_USER["user_id"]
     }
-    resp = client.delete(f"{task_base_path}/comment/{c['comment_id']}", json=unauthorized_payload)
+    resp = client.request("DELETE", f"{task_base_path}/comment/{c['comment_id']}", json=unauthorized_payload)
     assert resp.status_code == 403  # Forbidden
     assert "Only the comment author can delete this comment" in resp.json()["detail"]
 
@@ -72,7 +74,7 @@ def test_delete_comment_authorized(client: TestClient, task_base_path, seed_task
     authorized_payload = {
         "requesting_user_id": VALID_USER["user_id"]
     }
-    resp = client.delete(f"{task_base_path}/comment/{c['comment_id']}", json=authorized_payload)
+    resp = client.request("DELETE", f"{task_base_path}/comment/{c['comment_id']}", json=authorized_payload)
     assert resp.status_code == 200
     assert resp.json() is True
     

@@ -61,11 +61,9 @@ def test_add_comment(client: TestClient, task_base_path, seed_task_and_users):
     assert datetime.fromisoformat(new_comment["timestamp"]) <= after + timedelta(seconds=5)
 
 # INT-006/002
-def test_add_multiple_comments_different_users(client: TestClient, task_base_path, seed_task_and_users, test_engine):
+def test_add_multiple_comments_different_users(client: TestClient, task_base_path, seed_task_and_users):
     """Add comments from multiple users and verify both appear."""
-    TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
-    with TestingSessionLocal.begin() as db:
-        db.add(User(**ANOTHER_USER))
+    # Note: seed_task_and_users already adds both users, so we don't need to add them again
 
     for payload in COMMENT_MULTIPLE_USERS:
         resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=payload)

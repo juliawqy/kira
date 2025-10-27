@@ -76,6 +76,7 @@ COMMENT_RESPONSE = {
 
 COMMENT_UPDATE_PAYLOAD = {
     "comment": "This comment has been updated",
+    "requesting_user_id": VALID_USER_ID,
 }
 
 COMMENT_UPDATED_RESPONSE = {
