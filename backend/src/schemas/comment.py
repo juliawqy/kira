@@ -6,6 +6,7 @@ class CommentCreate(BaseModel):
    
     user_id: int
     comment: str
+    recipient_emails: Optional[list[str]] = None
 
 class CommentRead(BaseModel):
     comment_id: int
@@ -19,4 +20,9 @@ class CommentRead(BaseModel):
 
 class CommentUpdate(BaseModel):
     comment: Optional[str] = None
+    requesting_user_id: int
+    recipient_emails: Optional[list[str]] = None
+
+class CommentDelete(BaseModel):
+    requesting_user_id: int
 

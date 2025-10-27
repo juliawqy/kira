@@ -13,3 +13,4 @@ class Comment(Base):
     timestamp = Column(DateTime, default=datetime.now())
 
     task = relationship("Task", back_populates="comments")
+    user = relationship("User", back_populates="comments")

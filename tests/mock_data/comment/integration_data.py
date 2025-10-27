@@ -50,14 +50,22 @@ VALID_TASK = {
     "description": "Integration test task",
     "status": "To-do",
     "priority": 5,
-    "project_id": VALID_PROJECT_ID,
+    "project_id": 1,
     "active": True,
+}
+
+VALID_COMMENT = {
+    "comment_id": 1,
+    "task_id": 1,
+    "user_id": 1,
+    "comment": "Original comment text",
+    "timestamp": datetime.now(),
 }
 
 # ------------------ COMMENT PAYLOADS ------------------
 
 COMMENT_CREATE_PAYLOAD = {
-    "user_id": VALID_USER_ID,
+    "user_id": 1,
     "comment": "This is a test comment",
 }
 
@@ -67,33 +75,34 @@ INVALID_CREATE_NONEXISTENT_USER = {
 }
 
 COMMENT_RESPONSE = {
-    "comment_id": VALID_COMMENT_ID,
-    "task_id": VALID_TASK_ID,
-    "user_id": VALID_USER_ID,
+    "comment_id": 1,
+    "task_id": 1,
+    "user_id": 1,
     "comment": "This is a test comment",
     "timestamp": datetime.now().isoformat(),
 }
 
 COMMENT_UPDATE_PAYLOAD = {
     "comment": "This comment has been updated",
+    "requesting_user_id": 1,
 }
 
 COMMENT_UPDATED_RESPONSE = {
-    "comment_id": VALID_COMMENT_ID,
-    "task_id": VALID_TASK_ID,
-    "user_id": VALID_USER_ID,
+    "comment_id": 1,
+    "task_id": 1,
+    "user_id": 1,
     "comment": "This comment has been updated",
     "timestamp": datetime.now().isoformat(),
 }
 
 COMMENT_MULTIPLE_USERS = [
-    {"user_id": VALID_USER_ID, "comment": "User1 comment"},
-    {"user_id": ANOTHER_USER["user_id"], "comment": "User2 comment"},
+    {"user_id": 1, "comment": "User1 comment"},
+    {"user_id": 2, "comment": "User2 comment"},
 ]
 
 COMMENT_MULTIPLE_RESPONSE = [
-    {"comment_id": 1, "task_id": VALID_TASK_ID, "user_id": VALID_USER_ID, "comment": "User1 comment", "timestamp": datetime.now().isoformat()},
-    {"comment_id": 2, "task_id": VALID_TASK_ID, "user_id": ANOTHER_USER["user_id"], "comment": "User2 comment", "timestamp": datetime.now().isoformat()},
+    {"comment_id": 1, "task_id": 1, "user_id": 1, "comment": "User1 comment", "timestamp": datetime.now().isoformat()},
+    {"comment_id": 2, "task_id": 1, "user_id": 2, "comment": "User2 comment", "timestamp": datetime.now().isoformat()},
 ]
 
 EXPECTED_COMMENT_FIELDS = [
@@ -104,3 +113,58 @@ EXPECTED_COMMENT_FIELDS = [
     "timestamp",
 ]
 COMMENT_LIST_TEXTS = ["First comment", "Second comment"]
+COMMENT_CREATE_WITH_RECIPIENTS_PAYLOAD = {
+    "user_id": 1,
+    "comment": "This is a test comment with recipients",
+    "recipient_emails": ["nonexistent@example.com", "valid@example.com"]
+}
+COMMENT_UPDATE_ERROR_PAYLOAD = {
+    "comment": "This will cause an error",
+    "requesting_user_id": 1,
+}
+
+COMMENT_DELETE_ERROR_PAYLOAD = {
+    "requesting_user_id": 1,
+}
+
+COMMENT_CREATE_NONEXISTENT_RECIPIENTS_PAYLOAD = {
+    "user_id": VALID_USER_ID,
+    "comment": "This comment has non-existent recipients",
+    "recipient_emails": ["nonexistent1@example.com", "nonexistent2@example.com"]
+}
+
+COMMENT_CREATE_VALID_RECIPIENTS_PAYLOAD = {
+    "user_id": VALID_USER_ID,
+    "comment": "This comment has valid recipients",
+    "recipient_emails": ["tester@example.com", "another@example.com"]
+}
+
+COMMENT_UPDATE_AUTHORIZED_PAYLOAD = {
+    "comment": "This comment has been updated",
+    "requesting_user_id": VALID_USER_ID,
+}
+
+COMMENT_DELETE_AUTHORIZED_PAYLOAD = {
+    "requesting_user_id": VALID_USER_ID,
+}
+
+COMMENT_UPDATE_UNAUTHORIZED_PAYLOAD = {
+    "comment": "This comment has been updated",
+    "requesting_user_id": ANOTHER_USER["user_id"],
+}
+
+COMMENT_DELETE_UNAUTHORIZED_PAYLOAD = {
+    "requesting_user_id": ANOTHER_USER["user_id"],
+}
+
+COMMENT_UPDATE_WITH_VALID_RECIPIENTS_PAYLOAD = {
+    "comment": "This comment has been updated with valid recipients",
+    "requesting_user_id": VALID_USER_ID,
+    "recipient_emails": ["tester@example.com", "another@example.com"]
+}
+
+COMMENT_UPDATE_WITH_NONEXISTENT_RECIPIENTS_PAYLOAD = {
+    "comment": "This comment has been updated with non-existent recipients",
+    "requesting_user_id": VALID_USER_ID,
+    "recipient_emails": ["nonexistent1@example.com", "nonexistent2@example.com"]
+}
