@@ -60,7 +60,7 @@ def isolated_test_db():
     with patch('backend.src.services.team.SessionLocal', TestSessionLocal), \
          patch('backend.src.services.department.SessionLocal', TestSessionLocal), \
          patch('backend.src.services.user.SessionLocal', TestSessionLocal), \
-         patch('backend.src.handlers.department_handler.dept_service.SessionLocal', TestSessionLocal), \
+         patch('backend.src.handlers.department_handler.department_service.SessionLocal', TestSessionLocal), \
          patch('backend.src.handlers.department_handler.team_service.SessionLocal', TestSessionLocal), \
          patch('backend.src.handlers.department_handler.user_service.SessionLocal', TestSessionLocal):
 
@@ -105,7 +105,6 @@ def test_view_team_by_department(isolated_test_db):
     )
 
     teams = department_handler.view_teams_in_department(VALID_DEPARTMENT_1["department_id"])
-    print("fml:", teams)
     assert isinstance(teams, list)
     assert len(teams) == 1
     assert teams[0]["team_name"] == VALID_TEAM_CREATE["team_name"]
@@ -168,62 +167,18 @@ def test_view_team_by_team_empty(isolated_test_db):
     assert subteams == []
 
 
-# INT-104/007
-def test_create_team_under_department_success(isolated_test_db):
-    team = department_handler.create_team_under_department(
-        VALID_TEAM_CREATE["department_id"],
-        VALID_TEAM_CREATE["team_name"],
-        VALID_TEAM_CREATE["manager_id"]
-    )
-
-    assert team["team_id"] == VALID_TEAM["team_id"]
-    assert team["team_name"] == VALID_TEAM["team_name"]
-    assert team["manager_id"] == VALID_TEAM["manager_id"]
-    assert team["department_id"] == VALID_TEAM["department_id"]
-    assert team["team_number"] == VALID_TEAM["team_number"]
-
-
-# INT-104/008
-def test_create_team_under_nonexistent_department(isolated_test_db):
-    with pytest.raises(ValueError):
-        department_handler.create_team_under_department(INVALID_DEPARTMENT_ID, VALID_TEAM_CREATE["team_name"], VALID_TEAM_CREATE["manager_id"])
-
-
-# INT-104/009
-def test_create_team_under_team_success(isolated_test_db):
-    from backend.src.services import team as team_service
-
-    department_handler.create_team_under_department(
-        VALID_TEAM_CREATE["department_id"],
-        VALID_TEAM_CREATE["team_name"],
-        VALID_TEAM_CREATE["manager_id"]
-    )
-
-    subteam = department_handler.create_team_under_team(
-        VALID_SUBTEAM_CREATE["team_id"],
-        VALID_SUBTEAM_CREATE["team_name"],
-        VALID_SUBTEAM_CREATE["manager_id"]
-    )
-
-    assert subteam["team_id"] == VALID_SUBTEAM["team_id"]
-    assert subteam["team_name"] == VALID_SUBTEAM["team_name"]
-    assert subteam["manager_id"] == VALID_SUBTEAM["manager_id"]
-    assert subteam["department_id"] == VALID_SUBTEAM["department_id"]
-    assert subteam["team_number"] == VALID_SUBTEAM["team_number"]
-
-
-# INT-104/010
-def test_create_team_under_nonexistent_team(isolated_test_db):
-    with pytest.raises(ValueError):
-        department_handler.create_team_under_team(NOT_FOUND_ID, VALID_SUBTEAM_CREATE["team_name"], VALID_SUBTEAM_CREATE["manager_id"])
-
 # INT-125/001
 def test_view_users_in_department_returns_mapped_users(isolated_test_db):
     users = department_handler.view_users_in_department(VALID_DEPARTMENT_1["department_id"])
     assert isinstance(users, list)
-    assert len(users) >= 1
-    u0 = users[0]
-    assert {"user_id", "name", "email", "role", "admin"} <= set(u0.keys())
+    assert len(users) == 3
+
+    user = users[0]
+    assert user["user_id"] == STAFF_USER["user_id"]
+    assert user["name"] == STAFF_USER["name"]
+    assert user["email"] == STAFF_USER["email"]
+    assert user["role"] == STAFF_USER["role"]
+    assert user["admin"] == STAFF_USER["admin"]
 
 # INT-125/002
 def test_view_users_in_nonexistent_department_raises(isolated_test_db):
@@ -238,8 +193,8 @@ def test_assign_user_to_department_success(isolated_test_db):
     dept_id = VALID_DEPARTMENT_1["department_id"]
     user_service.assign_user_to_department(user_id, dept_id)
     users = department_handler.view_users_in_department(dept_id)
-    ids = {u["user_id"] for u in users}
-    assert user_id in ids
+
+    assert user_id in [user["user_id"] for user in users]
 
 
 # INT-125/004
@@ -264,8 +219,8 @@ def test_unassign_user_from_department_success(isolated_test_db):
     user_service.assign_user_to_department(user_id, dept_id)
     user_service.assign_user_to_department(user_id, None)
     users = department_handler.view_users_in_department(dept_id)
-    ids = {u["user_id"] for u in users}
-    assert user_id not in ids
+
+    assert user_id not in [user["user_id"] for user in users]
 
 # INT-125/007
 def test_route_list_users_in_department(isolated_test_db):

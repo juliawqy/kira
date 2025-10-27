@@ -8,7 +8,7 @@ class Team(Base):
 
     team_id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
     team_name = Column(String, nullable=False)
-    manager_id = Column(Integer, nullable=False)
+    manager_id = Column(Integer, ForeignKey("user.user_id"), nullable=False)
     department_id = Column(Integer, ForeignKey("department.department_id", ondelete="CASCADE"), nullable=False)
     team_number = Column(String, nullable=False)
 
@@ -17,3 +17,5 @@ class Team(Base):
     team_members = relationship(
         "TeamAssignment", back_populates="team", cascade="all, delete-orphan"
     )
+
+    manager = relationship("User", back_populates="managed_teams", foreign_keys=[manager_id])
