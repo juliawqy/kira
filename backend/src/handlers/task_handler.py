@@ -1,19 +1,98 @@
+from __future__ import annotations
+
 import logging
+from typing import Iterable, Optional
+
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
 from backend.src.services import project as project_service
 from backend.src.services.notification import get_notification_service
 from backend.src.services import task_assignment as assignment_service
 from backend.src.enums.notification import NotificationType
+from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
+
+
+from datetime import date, timedelta
+from enum import Enum
+from operator import and_
+from token import OP
+from typing import Iterable, Optional
+
+from sqlalchemy import select, exists
+from sqlalchemy.orm import selectinload
+
+from backend.src.database.db_setup import SessionLocal
+from backend.src.database.models.task import Task
+from backend.src.database.models.parent_assignment import ParentAssignment
+from backend.src.database.models.task_assignment import TaskAssignment
+from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
+
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# ---- Helpers ----------------------------------------------------------------
+
+
+def _validate_bucket(n: int) -> None:
+    if not isinstance(n, int):
+        raise TypeError("priority must be an integer")
+    if not (1 <= n <= 10):
+        raise ValueError("priority must be between 1 and 10")
+
 
 # -------- Task Handlers -------------------------------------------------------
 
 
+def create_task(
+    title: str,
+    *,
+    description: Optional[str] = None,
+    start_date: Optional[date] = None,
+    deadline: Optional[date] = None,
+    priority: int = 5,
+    status: str = TaskStatus.TO_DO.value,
+    recurring: Optional[int] = 0,
+    tag: Optional[str] = None,
+    project_id: int,
+    active: bool = True,
+    parent_id: Optional[int] = None,
+):
+    if not title or not title.strip():
+        raise ValueError("Task title cannot be empty or whitespace.")
+    
+    _validate_bucket(priority)
+
+    if status not in ALLOWED_STATUSES:
+        raise ValueError(f"Invalid status '{status}'")
+    
+    if parent_id is not None:
+            parent = task_service.get_task_with_subtasks(parent_id)
+            if not parent:
+                raise ValueError(f"Parent task {parent_id} not found.")
+            
+            if not parent.active:
+                raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
+
+    task = task_service.add_task(
+        title=title,
+        description=description,
+        start_date=start_date,
+        deadline=deadline,
+        priority=priority,
+        status=status,
+        recurring=recurring,
+        tag=tag,
+        project_id=project_id,
+        active=active,
+        parent_id=parent_id,
+    )
+
+    if parent_id is not None:
+        task_service.link_subtask(parent_id, task.id)
+
+    return task
 
 def update_task(
     task_id: int,
@@ -33,6 +112,12 @@ def update_task(
     pre = task_service.get_task_with_subtasks(task_id)
     if not pre:
         raise ValueError(f"Task {task_id} not found")
+
+    disallowed_fields = {'active', 'status'} & set(kwargs.keys())
+    if disallowed_fields:
+        raise ValueError(f"Cannot update fields {disallowed_fields}. Use delete_task() for 'active' or set_task_status() for 'status'.")
+    
+    _validate_bucket(priority) if priority is not None else None
 
     prev_values = {
         'title': getattr(pre, 'title', None),
@@ -115,6 +200,40 @@ def update_task(
             pass
 
     return updated
+
+def get_task(task_id: int):
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        raise ValueError("Task not found.")
+    return task
+
+def set_task_status(task_id: int, status: str):
+    if status not in ALLOWED_STATUSES:
+        raise ValueError(f"Invalid status '{status}'")
+
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        raise ValueError("Task not found.")
+
+    updated_task = task_service.set_task_status(task_id, status)
+    return updated_task
+
+def list_tasks(*, 
+    active_only: bool = True, 
+    project_id: Optional[int] = None,
+    sort_by: str = "priority_desc",
+    filter_by: Optional[dict] = None
+):
+    
+    tasks = task_service.list_tasks(
+        active_only=active_only,
+        project_id=project_id,
+        sort_by=sort_by,
+        filter_by=filter_by
+    )
+    return tasks
+
+
 
 # -------- Task x Project Handlers -------------------------------------------------------
 

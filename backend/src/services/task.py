@@ -19,6 +19,8 @@ from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 
 # ---- Helpers ----------------------------------------------------------------
+
+
 def _assert_no_cycle(session, parent_id: int, child_id: int) -> None:
     """
     Prevent cycles: parent must not be a descendant of child.
@@ -38,11 +40,6 @@ def _assert_no_cycle(session, parent_id: int, child_id: int) -> None:
             raise ValueError("Cycle detected: the chosen parent is a descendant of the subtask.")
         to_visit.extend(rows)
 
-def _validate_bucket(n: int) -> None:
-    if not isinstance(n, int):
-        raise TypeError("priority must be an integer")
-    if not (1 <= n <= 10):
-        raise ValueError("priority must be between 1 and 10")
 
 # ---- Task CRUD -------------------------------------------------------------------
 
@@ -65,11 +62,6 @@ def add_task(
     Returns the new task created.
     """
 
-    _validate_bucket(priority)
-
-    if status not in ALLOWED_STATUSES:
-        raise ValueError(f"Invalid status '{status}'")
-
     with SessionLocal.begin() as session:
         task = Task(
             title=title,
@@ -85,18 +77,6 @@ def add_task(
         )
         session.add(task)
         session.flush()  
-
-        if parent_id is not None:
-            parent = session.get(Task, parent_id)
-            if not parent:
-                raise ValueError(f"Parent task {parent_id} not found.")
-            
-            if not parent.active:
-                raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
-
-            _assert_no_cycle(session, parent_id=parent_id, child_id=task.id)
-
-            session.add(ParentAssignment(parent_id=parent_id, subtask_id=task.id))
 
         return task
 
@@ -123,10 +103,6 @@ def update_task(
     
     Raises ValueError if 'active' or 'status' fields are included in the update.
     """
-    # Check for disallowed fields
-    disallowed_fields = {'active', 'status'} & set(kwargs.keys())
-    if disallowed_fields:
-        raise ValueError(f"Cannot update fields {disallowed_fields}. Use delete_task() for 'active' or set_task_status() for 'status'.")
     
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
@@ -137,9 +113,7 @@ def update_task(
         if description is not None: task.description = description
         if start_date is not None:  task.start_date = start_date
         if deadline is not None:    task.deadline = deadline
-        if priority is not None:
-            _validate_bucket(priority)
-            task.priority = priority
+        if priority is not None:    task.priority = priority
         if recurring is not None: task.recurring = recurring  
         if project_id is not None:  task.project_id = project_id
 
@@ -158,12 +132,9 @@ def set_task_status(task_id: int, new_status: str) -> Task:
 
     Raise ValueError if deadline is not set for a recurring Task.
     """
-    if new_status not in ALLOWED_STATUSES:
-        raise ValueError(f"Invalid status '{new_status}'")
+
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
-        if not task:
-            raise ValueError("Task not found")
 
         recurring = int(getattr(task, "recurring", 0) or 0)
 
@@ -382,6 +353,12 @@ def delete_task(task_id: int) -> Task:
         return task
 
 # ---- Subtask CRUD -------------------------------------------------------------------
+
+def link_subtask(parent_id: int, subtask_id: int):
+    """Link a subtask under a parent, ensuring no cycles."""
+    with SessionLocal.begin() as session:
+        _assert_no_cycle(session, parent_id=parent_id, child_id=subtask_id)
+        session.add(ParentAssignment(parent_id=parent_id, subtask_id=subtask_id))
 
 def list_parent_tasks(
     *, 

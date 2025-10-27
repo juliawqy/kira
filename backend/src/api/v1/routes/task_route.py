@@ -24,7 +24,7 @@ class SubtaskIds(BaseModel):
 def create_task(payload: TaskCreate):
     """Create a task; return the task created."""
     try:
-        return task_service.add_task(**payload.model_dump())
+        return task_handler.create_task(**payload.model_dump())
     except ValueError as e:
         msg = str(e).lower()
         # Treat "not found" as 404; everything else remains 400
@@ -35,7 +35,7 @@ def create_task(payload: TaskCreate):
 @router.get("/", response_model=List[TaskWithSubTasks], name="list_tasks")
 def list_tasks(sort_by="priority_desc"):
     """Return all top-level tasks with their subtasks."""
-    tasks = task_service.list_tasks(sort_by=sort_by)
+    tasks = task_handler.list_tasks(sort_by=sort_by)
     return tasks
 
 @router.get("/filter", response_model=List[TaskWithSubTasks], name="list_tasks_filtered_sorted")
@@ -183,8 +183,9 @@ def list_parent_tasks(
 @router.get("/{task_id}", response_model=TaskWithSubTasks, name="get_task")
 def get_task(task_id: int):
     """Get a task by id; return it with its subtasks."""
-    task = task_service.get_task_with_subtasks(task_id)
-    if not task:
+    try:
+        task = task_handler.get_task(task_id)
+    except ValueError:
         raise HTTPException(404, "Task not found")
     return task
 
@@ -201,7 +202,7 @@ def update_task(task_id: int, payload: TaskUpdate):
 def set_task_status(task_id: int, new_status: str):
     """Set a task's status."""
     try:
-        return task_service.set_task_status(task_id, new_status)
+        return task_handler.set_task_status(task_id, new_status)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
