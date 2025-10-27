@@ -63,7 +63,6 @@ def test_add_comment(client: TestClient, task_base_path, seed_task_and_users):
 # INT-006/002
 def test_add_multiple_comments_different_users(client: TestClient, task_base_path, seed_task_and_users):
     """Add comments from multiple users and verify both appear."""
-    # Note: seed_task_and_users already adds both users, so we don't need to add them again
 
     for payload in COMMENT_MULTIPLE_USERS:
         resp = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=payload)

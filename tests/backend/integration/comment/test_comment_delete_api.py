@@ -50,34 +50,26 @@ def test_delete_comment_not_found(client: TestClient, task_base_path, seed_task_
     resp = client.request("DELETE", f"{task_base_path}/comment/{INVALID_COMMENT_ID}", json=delete_payload)
     assert resp.status_code == 404
 
-# INT-005/003 - Authorization Test
+# INT-005/003
 def test_delete_comment_unauthorized(client: TestClient, task_base_path, seed_task_and_users):
     """Test that only the comment author can delete their comment."""
-    # Create comment with user 1
     c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
-    
-    # Try to delete with user 2 (different user) - should fail
     unauthorized_payload = {
         "requesting_user_id": ANOTHER_USER["user_id"]
     }
     resp = client.request("DELETE", f"{task_base_path}/comment/{c['comment_id']}", json=unauthorized_payload)
-    assert resp.status_code == 403  # Forbidden
+    assert resp.status_code == 403
     assert "Only the comment author can delete this comment" in resp.json()["detail"]
 
-# INT-005/004 - Author can delete their own comment
+# INT-005/004
 def test_delete_comment_authorized(client: TestClient, task_base_path, seed_task_and_users):
     """Test that the comment author can delete their own comment."""
-    # Create comment with user 1
     c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
-    
-    # Delete with same user (author) - should succeed
     authorized_payload = {
         "requesting_user_id": VALID_USER["user_id"]
     }
     resp = client.request("DELETE", f"{task_base_path}/comment/{c['comment_id']}", json=authorized_payload)
     assert resp.status_code == 200
     assert resp.json() is True
-    
-    # Verify comment is deleted
     resp2 = client.get(f"{task_base_path}/comment/{c['comment_id']}")
     assert resp2.status_code == 404

@@ -54,25 +54,19 @@ def test_update_comment_not_found(client: TestClient, task_base_path, seed_task_
 # INT-027/003 - Authorization Test
 def test_update_comment_unauthorized(client: TestClient, task_base_path, seed_task_and_users):
     """Test that only the comment author can update their comment."""
-    # Create comment with user 1
     c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
-    
-    # Try to update with user 2 (different user) - should fail
     unauthorized_payload = {
         **COMMENT_UPDATE_PAYLOAD,
         "requesting_user_id": ANOTHER_USER["user_id"]
     }
     resp = client.patch(f"{task_base_path}/comment/{c['comment_id']}", json=unauthorized_payload)
-    assert resp.status_code == 403  # Forbidden
+    assert resp.status_code == 403
     assert "Only the comment author can update this comment" in resp.json()["detail"]
 
 # INT-027/004 - Author can update their own comment
 def test_update_comment_authorized(client: TestClient, task_base_path, seed_task_and_users):
     """Test that the comment author can update their own comment."""
-    # Create comment with user 1
     c = client.post(f"{task_base_path}/{VALID_TASK['id']}/comment", json=COMMENT_CREATE_PAYLOAD).json()
-    
-    # Update with same user (author) - should succeed
     authorized_payload = {
         **COMMENT_UPDATE_PAYLOAD,
         "requesting_user_id": VALID_USER["user_id"]
