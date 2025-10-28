@@ -20,7 +20,12 @@ from tests.mock_data.task.integration_data import (
     TASK_3_PAYLOAD,
     VALID_PROJECT,
     VALID_PROJECT_2,
-    VALID_USER
+    VALID_USER,
+    INVALID_PRIORITIES,
+    INVALID_PRIORITY_TASK_PAYLOAD_BASE,
+    INVALID_STATUS,
+    INVALID_STATUS_TASK_PAYLOAD_BASE,
+    INVALID_TASK_CREATE_TITLE
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -150,6 +155,45 @@ def test_create_task_inactive_parent(client, task_base_path):
     client.post(f"{task_base_path}/{id}/delete")
     response = client.post(f"{task_base_path}/", json=INVALID_TASK_CREATE_INACTIVE_PARENT)
     assert response.status_code == 400
+
+# INT-001/005
+@pytest.mark.parametrize("invalid_priority", INVALID_PRIORITIES)
+def test_create_task_invalid_priority(client, task_base_path, verify_database_state, invalid_priority):
+    """Create task with invalid priority value"""
+    initial_count = verify_database_state()
+
+    payload = INVALID_PRIORITY_TASK_PAYLOAD_BASE
+    payload["priority"] = invalid_priority
+    response = client.post(f"{task_base_path}/", json=payload)
+    assert response.status_code == 422
+
+    final_count = verify_database_state()
+    assert final_count == initial_count
+
+# INT-001/006
+@pytest.mark.parametrize("invalid_status", INVALID_STATUS)
+def test_create_task_invalid_status(client, task_base_path, verify_database_state, invalid_status):
+    """Create task with invalid status value"""
+    initial_count = verify_database_state()
+
+    payload = INVALID_STATUS_TASK_PAYLOAD_BASE
+    payload["status"] = invalid_status
+    response = client.post(f"{task_base_path}/", json=payload)
+    assert response.status_code == 422
+
+    final_count = verify_database_state()
+    assert final_count == initial_count
+
+# INT-001/007
+def test_create_task_invalid_title(client, task_base_path, verify_database_state):
+    """Create task with invalid (empty/whitespace) title"""
+    initial_count = verify_database_state()
+
+    response = client.post(f"{task_base_path}/", json=INVALID_TASK_CREATE_TITLE)
+    assert response.status_code == 400
+
+    final_count = verify_database_state()
+    assert final_count == initial_count
 
 # INT-013/001
 def test_create_parent_assignment_success(client, task_base_path, test_db_session, verify_database_state):

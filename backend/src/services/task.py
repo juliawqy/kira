@@ -276,8 +276,6 @@ def list_tasks(
                 Task.priority.desc(), 
                 Task.id.asc()
             )
-        else:
-            raise ValueError(f"Invalid sort_by parameter: {sort_by}")
         
         return session.execute(stmt).scalars().all()
 

@@ -28,6 +28,11 @@ INVALID_TASK_CREATE = {
     "title": "Task with Invalid Create"
 }
 
+INVALID_TASK_CREATE_TITLE = {
+    "title": "   ",
+    "project_id": 1
+}
+
 INVALID_TASK_CREATE_INVALID_PARENT = {
     "title": "Task with Invalid Parent",
     "parent_id": 99999,
@@ -102,6 +107,20 @@ TASK_4 = {
     "priority": 10,
     "project_id": 1,
     "active": True
+}
+
+INVALID_PRIORITIES = [-1, 0, 11, "High", 3.14, [], {}]
+
+INVALID_PRIORITY_TASK_PAYLOAD_BASE = {
+    "title": "Invalid Priority Task",
+    "project_id": 1
+}
+
+INVALID_STATUSES = ["In progress", "DONE", "Todo", None, "", 123]
+
+INVALID_STATUS_TASK_PAYLOAD_BASE = {
+    "title": "Invalid Status Task",
+    "project_id": 1
 }
 
 INACTIVE_TASK_PAYLOAD = {
@@ -255,6 +274,15 @@ TASK_UPDATE_EMPTY = {
     "deadline": None,
     "priority": None,
     "project_id": None
+}
+
+INVALID_UPDATE_PAYLOAD_WITH_ACTIVE = {
+    "title": "Updated Task Title",
+    "description": "Updated description",
+    "priority": 8,
+    "start_date": date.today() + timedelta(days=1),
+    "deadline": date.today() + timedelta(days=14),
+    "active" : False
 }
 
 VALID_USER_ID = 1

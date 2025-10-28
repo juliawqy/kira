@@ -39,16 +39,8 @@ logger.setLevel(logging.INFO)
 # ---- Helpers ----------------------------------------------------------------
 
 
-def _validate_bucket(n: int) -> None:
-    if not isinstance(n, int):
-        raise TypeError("priority must be an integer")
-    if not (1 <= n <= 10):
-        raise ValueError("priority must be between 1 and 10")
-
 def _normalize_filter_dates(filter_dict: Optional[dict]) -> Optional[dict]:
     """Convert date strings in filters into datetime.date objects."""
-    if not filter_dict:
-        return None
 
     parsed = {}
     for key, value in filter_dict.items():
@@ -82,11 +74,6 @@ def create_task(
 ):
     if not title or not title.strip():
         raise ValueError("Task title cannot be empty or whitespace.")
-    
-    _validate_bucket(priority)
-
-    if status not in ALLOWED_STATUSES:
-        raise ValueError(f"Invalid status '{status}'")
     
     if parent_id is not None:
             parent = task_service.get_task_with_subtasks(parent_id)
@@ -133,12 +120,6 @@ def update_task(
     pre = task_service.get_task_with_subtasks(task_id)
     if not pre:
         raise ValueError(f"Task {task_id} not found")
-
-    disallowed_fields = {'active', 'status'} & set(kwargs.keys())
-    if disallowed_fields:
-        raise ValueError(f"Cannot update fields {disallowed_fields}. Use delete_task() for 'active' or set_task_status() for 'status'.")
-    
-    _validate_bucket(priority) if priority is not None else None
 
     prev_values = {
         'title': getattr(pre, 'title', None),
@@ -217,8 +198,6 @@ def update_task(
                     "email_id": getattr(resp, "email_id", None),
                 },
             )
-        except Exception:
-            pass
 
     return updated
 
