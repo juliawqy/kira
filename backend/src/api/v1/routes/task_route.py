@@ -212,8 +212,79 @@ def clear_task_assignees(task_id: int):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-# ---------------- Comments ------------------
 
+@router.post("/{task_id}/notify-assignees", name="notify_task_assignees")
+def notify_task_assignees(
+    task_id: int, 
+    message: str = "Task update notification",
+    type_of_alert: str = "task_update"
+):
+    """
+    Send email notification to all assigned users of a task.
+    
+    Args:
+        task_id: ID of the task
+        message: Optional custom message for the notification
+        type_of_alert: Type of alert (task_update, comment_create, task_assgn, etc.)
+        
+    Returns:
+        Email response with success status and recipient count
+    """
+    try:
+        # Get the task to verify it exists
+        task = task_service.get_task_with_subtasks(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        # Get assigned users
+        assignees = assignment_service.list_assignees(task_id)
+        recipients = [u.email for u in assignees if getattr(u, 'email', None)]
+        
+        if not recipients:
+            return {
+                "success": True,
+                "message": "No assigned users with email addresses found",
+                "recipients_count": 0
+            }
+        
+        # Import notification service
+        from backend.src.services.notification import get_notification_service
+        from backend.src.enums.notification import NotificationType
+        
+        # Validate alert type
+        valid_alerts = [alert.value for alert in NotificationType]
+        if type_of_alert not in valid_alerts:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid type_of_alert. Must be one of: {valid_alerts}"
+            )
+        
+        # Send notification to all assigned users
+        notification_service = get_notification_service()
+        response = notification_service.notify_activity(
+            user_email="system@kira.local",
+            task_id=task_id,
+            task_title=task.title or "Untitled Task",
+            type_of_alert=type_of_alert,
+            updated_fields=["Custom Message"],
+            old_values={"Custom Message": "Manual notification sent"},
+            new_values={"Custom Message": message},
+            to_recipients=recipients,
+        )
+        
+        return {
+            "success": response.success,
+            "message": response.message,
+            "recipients_count": response.recipients_count,
+            "email_id": getattr(response, 'email_id', None)
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
+
+# ------------------ Comments ------------------
 
 @router.post("/{task_id}/comment", response_model=CommentRead, name="add_comment")
 def add_comment(task_id: int, payload: CommentCreate):
