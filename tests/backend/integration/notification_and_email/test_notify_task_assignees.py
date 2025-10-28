@@ -165,47 +165,44 @@ class TestNotifyTaskAssigneesIntegration:
         for call_method in default_scenario["expected_smtp_calls"]:
             getattr(server, call_method).assert_called_once()
     
-    # INT-125/002 - No recipients scenario (following existing no recipients pattern)
-    def test_notify_assignees_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory, monkeypatch):
+    # INT-125/002 - No recipients scenario (following existing parametrized pattern)
+    @pytest.mark.parametrize("scenario_key", ["empty_assignees", "no_email_addresses"])
+    def test_notify_assignees_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory, monkeypatch, scenario_key):
         """Test early return when no assignees have email addresses."""
         from backend.src.api.v1.routes.task_route import notify_task_assignees
         import backend.src.services.task_assignment as assignment_service
         
-        # Test scenarios from mock data (following existing pattern)
-        test_scenarios = [
-            _notify_assignees_data.NO_RECIPIENTS_SCENARIO_EMPTY,
-            _notify_assignees_data.NO_RECIPIENTS_SCENARIO_NO_EMAILS,
-        ]
+        # Get scenario from mock data (following existing pattern)
+        scenario = _notify_assignees_data.ALL_NO_RECIPIENTS_SCENARIOS[scenario_key]
         
-        for scenario in test_scenarios:
-            # Create task using mock data
-            task = task_factory(**scenario["task_data"])
-            
-            # Setup mock based on scenario
-            if scenario["assignees"] == []:
-                # Empty assignees
-                monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: [])
-            else:
-                # Assignees without emails
-                mock_assignees = [
-                    _notify_assignees_data.create_user_without_email(**user_data) 
-                    for user_data in scenario["assignees"]
-                ]
-                monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: mock_assignees)
-            
-            # Call the function
-            result = notify_task_assignees(task.id, "Test message")
-            
-            # Verify early return response using mock expectations (following existing pattern)
-            assert result["success"] == scenario["expected_response"]["success"]
-            assert result["message"] == scenario["expected_response"]["message"]
-            assert result["recipients_count"] == scenario["expected_response"]["recipients_count"]
-            
-            # Verify SMTP was not called (following existing verification pattern)
-            server = patched_smtp_tls
-            server.starttls.assert_not_called()
-            server.login.assert_not_called()
-            server.send_message.assert_not_called()
+        # Create task using mock data
+        task = task_factory(**scenario["task_data"])
+        
+        # Setup mock based on scenario
+        if scenario["assignees"] == []:
+            # Empty assignees
+            monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: [])
+        else:
+            # Assignees without emails
+            mock_assignees = [
+                _notify_assignees_data.create_user_without_email(**user_data) 
+                for user_data in scenario["assignees"]
+            ]
+            monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: mock_assignees)
+        
+        # Call the function
+        result = notify_task_assignees(task.id, "Test message")
+        
+        # Verify early return response using mock expectations (following existing pattern)
+        assert result["success"] == scenario["expected_response"]["success"]
+        assert result["message"] == scenario["expected_response"]["message"]
+        assert result["recipients_count"] == scenario["expected_response"]["recipients_count"]
+        
+        # Verify SMTP was not called (following existing verification pattern)
+        server = patched_smtp_tls
+        server.starttls.assert_not_called()
+        server.login.assert_not_called()
+        server.send_message.assert_not_called()
     
     # INT-125/003 - All error scenarios using mock data (following existing parametrized pattern)
     @pytest.mark.parametrize("scenario_key", [
