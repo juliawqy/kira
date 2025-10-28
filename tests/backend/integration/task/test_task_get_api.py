@@ -112,7 +112,7 @@ def test_list_task_with_sort(client, task_base_path, sort_param):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    response = client.get(f"{task_base_path}/filter?sort_by={sort_param}")
+    response = client.get(f"{task_base_path}/?sort_by={sort_param}")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -177,7 +177,7 @@ def test_list_task_with_invalid_sort(client, task_base_path):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    response = client.get(f"{task_base_path}/filter?sort_by={INVALID_DATA_SORT}")
+    response = client.get(f"{task_base_path}/?sort_by={INVALID_DATA_SORT}")
     assert response.status_code == 400
 
 # INT-002/004
@@ -193,7 +193,7 @@ def test_list_task_with_one_filter(client, task_base_path, filter_param):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    response = client.get(f"{task_base_path}/filter?filters={filter_param}")
+    response = client.get(f"{task_base_path}/?filters={filter_param}")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -228,7 +228,7 @@ def test_list_task_with_multi_filter(client, task_base_path):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    response = client.get(f"{task_base_path}/filter?filters={MULTI_DATA_FILTER}")
+    response = client.get(f"{task_base_path}/?filters={MULTI_DATA_FILTER}")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -251,7 +251,7 @@ def test_list_task_invalid_filter(client, task_base_path):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    response = client.get(f"{task_base_path}/filter?filters={INVALID_DATA_FILTER}")
+    response = client.get(f"{task_base_path}/?filters={INVALID_DATA_FILTER}")
     assert response.status_code == 400
 
 # INT-002/007
@@ -267,7 +267,7 @@ def test_list_task_invalid_filter_combi(client, task_base_path, invalid_combi):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    response = client.get(f"{task_base_path}/filter?filters={invalid_combi}")
+    response = client.get(f"{task_base_path}/?filters={invalid_combi}")
     assert response.status_code == 400
 
 # INT-002/008

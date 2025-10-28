@@ -15,6 +15,8 @@ from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
 from backend.src.database.models.task_assignment import TaskAssignment
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
+from backend.src.enums.task_filter import TaskFilter, ALLOWED_FILTERS
+from backend.src.enums.task_sort import TaskSort, ALLOWED_SORTS
 
 
 

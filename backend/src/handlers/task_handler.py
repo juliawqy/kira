@@ -10,6 +10,8 @@ from backend.src.services.notification import get_notification_service
 from backend.src.services import task_assignment as assignment_service
 from backend.src.enums.notification import NotificationType
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
+from backend.src.enums.task_filter import TaskFilter, ALLOWED_FILTERS
+from backend.src.enums.task_sort import TaskSort, ALLOWED_SORTS
 
 
 from datetime import date, timedelta
@@ -17,6 +19,8 @@ from enum import Enum
 from operator import and_
 from token import OP
 from typing import Iterable, Optional
+from datetime import datetime
+import json
 
 from sqlalchemy import select, exists
 from sqlalchemy.orm import selectinload
@@ -40,6 +44,23 @@ def _validate_bucket(n: int) -> None:
         raise TypeError("priority must be an integer")
     if not (1 <= n <= 10):
         raise ValueError("priority must be between 1 and 10")
+
+def _normalize_filter_dates(filter_dict: Optional[dict]) -> Optional[dict]:
+    """Convert date strings in filters into datetime.date objects."""
+    if not filter_dict:
+        return None
+
+    parsed = {}
+    for key, value in filter_dict.items():
+        if key in {"deadline_range", "start_date_range"}:
+            start, end = value
+            parsed[key] = [
+                datetime.strptime(start, "%Y-%m-%d").date(),
+                datetime.strptime(end, "%Y-%m-%d").date(),
+            ]
+        else:
+            parsed[key] = value
+    return parsed
 
 
 # -------- Task Handlers -------------------------------------------------------
@@ -221,10 +242,31 @@ def set_task_status(task_id: int, status: str):
 def list_tasks(*, 
     active_only: bool = True, 
     project_id: Optional[int] = None,
-    sort_by: str = "priority_desc",
+    sort_by: Optional[str] = "priority_desc",
     filter_by: Optional[dict] = None
 ):
     
+    if filter_by: 
+        invalid = [f for f in filter_by if f not in ALLOWED_FILTERS]
+        if invalid:
+            raise ValueError(f"Invalid filter keys: {invalid}")
+        
+        date_filters = set(filter_by) & {"deadline_range", "start_date_range"}
+        non_date_filters = set(filter_by) & {"priority_range", "status"}
+
+        if len(non_date_filters) > 1:
+            raise ValueError(f"Only one non-date filter allowed: {list(non_date_filters)}")
+        if date_filters and non_date_filters:
+            raise ValueError(
+                f"Date filters cannot be combined with other filter types. "
+                f"Date filters: {list(date_filters)}, other: {list(non_date_filters)}"
+            )
+
+    filter_by = _normalize_filter_dates(filter_by) if filter_by else None
+
+    if sort_by not in ALLOWED_SORTS:
+        raise ValueError(f"Invalid sort_by value '{sort_by}'")
+
     tasks = task_service.list_tasks(
         active_only=active_only,
         project_id=project_id,
@@ -232,7 +274,6 @@ def list_tasks(*,
         filter_by=filter_by
     )
     return tasks
-
 
 
 # -------- Task x Project Handlers -------------------------------------------------------
