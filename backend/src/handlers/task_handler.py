@@ -198,6 +198,8 @@ def update_task(
                     "email_id": getattr(resp, "email_id", None),
                 },
             )
+        except Exception:
+            pass
 
     return updated
 

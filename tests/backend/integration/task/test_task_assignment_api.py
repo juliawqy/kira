@@ -429,17 +429,6 @@ def test_multiple_tasks_assignment_independence(client, task_base_path, create_t
     assert task2_list2.status_code == 200
     assert len(task2_list2.json()) == 2
 
-# # INT-026/022
-# def test_update_task_with_assignment(client, task_base_path, create_test_users_and_project, test_db_path):
-#     task_response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
-#     assert task_response.status_code == 201
-#     task = task_response.json()
-
-#     task_assign = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
-#     assert task_assign.status_code == 200
-
-
-
 
 # INT-133/001
 def test_list_project_tasks_by_user(client, task_base_path, test_db_session, create_test_users_and_project):

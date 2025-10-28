@@ -8,10 +8,6 @@ from tests.mock_data.task.unit_data import (
     VALID_CREATE_PAYLOAD_MINIMAL,
     VALID_CREATE_PAYLOAD_WITH_EXPLICIT_PRIORITY,
     VALID_CREATE_PAYLOAD_FULL,
-    INVALID_PRIORITIES,
-    INVALID_PRIORITY_VALUES,
-    INVALID_PRIORITY_TYPES,
-    INVALID_STATUSES,
 )
 from backend.src.enums.task_status import TaskStatus
 
