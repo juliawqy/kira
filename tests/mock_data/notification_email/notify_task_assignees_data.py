@@ -30,18 +30,18 @@ NOTIFY_ASSIGNEES_TASK_MIXED = {
 # Users with complete information including emails (success scenarios)
 ASSIGNEES_WITH_EMAILS = [
     {
-        "user_id": 1,
+        "user_id": 101,
         "name": "John Doe", 
         "email": "john.doe@example.com",
-        "role": UserRole.DEVELOPER.value,
+        "role": UserRole.STAFF.value,
         "department_id": 1,
         "admin": False,
     },
     {
-        "user_id": 2,
+        "user_id": 102,
         "name": "Jane Smith",
         "email": "jane.smith@example.com",
-        "role": UserRole.TESTER.value,
+        "role": UserRole.MANAGER.value,
         "department_id": 1,
         "admin": False,
     },
@@ -50,10 +50,10 @@ ASSIGNEES_WITH_EMAILS = [
 # Single assignee for simple tests
 SINGLE_ASSIGNEE_WITH_EMAIL = [
     {
-        "user_id": 1,
+        "user_id": 101,
         "name": "Test User",
         "email": "test.user@example.com",
-        "role": UserRole.DEVELOPER.value,
+        "role": UserRole.STAFF.value,
         "department_id": 1,
         "admin": False,
     }
@@ -64,15 +64,15 @@ MIXED_EMAIL_ASSIGNEES_SUCCESS = {
     "task_data": NOTIFY_ASSIGNEES_TASK_MIXED,
     "assignees_with_emails": [
         {
-            "user_id": 1,
+            "user_id": 101,
             "name": "John Doe",
             "email": "john.doe@example.com", 
-            "role": UserRole.DEVELOPER.value,
+            "role": UserRole.STAFF.value,
             "department_id": 1,
             "admin": False,
         },
         {
-            "user_id": 3,
+            "user_id": 103,
             "name": "Bob Wilson",
             "email": "bob.wilson@example.com",
             "role": UserRole.MANAGER.value,
@@ -82,17 +82,17 @@ MIXED_EMAIL_ASSIGNEES_SUCCESS = {
     ],
     "assignees_without_emails": [
         {
-            "user_id": 2,
+            "user_id": 102,
             "name": "Jane Smith",
-            "role": UserRole.TESTER.value,
+            "role": UserRole.MANAGER.value,
             "department_id": 1,
             "admin": False,
             # Note: No email attribute
         },
         {
-            "user_id": 4,
+            "user_id": 104,
             "name": "Alice Brown",
-            "role": UserRole.DESIGNER.value,
+            "role": UserRole.DIRECTOR.value,
             "department_id": 1,
             "admin": False,
             # Note: No email attribute
@@ -121,9 +121,9 @@ NO_RECIPIENTS_SCENARIO_NO_EMAILS = {
     "task_data": NOTIFY_ASSIGNEES_TASK_INITIAL,
     "assignees": [
         {
-            "user_id": 1,
+            "user_id": 101,
             "name": "John Doe",
-            "role": UserRole.DEVELOPER.value,
+            "role": UserRole.STAFF.value,
             "department_id": 1,
             "admin": False,
             # Note: No email attribute
@@ -221,7 +221,7 @@ SUCCESS_SCENARIO_MULTIPLE_ASSIGNEES = {
     "task_data": NOTIFY_ASSIGNEES_TASK_INITIAL,
     "assignees": ASSIGNEES_WITH_EMAILS,
     "message": "Multiple assignees test",
-    "alert_type": NotificationType.TASK_ASSGN.value,
+    "alert_type": NotificationType.TASK_ASSIGN.value,
     "expected_response": {
         "success": True,
         "recipients_count": 2,
