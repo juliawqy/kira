@@ -333,11 +333,6 @@ def delete_task(task_id: int) -> Task:
     """
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
-        if not task:
-            raise ValueError("Task not found")
-
-        if task.active is False:
-            raise ValueError("Task not found")
 
         # Remove links where this task is parent or subtask
         session.query(ParentAssignment).filter(
@@ -483,12 +478,6 @@ def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
     # Normalize & dedupe ids
     ids = sorted({int(sid) for sid in subtask_ids or []})
     with SessionLocal.begin() as session:
-        # Validate parent
-        parent = session.get(Task, parent_id)
-        if not parent:
-            raise ValueError(f"Parent task {parent_id} not found")
-        if not parent.active:
-            raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks")
 
         if not ids:
             # Nothing to do; return hydrated parent
@@ -497,9 +486,6 @@ def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
                 .where(Task.id == parent_id)
                 .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
             ).scalar_one()
-
-        if parent_id in ids:
-            raise ValueError("A task cannot be its own parent")
 
         # Fetch subtask rows
         sub_rows = session.execute(
@@ -544,7 +530,6 @@ def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
         ).scalar_one()
         return parent
 
-
 def detach_subtask(parent_id: int, subtask_id: int) -> bool:
     """
     Detach a single subtask from a parent.
@@ -560,8 +545,6 @@ def detach_subtask(parent_id: int, subtask_id: int) -> bool:
                 )
             )
         ).scalar_one_or_none()
-        if not link:
-            raise ValueError(f"Link not found for parent={parent_id}, subtask={subtask_id}")
 
         session.delete(link)
         return True

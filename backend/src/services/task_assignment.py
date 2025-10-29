@@ -55,7 +55,7 @@ def assign_users(task_id: int, user_ids: Iterable[int]) -> int:
         ).scalars().all()
         existing_set = set(existing)
 
-        to_create = [uid for uid in ids if uid not in existing_set]
+        to_create = [uid for uid in user_ids if uid not in existing_set]
         for uid in to_create:
             session.add(TaskAssignment(task_id=task_id, user_id=uid))
 
@@ -100,10 +100,6 @@ def clear_task_assignees(task_id: int) -> int:
 def list_assignees(task_id: int) -> list[UserRead]:
     """Return User rows assigned to the task."""
     with SessionLocal() as session:
-        # First check if task exists
-        task = session.get(Task, task_id)
-        if not task:
-            raise ValueError(f"Task with id {task_id} not found")
         
         user_ids = session.execute(
             select(TaskAssignment.user_id).where(TaskAssignment.task_id == task_id)

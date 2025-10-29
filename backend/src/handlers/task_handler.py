@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import logging
 from typing import Iterable, Optional
+from datetime import date
+from datetime import datetime
+
 
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
@@ -12,24 +15,8 @@ from backend.src.enums.notification import NotificationType
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 from backend.src.enums.task_filter import TaskFilter, ALLOWED_FILTERS
 from backend.src.enums.task_sort import TaskSort, ALLOWED_SORTS
-
-
-from datetime import date, timedelta
-from enum import Enum
-from operator import and_
-from token import OP
-from typing import Iterable, Optional
-from datetime import datetime
-import json
-
-from sqlalchemy import select, exists
-from sqlalchemy.orm import selectinload
-
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
-from backend.src.database.models.parent_assignment import ParentAssignment
-from backend.src.database.models.task_assignment import TaskAssignment
-from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 
 
 
@@ -207,6 +194,10 @@ def get_task(task_id: int):
     task = task_service.get_task_with_subtasks(task_id)
     if not task:
         raise ValueError("Task not found.")
+
+    if task.active is False:
+        raise ValueError("Task not found")
+    
     return task
 
 def set_task_status(task_id: int, status: str):
@@ -256,8 +247,87 @@ def list_tasks(*,
     )
     return tasks
 
+def list_parent_tasks(*, 
+    active_only: bool = True, 
+    project_id: Optional[int] = None,
+    sort_by: Optional[str] = "priority_desc",
+    filter_by: Optional[dict] = None
+):
+
+    if filter_by: 
+        invalid = [f for f in filter_by if f not in ALLOWED_FILTERS]
+        if invalid:
+            raise ValueError(f"Invalid filter keys: {invalid}")
+        
+        date_filters = set(filter_by) & {"deadline_range", "start_date_range"}
+        non_date_filters = set(filter_by) & {"priority_range", "status"}
+
+        if len(non_date_filters) > 1:
+            raise ValueError(f"Only one non-date filter allowed: {list(non_date_filters)}")
+        if date_filters and non_date_filters:
+            raise ValueError(
+                f"Date filters cannot be combined with other filter types. "
+                f"Date filters: {list(date_filters)}, other: {list(non_date_filters)}"
+            )
+
+    filter_by = _normalize_filter_dates(filter_by) if filter_by else None
+
+    if sort_by not in ALLOWED_SORTS:
+        raise ValueError(f"Invalid sort_by value '{sort_by}'")
+
+    tasks = task_service.list_parent_tasks(
+        active_only=active_only,
+        project_id=project_id,
+        sort_by=sort_by,
+        filter_by=filter_by
+    )
+    return tasks
+
+def delete_task(task_id: int):
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        raise ValueError("Task not found.")
+    
+    if task.active is False:
+        raise ValueError("Task not found")
+
+    deleted = task_service.delete_task(task_id)
+    return deleted
+
+
+# -------- Subtask Assignment Handlers -------------------------------------------------------
+
+
+def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
+
+    if parent_id in subtask_ids:
+        raise ValueError("A task cannot be its own parent")
+
+    parent = task_service.get_task_with_subtasks(parent_id)
+    if not parent:
+        raise ValueError(f"Parent task {parent_id} not found.")
+
+    if not parent.active:
+        raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
+
+    ids = sorted({int(sid) for sid in subtask_ids or []})
+    
+    return task_service.attach_subtasks(parent_id, ids)
+
+def detach_subtask(parent_id: int, subtask_id: int) -> Task:
+
+    parent = task_service.get_task_with_subtasks(parent_id)
+    if not parent:
+        raise ValueError(f"Parent task {parent_id} not found.")
+
+    if subtask_id not in [t.id for t in parent.subtasks]:
+        raise ValueError(f"Link not found for parent={parent_id}, subtask={subtask_id}")
+
+    return task_service.detach_subtask(parent_id, subtask_id)
+
 
 # -------- Task x Project Handlers -------------------------------------------------------
+
 
 def list_tasks_by_project(project_id: int):
     project = project_service.get_project_by_id(project_id)
