@@ -36,39 +36,7 @@ def test_update_user_success_name_and_email(mock_session_local):
     updated2 = user_service.update_user(user_obj.user_id, **VALID_UPDATE_EMAIL)
     assert updated2.email == VALID_UPDATE_EMAIL["email"]
 
-# # UNI-053/002
-# @patch("backend.src.services.user.SessionLocal")
-# def test_update_user_not_found(mock_session_local):
-#     from backend.src.services import user as user_service
-#     mock_session = MagicMock()
-#     mock_session_local.begin.return_value.__enter__.return_value = mock_session
-#     mock_session.get.return_value = None
-
-#     res = user_service.update_user(INVALID_USER_ID, name=VALID_USER["name"])
-#     assert res is None
-
-# # UNI-053/003
-# @patch("backend.src.services.user.SessionLocal")
-# def test_update_user_email_conflict(mock_session_local):
-#     from backend.src.services import user as user_service
-
-#     mock_session = MagicMock()
-#     mock_session_local.begin.return_value.__enter__.return_value = mock_session
-
-#     user_obj = MagicMock()
-#     user_obj.user_id = VALID_USER_ADMIN["user_id"]
-#     mock_session.get.return_value = user_obj
-
-#     execute_result = MagicMock()
-#     other_user = MagicMock()
-#     other_user.user_id = VALID_USER["user_id"]
-#     execute_result.scalar_one_or_none.return_value = other_user
-#     mock_session.execute.return_value = execute_result
-
-#     with pytest.raises(ValueError):
-#         user_service.update_user(user_obj.user_id, email=VALID_USER["email"])
-
-# UNI-053/004
+# UNI-053/002
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_role_success(mock_session_local):
     """
@@ -87,7 +55,7 @@ def test_update_user_role_success(mock_session_local):
     assert updated is not None
     assert updated.role == UserRole.MANAGER.value
 
-# UNI-053/005
+# UNI-053/003
 @patch("backend.src.services.user.SessionLocal")
 def test_update_user_department_and_admin_success(mock_session_local):
     """
@@ -109,13 +77,3 @@ def test_update_user_department_and_admin_success(mock_session_local):
     assert updated.department_id == VALID_UPDATE_DEPARTMENT["department_id"]
     assert updated.admin is True
 
-# # UNI-053/006
-# @patch("backend.src.services.user.SessionLocal")
-# def test_update_user_invalid_role_type(mock_session_local):
-#     from backend.src.services import user as user_service
-#     mock_session = MagicMock()
-#     mock_session_local.begin.return_value.__enter__.return_value = mock_session
-#     mock_session.get.return_value = MagicMock(user_id=VALID_USER, role=UserRole.STAFF.value)
-
-#     with pytest.raises(ValueError) as exc:
-#         user_service.update_user(VALID_USER["user_id"], role=INVALID_ADMIN_TYPE)  
