@@ -21,6 +21,7 @@ class CommentRead(BaseModel):
 class CommentUpdate(BaseModel):
     comment: Optional[str] = None
     requesting_user_id: int
+    recipient_emails: Optional[list[str]] = None
 
 class CommentDelete(BaseModel):
     requesting_user_id: int
