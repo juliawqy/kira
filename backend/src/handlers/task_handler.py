@@ -157,9 +157,16 @@ def update_task(
             new_values[f] = after
 
     if updated_fields:
-        # try:
         assignees = assignment_service.list_assignees(task_id)
-        recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
+        recipient_set = {u.email for u in assignees if getattr(u, 'email', None)}
+
+        extra_emails = kwargs.get("shared_recipient_emails") or []
+        for email in extra_emails:
+            u = user_service.get_user(email)
+            if u and getattr(u, "email", None):
+                recipient_set.add(u.email)
+
+        recipients = sorted(recipient_set) if recipient_set else None
 
         resp = get_notification_service().notify_activity(
             user_email=kwargs.get("user_email"),
