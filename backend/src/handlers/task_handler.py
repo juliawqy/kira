@@ -17,6 +17,7 @@ from backend.src.enums.task_sort import TaskSort, ALLOWED_SORTS
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 
+from fastapi import HTTPException
 
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,61 @@ def create_task(
     assignment_service.assign_users(task.id, [creator_id])
 
     return task
+
+def notify_task_assignees(
+    task_id: int,
+    message: str = "Task update notification",
+    type_of_alert: str = "task_update",
+):
+    """Send email notification to all assigned users of a task.
+
+    Returns a dict with keys: success, message, recipients_count, email_id (optional).
+    """
+    # Verify task exists
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        # Raise 404 directly to match original route behavior
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Resolve recipients from assignees that have an email
+    assignees = assignment_service.list_assignees(task_id)
+    recipients = [u.email for u in assignees if getattr(u, 'email', None)]
+
+    if not recipients:
+        return {
+            "success": True,
+            "message": "No assigned users with email addresses found",
+            "recipients_count": 0,
+        }
+
+    # Validate alert type against enum
+    valid_alerts = [alert.value for alert in NotificationType]
+    if type_of_alert not in valid_alerts:
+        # Keep 400 validation behavior consistent with original route implementation
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid type_of_alert. Must be one of: {valid_alerts}",
+        )
+
+    # Send notification
+    notification_service = get_notification_service()
+    response = notification_service.notify_activity(
+        user_email="system@kira.local",
+        task_id=task_id,
+        task_title=getattr(task, 'title', None) or "Untitled Task",
+        type_of_alert=type_of_alert,
+        updated_fields=["Custom Message"],
+        old_values={"Custom Message": "Manual notification sent"},
+        new_values={"Custom Message": message},
+        to_recipients=recipients,
+    )
+
+    return {
+        "success": getattr(response, 'success', None),
+        "message": getattr(response, 'message', None),
+        "recipients_count": getattr(response, 'recipients_count', 0),
+        "email_id": getattr(response, 'email_id', None),
+    }
 
 def update_task(
     task_id: int,

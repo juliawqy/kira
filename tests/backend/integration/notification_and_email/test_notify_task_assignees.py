@@ -125,7 +125,7 @@ def patched_assignees_without_emails(monkeypatch):
 class TestNotifyTaskAssigneesIntegration:
     """Minimal integration tests for notify_task_assignees endpoint - 100% coverage with fewest tests."""
     
-    # INT-125/001 - Comprehensive success test with mixed email availability  
+    # INT-134/001 - Comprehensive success test with mixed email availability  
     def test_notify_assignees_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory, patched_mixed_assignees):
         """Test comprehensive success scenario including mixed email availability and default parameters."""
         from backend.src.api.v1.routes.task_route import notify_task_assignees
@@ -165,7 +165,7 @@ class TestNotifyTaskAssigneesIntegration:
         for call_method in default_scenario["expected_smtp_calls"]:
             getattr(server, call_method).assert_called_once()
     
-    # INT-125/002 - No recipients scenario (following existing parametrized pattern)
+    # INT-134/002 - No recipients scenario (following existing parametrized pattern)
     @pytest.mark.parametrize("scenario_key", ["empty_assignees", "no_email_addresses"])
     def test_notify_assignees_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory, monkeypatch, scenario_key):
         """Test early return when no assignees have email addresses."""
@@ -204,7 +204,7 @@ class TestNotifyTaskAssigneesIntegration:
         server.login.assert_not_called()
         server.send_message.assert_not_called()
     
-    # INT-125/003 - All error scenarios using mock data (following existing parametrized pattern)
+    # INT-134/003 - All error scenarios using mock data (following existing parametrized pattern)
     @pytest.mark.parametrize("scenario_key", [
         "task_not_found",
         "invalid_alert_type", 
