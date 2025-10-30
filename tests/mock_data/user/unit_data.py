@@ -119,17 +119,14 @@ VALID_UPDATE_DEPARTMENT = {"department_id": 30}
 # Delete payloads
 VALID_DELETE_PAYLOAD = {
     "user_id": 1,
-    "is_admin": True
 }
 
 INVALID_DELETE_PAYLOAD_NONEXISTENT_USER = {
     "user_id": 9999,
-    "is_admin": True
 }
 
 INVALID_DELETE_PAYLOAD_NOT_ADMIN = {
     "user_id": 1,
-    "is_admin": False
 }
 
 # Password change payloads

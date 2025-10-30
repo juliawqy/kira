@@ -119,3 +119,43 @@ user_id: int,
         email = user_service.get_user(email)
         if not user == None:
             raise ValueError("Email already in use")
+
+    if department_id is not None:
+        dept = department_service.get_department_by_id(department_id)
+        if dept == None:
+            raise ValueError("Department not found")
+        
+    if role is not None:
+        role = UserRole(role)
+        if role not in ALLOWED_ROLES:
+            raise ValueError(f"Invalid role: {role}")
+    
+    updated_user = user_service.update_user(
+        user_id=user_id or None,
+        name=name or None,
+        email=email or None,
+        role=role or None,
+        department_id=department_id or None,
+        admin=admin or None,
+    )
+    return updated_user
+
+
+def delete_user(user_id: int, is_admin: bool) -> bool:
+    user = user_service.get_user(user_id)
+    if not user:
+        raise ValueError("User not found")
+
+    if not is_admin:
+        raise PermissionError("Only admin users can delete accounts")
+
+    ok = user_service.delete_user(user_id)
+    return ok
+
+
+def change_password(user_id: int, current_password: str, new_password: str) -> bool:
+    user = user_service.get_user(user_id)
+    if not user:
+        raise ValueError("User not found")
+
+    return user_service.change_password(user_id, current_password, new_password)

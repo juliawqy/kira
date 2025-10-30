@@ -115,15 +115,10 @@ def update_user(
         return user
 
 
-def delete_user(user_id: int, is_admin: bool) -> bool:
+def delete_user(user_id: int) -> bool:
     """Hard delete: remove a user permanently."""
-    if not is_admin:
-        raise PermissionError("Only admin users can delete accounts")
-
     with SessionLocal.begin() as session:
         user = session.get(User, user_id)
-        if not user:
-            return False
         session.delete(user)
         return True
 
@@ -133,8 +128,6 @@ def change_password(user_id: int, current_password: str, new_password: str) -> b
     _validate_password(new_password)
     with SessionLocal.begin() as session:
         user = session.get(User, user_id)
-        if not user:
-            raise ValueError("User not found")
         if not _verify_password(current_password, user.hashed_pw):
             raise ValueError("Current password is incorrect")
 

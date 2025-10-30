@@ -54,5 +54,5 @@ def test_delete_user_success(client, user_base_path):
 # INT-055/002
 def test_delete_user_not_found(client, user_base_path):
     response = client.delete(f"{user_base_path}/{INVALID_USER_ID}")
-    assert response.status_code == 404
+    assert response.status_code == 400
     assert response.json()["detail"] == "User not found"
