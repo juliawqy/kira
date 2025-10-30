@@ -300,6 +300,36 @@ def clear_task_assignees(task_id: int):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+@router.post("/{task_id}/notify-assignees", name="notify_task_assignees")
+def notify_task_assignees(
+    task_id: int, 
+    message: str = "Task update notification",
+    type_of_alert: str = "task_update"
+):
+    """
+    Send email notification to all assigned users of a task.
+    
+    Args:
+        task_id: ID of the task
+        message: Optional custom message for the notification
+        type_of_alert: Type of alert (task_update, comment_create, task_assgn, etc.)
+        
+    Returns:
+        Email response with success status and recipient count
+    """
+    try:
+        return task_handler.notify_task_assignees(task_id, message, type_of_alert)
+    except HTTPException as e:
+        # Wrap handler HTTPExceptions to match integration expectations
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error sending notification: {e.status_code}: {e.detail}",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
+
 # ------------------ Comments ------------------
 
 @router.post("/{task_id}/comment", response_model=CommentRead, name="add_comment")
