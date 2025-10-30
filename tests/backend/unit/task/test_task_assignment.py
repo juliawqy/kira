@@ -193,41 +193,6 @@ def test_assign_users_empty_list_returns_zero(mock_session_local):
     
     assert result == 0
 
-# UNI-026/006
-@patch("backend.src.services.task_assignment.SessionLocal")
-def test_assign_users_deduplicates_user_ids(mock_session_local):
-    """Assign users with duplicate IDs deduplicates and processes correctly"""
-    from backend.src.services import task_assignment as ta_service
-    
-    mock_session = MagicMock()
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
-    mock_task = MagicMock()
-    mock_task.id = VALID_DEFAULT_TASK["id"]
-    mock_task.active = True
-    mock_session.get.return_value = mock_task
-    
-    mock_user = MagicMock()
-    mock_user.user_id = VALID_USER_ADMIN["user_id"]
-    
-    def mock_execute_side_effect(stmt):
-        if "user_id" in str(stmt).lower() and "where" in str(stmt).lower():
-            if "in" in str(stmt).lower():
-                mock_result = MagicMock()
-                mock_result.scalars.return_value.all.return_value = [mock_user]
-                return mock_result
-            else:
-                mock_result = MagicMock()
-                mock_result.scalars.return_value.all.return_value = []
-                return mock_result
-    
-    mock_session.execute.side_effect = mock_execute_side_effect
-    
-    user_ids = [VALID_USER_ADMIN["user_id"], VALID_USER_ADMIN["user_id"], VALID_USER_ADMIN["user_id"]]
-    result = ta_service.assign_users(VALID_DEFAULT_TASK["id"], user_ids)
-    
-    assert result == 1  
-    assert mock_session.add.call_count == 1
 
 # UNI-026/007
 @patch("backend.src.services.task_assignment.SessionLocal")

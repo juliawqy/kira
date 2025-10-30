@@ -37,6 +37,8 @@ def assign_users(
         before_ids: Set[int] = {u.user_id for u in before_assignees}
     except Exception:
         before_ids = set()
+    
+    ids = [uid for uid in ids if uid not in before_ids]
 
     created = assignment_service.assign_users(task_id, ids)
 

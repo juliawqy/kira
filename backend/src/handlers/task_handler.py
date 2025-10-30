@@ -311,8 +311,15 @@ def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
         raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
 
     ids = sorted({int(sid) for sid in subtask_ids or []})
+    for subtask_id in ids:
+        subtask = task_service.get_task_with_subtasks(subtask_id)
+        if not subtask:
+            raise ValueError(f"Subtask {subtask_id} not found.")
+        if not subtask.active:
+            raise ValueError(f"Subtask {subtask_id} not found.")
     
     return task_service.attach_subtasks(parent_id, ids)
+
 
 def detach_subtask(parent_id: int, subtask_id: int) -> Task:
 

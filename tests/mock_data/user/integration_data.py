@@ -96,7 +96,7 @@ INVALID_CREATE_BAD_ADMIN = {
     "email": "bad.admin@example.com",
     "role": UserRole.MANAGER,
     "password": "Adm!nPass123",
-    "department_id": 10,
+    "department_id": None,
     "admin": "not_a_boolean",
     "created_by_admin": True,
 }
@@ -106,7 +106,7 @@ INVALID_CREATE_UNAUTHORISED = {
     "email": "unauth.user@example.com",
     "role": UserRole.STAFF,
     "password": "Unauth!Pass123",
-    "department_id": 20,
+    "department_id": None,
     "admin": False,
     "created_by_admin": False,
 }

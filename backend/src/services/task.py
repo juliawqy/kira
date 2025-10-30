@@ -491,14 +491,6 @@ def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
         sub_rows = session.execute(
             select(Task).where(Task.id.in_(ids))
         ).scalars().all()
-        found = {t.id for t in sub_rows}
-        missing = [sid for sid in ids if sid not in found]
-        if missing:
-            raise ValueError(f"Subtask(s) not found: {missing}")
-
-        inactive = [t.id for t in sub_rows if not t.active]
-        if inactive:
-            raise ValueError(f"Subtask(s) inactive: {inactive}")
 
         # Check existing links for these subtasks
         existing_links = session.execute(

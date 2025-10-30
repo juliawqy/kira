@@ -45,29 +45,11 @@ def create_user(
     password: str,
     department_id: Optional[int] = None,
     admin: bool = False,
-    created_by_admin: bool = True,  # <-- NEW param
 ) -> User:
-    """Create a new user with enforced UserRole."""
-    if not created_by_admin:
-        raise PermissionError("Only admin users can create accounts")
 
     _validate_password(password)
-    if not isinstance(role, UserRole):
-        raise ValueError(f"role must be a valid UserRole enum, got {role}")
 
     with SessionLocal.begin() as session:
-        existing = session.execute(select(User).where(User.email == email)).scalar_one_or_none()
-        if existing:
-            raise ValueError("User with this email already exists")
-        
-        if not name:
-            raise TypeError("name is required and cannot be None or empty")
-        
-        if not email:
-            raise TypeError("email is required and cannot be None or empty")
-        
-        if not isinstance(admin, bool):
-            raise TypeError("admin must be a boolean value")
 
         user = User(
             name=name,
@@ -111,17 +93,11 @@ def update_user(
     admin: Optional[bool] = None,
 ) -> Optional[User]:
     """Update a user's details."""
-    if role is not None and role not in ALLOWED_ROLES:
-        raise ValueError(f"Invalid role: {role}")
 
     with SessionLocal.begin() as session:
         user = session.get(User, user_id)
-        if not user:
-            return None
 
         if email and email != user.email:
-            if session.execute(select(User).where(User.email == email)).scalar_one_or_none():
-                raise ValueError("Email already in use")
             user.email = email
         if name is not None:
             user.name = name

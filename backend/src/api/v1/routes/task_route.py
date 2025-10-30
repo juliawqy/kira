@@ -1,10 +1,8 @@
 from __future__ import annotations
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Depends
-from pydantic import BaseModel, field_validator
+from fastapi import APIRouter, HTTPException, Query
 import json
-from datetime import datetime
 
 from backend.src.schemas.task import TaskCreate, TaskUpdate, TaskRead, TaskWithSubTasks, SubtaskIds
 from backend.src.schemas.task_assignment import UnassignUsersPayload, AssignUsersPayload
