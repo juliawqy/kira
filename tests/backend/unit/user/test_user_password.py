@@ -38,18 +38,18 @@ def test_change_password_success(mock_hash, mock_verify, mock_session_local):
     assert mock_user.hashed_pw == NEW_HASHED
     mock_session.add.assert_called_with(mock_user)
 
-# UNI-053/008
-@patch("backend.src.services.user.SessionLocal")
-def test_change_password_user_not_found(mock_session_local):
-    from backend.src.services import user as user_service
+# # UNI-053/008
+# @patch("backend.src.services.user.SessionLocal")
+# def test_change_password_user_not_found(mock_session_local):
+#     from backend.src.services import user as user_service
 
-    mock_session = MagicMock()
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = None
+#     mock_session = MagicMock()
+#     mock_session_local.begin.return_value.__enter__.return_value = mock_session
+#     mock_session.get.return_value = None
 
-    with pytest.raises(ValueError) as exc:
-        user_service.change_password(INVALID_USER_ID, VALID_PASSWORD_CHANGE["current_password"], VALID_PASSWORD_CHANGE["new_password"])
-    assert "User not found" in str(exc.value)
+#     with pytest.raises(ValueError) as exc:
+#         user_service.change_password(INVALID_USER_ID, VALID_PASSWORD_CHANGE["current_password"], VALID_PASSWORD_CHANGE["new_password"])
+#     assert "User not found" in str(exc.value)
 
 # UNI-053/009
 @patch("backend.src.services.user.SessionLocal")

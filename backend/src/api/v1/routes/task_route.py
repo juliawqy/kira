@@ -59,7 +59,7 @@ def list_tasks_by_project(project_id: int):
 def list_tasks_by_user(user_id: int):
     """Get all tasks assigned to a specific user."""
     try:
-        return task_handler.list_tasks_by_user(user_id)
+        return assignment_handler.list_user_tasks(user_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -83,15 +83,10 @@ def list_parent_tasks(
 ):
     """Return all parent-level tasks without their subtasks."""
     """Return all top-level tasks with optional filtering and sorting. Date ranges can be combined; other filters are mutually exclusive."""
-    import json
-    from datetime import datetime
     
     try:
         filter_dict = json.loads(filters) if filters else None
         return task_handler.list_parent_tasks(sort_by=sort_by, filter_by=filter_dict)
-    except (ValueError, json.JSONDecodeError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid filter parameters: {str(e)}")
-
     except (ValueError, json.JSONDecodeError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid filter parameters: {str(e)}")
 

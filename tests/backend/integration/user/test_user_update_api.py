@@ -12,6 +12,7 @@ from tests.mock_data.user.integration_data import (
     VALID_UPDATE_NAME,
     INVALID_EMAIL_UPDATE,
     INVALID_INVALID_ROLE_UPDATE,
+    INVALID_DEPARTMENT_UPDATE
 )
 
 @pytest.fixture
@@ -66,7 +67,6 @@ def test_update_user_not_found(client, user_base_path):
 
 # INT-053/003
 def test_update_user_email_already_exists(client, user_base_path):
-    # exercise ValueError path in update_user
 
     resp = client.post(f"{user_base_path}/", json=(VALID_CREATE_PAYLOAD_USER))
     assert resp.status_code == 201
@@ -80,10 +80,19 @@ def test_update_user_email_already_exists(client, user_base_path):
     
 # INT-053/004
 def test_update_user_invalid_role(client, user_base_path):
-    # exercise ValueError path in update_user for invalid role
 
     resp = client.post(f"{user_base_path}/", json=(VALID_CREATE_PAYLOAD_USER))
     assert resp.status_code == 201
 
     response = client.patch(f"{user_base_path}/{VALID_USER['user_id']}", json=INVALID_INVALID_ROLE_UPDATE)
     assert response.status_code == 400
+
+# INT-053/005
+def test_update_user_invalid_department(client, user_base_path):
+
+    resp = client.post(f"{user_base_path}/", json=(VALID_CREATE_PAYLOAD_USER))
+    assert resp.status_code == 201
+
+    response = client.patch(f"{user_base_path}/{VALID_USER['user_id']}", json=INVALID_DEPARTMENT_UPDATE)
+    assert response.status_code == 400
+    assert "Department not found" in response.json()["detail"]

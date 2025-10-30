@@ -111,12 +111,26 @@ INVALID_CREATE_UNAUTHORISED = {
     "created_by_admin": False,
 }
 
+INVALID_CREATE_INVALID_DEPARTMENT = {
+    "name": "Invalid Dept",
+    "email": "invalid.dept@example.com",
+    "role": UserRole.STAFF,
+    "password": "Valid!Pass1",
+    "department_id": 9999,
+    "admin": False,
+    "created_by_admin": True,
+}
+
 INVALID_EMAIL_UPDATE = {
-    "email": "alice.admin@example.com"  # assuming this email already exists
+    "email": "alice.admin@example.com" 
 }
 
 INVALID_INVALID_ROLE_UPDATE = {
     "role": "invalid_role"
+}
+
+INVALID_DEPARTMENT_UPDATE = {
+    "department_id": 9999
 }
 
 VALID_UPDATE_NAME = {"name": "Alice A."}

@@ -141,7 +141,7 @@ def test_attach_subtasks_idempotent_behavior(mock_assert_no_cycle, mock_session_
     assert result.id == mock_parent.id
     mock_session.flush.assert_called()
 
-# UNI-013/009
+# UNI-013/004
 @patch("backend.src.services.task.SessionLocal")
 def test_attach_subtasks_existing_parent_conflict_raises_error(mock_session_local):
     """Attach child that already has different parent raises ValueError"""
@@ -173,7 +173,7 @@ def test_attach_subtasks_existing_parent_conflict_raises_error(mock_session_loca
     with pytest.raises(ValueError, match=r"already (has|have) a parent"):
         task_service.attach_subtasks(VALID_PARENT_TASK["id"], [VALID_DEFAULT_TASK["id"]])
 
-# UNI-013/010
+# UNI-013/005
 @patch("backend.src.services.task.SessionLocal")
 @patch("backend.src.services.task._assert_no_cycle")
 def test_attach_subtasks_cycle_detection_raises_error(mock_assert_no_cycle, mock_session_local):
@@ -204,8 +204,7 @@ def test_attach_subtasks_cycle_detection_raises_error(mock_assert_no_cycle, mock
     with pytest.raises(ValueError, match=r"cycle|Cycle"):
         task_service.attach_subtasks(VALID_PARENT_TASK["id"], [VALID_DEFAULT_TASK["id"]])
 
-
-# UNI-013/013
+# UNI-013/006
 @patch("backend.src.services.task.SessionLocal")
 def test_attach_subtasks_get_task_with_subtasks_includes_children(mock_session_local):
     """Getting parent task includes attached subtasks"""
@@ -241,7 +240,7 @@ def test_attach_subtasks_get_task_with_subtasks_includes_children(mock_session_l
     assert VALID_DEFAULT_TASK["id"] in subtask_ids
     assert VALID_TASK_EXPLICIT_PRIORITY["id"] in subtask_ids
 
-# UNI-013/014
+# UNI-013/007
 @patch("backend.src.services.task.SessionLocal")
 def test_attach_subtasks_get_task_without_subtasks_shows_empty(mock_session_local):
     """Getting parent task without subtasks shows empty list"""
@@ -264,7 +263,7 @@ def test_attach_subtasks_get_task_without_subtasks_shows_empty(mock_session_loca
     assert result.id == VALID_PARENT_TASK["id"]
     assert len(result.subtasks) == 0
 
-# UNI-013/015
+# UNI-013/008
 @patch("backend.src.services.task.SessionLocal")
 def test_attach_subtasks_get_task_with_inactive_subtask(mock_session_local):
     """Getting parent task with inactive subtasks should not include them"""
@@ -294,7 +293,7 @@ def test_attach_subtasks_get_task_with_inactive_subtask(mock_session_local):
     subtask_ids = [subtask.id for subtask in result.subtasks]
     assert VALID_DEFAULT_TASK["id"] in subtask_ids
 
-# UNI-013/016
+# UNI-013/009
 @patch("backend.src.services.task.SessionLocal")
 def test_attach_subtasks_get_nonexistent_task_returns_none(mock_session_local):
     """Getting nonexistent task returns None"""
@@ -309,7 +308,7 @@ def test_attach_subtasks_get_nonexistent_task_returns_none(mock_session_local):
     
     assert result is None
 
-# UNI-013/017
+# UNI-013/010
 @patch("backend.src.services.task.SessionLocal")
 def test_attach_subtasks_multiple_operations_maintain_consistency(mock_session_local):
     """Multiple attach/detach operations maintain data consistency"""
@@ -341,7 +340,7 @@ def test_attach_subtasks_multiple_operations_maintain_consistency(mock_session_l
     assert result is not None
     assert len(result.subtasks) == 2
 
-# UNI-013/018
+# UNI-013/011
 @patch("backend.src.services.task.SessionLocal")
 def test_attach_subtasks_list_parent_task_exclude_subtasks(mock_session_local):
     """list_parent_tasks should exclude tasks that are subtasks of other tasks"""
@@ -387,7 +386,7 @@ def test_attach_subtasks_list_parent_task_exclude_subtasks(mock_session_local):
     assert VALID_TASK_EXPLICIT_PRIORITY["id"] in task_ids
     assert VALID_DEFAULT_TASK["id"] not in task_ids
 
-# UNI-013/019
+# UNI-013/012
 @patch("backend.src.services.task.SessionLocal")
 def test_attach_subtasks_list_parent_task_with_inactive_parents(mock_session_local):
     """list_parent_tasks should exclude inactive parent tasks when active_only=True"""

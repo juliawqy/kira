@@ -20,7 +20,7 @@ from tests.mock_data.task.integration_data import (
     TASK_3_PAYLOAD,
     VALID_PROJECT,
     VALID_PROJECT_2,
-    VALID_USER,
+    VALID_USER_ADMIN,
     INVALID_PRIORITIES,
     INVALID_PRIORITY_TASK_PAYLOAD_BASE,
     INVALID_STATUS,
@@ -80,7 +80,7 @@ def verify_database_state(test_db_session):
 def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
 
-    manager = User(**VALID_USER)
+    manager = User(**VALID_USER_ADMIN)
     test_db_session.add(manager)
     test_db_session.flush()
 
@@ -330,3 +330,27 @@ def test_create_parent_assignment_attach_nonexistent_child(client, task_base_pat
 
     resp = client.post(f"{task_base_path}/{parent_id}/subtasks", json={"subtask_ids": [INVALID_TASK_ID_NONEXISTENT]})
     assert resp.status_code == 404
+
+# INT-013/007
+def test_attach_subtask_self_reference_returns_400(client, task_base_path):
+    """A task cannot be its own parent."""
+    task = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD)).json()
+    resp = client.post(
+        f"{task_base_path}/{task['id']}/subtasks",
+        json={"subtask_ids": [task["id"]]},
+    )
+    assert resp.status_code == 400
+    assert "cannot be its own parent" in resp.json()["detail"].lower()
+
+# INT-013/008
+def test_attach_inactive_subtask_returns_404(client, task_base_path):
+    """Inactive subtasks cannot be attached."""
+    parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD)).json()
+    inactive = client.post(f"{task_base_path}/", json=serialize_payload(INACTIVE_TASK_PAYLOAD)).json()
+
+    resp = client.post(
+        f"{task_base_path}/{parent['id']}/subtasks",
+        json={"subtask_ids": [inactive["id"]]},
+    )
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()

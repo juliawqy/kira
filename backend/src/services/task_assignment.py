@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Iterable
 
 from sqlalchemy import and_, select
+from sqlalchemy.orm import selectinload
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
@@ -121,8 +122,9 @@ def list_tasks_for_user(
     with SessionLocal() as session:
         stmt = (
             select(Task)
+            .options(selectinload(Task.subtask_links))
             .join(TaskAssignment, TaskAssignment.task_id == Task.id)
-            .where(TaskAssignment.user_id == user_id)
+            .filter(TaskAssignment.user_id == user_id)
         )
         if active_only:
             stmt = stmt.where(Task.active.is_(True))

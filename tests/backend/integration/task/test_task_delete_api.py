@@ -21,7 +21,7 @@ from tests.mock_data.task.integration_data import (
     EXPECTED_TASK_CHILD_RESPONSE,
     VALID_PROJECT,
     VALID_PROJECT_2,
-    VALID_USER
+    VALID_USER_ADMIN,
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -58,7 +58,7 @@ def test_db_session(test_engine):
 def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
     
-    manager = User(**VALID_USER)
+    manager = User(**VALID_USER_ADMIN)
     test_db_session.add(manager)
     test_db_session.flush()
 
@@ -250,41 +250,3 @@ def test_delete_task_parent_assignment_nonexistent_ids_return_404(client, task_b
 
     response = client.delete(f"{task_base_path}/{INVALID_TASK_ID_NONEXISTENT}/subtasks/{child_task_id}")
     assert response.status_code == 404
-
-# # UNI-004/003
-# @patch("backend.src.services.task.SessionLocal")
-# def test_delete_nonexistent_task_raises_value_error(mock_session_local):
-#     """Delete non-existent task raises ValueError."""
-#     from backend.src.services import task as task_service
-    
-#     mock_session = MagicMock()
-#     mock_session_local.begin.return_value.__enter__.return_value = mock_session
-
-#     mock_session.get.return_value = None
-    
-#     with pytest.raises(ValueError) as exc:
-#         task_service.delete_task(INVALID_TASK_ID_NONEXISTENT)
-
-#     assert "Task not found" in str(exc.value)
-#     mock_session.get.assert_called_once_with(task_service.Task, INVALID_TASK_ID_NONEXISTENT)
-
-# # UNI-004/004
-# @patch("backend.src.services.task.SessionLocal")
-# def test_delete_already_inactive_task_raises_value_error(mock_session_local):
-#     """Delete already inactive task raises ValueError."""
-#     from backend.src.services import task as task_service
-    
-#     mock_session = MagicMock()
-#     mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
-#     # Mock existing inactive task
-#     mock_task = MagicMock()
-#     mock_task.id = INACTIVE_TASK["id"]
-#     mock_task.active = False
-#     mock_session.get.return_value = mock_task
-    
-#     with pytest.raises(ValueError) as exc:
-#         task_service.delete_task(INACTIVE_TASK["id"])
-    
-#     assert "Task not found" in str(exc.value)
-#     mock_session.get.assert_called_once_with(task_service.Task, INACTIVE_TASK["id"])

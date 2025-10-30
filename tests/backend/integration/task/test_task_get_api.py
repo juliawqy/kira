@@ -5,7 +5,6 @@ import pytest
 from datetime import date, timedelta, datetime
 from backend.src.database.models.project import Project
 from backend.src.database.models.user import User
-from backend.src.database.models.task_assignment import TaskAssignment
 
 from backend.src.enums.task_status import TaskStatus
 from tests.mock_data.task.integration_data import (
@@ -30,7 +29,8 @@ from tests.mock_data.task.integration_data import (
     VALID_PROJECT,
     VALID_PROJECT_2,
     INVALID_PROJECT_ID,
-    VALID_USER,
+    VALID_USER_ADMIN,
+    INVALID_USER_ID
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -67,7 +67,7 @@ def test_db_session(test_engine):
 def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
     
-    manager = User(**VALID_USER)
+    manager = User(**VALID_USER_ADMIN)
     test_db_session.add(manager)
     test_db_session.flush()
 
@@ -396,7 +396,8 @@ def test_list_task_by_invalid_project(client, task_base_path):
 
     response = client.get(f"{task_base_path}/project/{INVALID_PROJECT_ID}")
     assert response.status_code == 400
-# INT-013/007
+
+# INT-013/009
 def test_list_parent_tasks_excludes_subtasks(client, task_base_path):
     """Children created with parent_id should not appear in parent list endpoint."""
     r_parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
@@ -415,7 +416,7 @@ def test_list_parent_tasks_excludes_subtasks(client, task_base_path):
     assert parent_id in ids
     assert child_id not in ids
 
-# INT-013/008
+# INT-013/010
 @pytest.mark.parametrize("sort_param", SORT_PARAMETERS)
 def test_list_parent_tasks_with_sort(client, task_base_path, sort_param):
     """Create several tasks and list them via API; verify count and according to sorting criteria."""
@@ -481,14 +482,14 @@ def test_list_parent_tasks_with_sort(client, task_base_path, sort_param):
             if data[i]["status"] == data[i + 1]["status"]:
                 assert data[i]["priority"] >= data[i + 1]["priority"]
 
-# INT-013/009
+# INT-013/011
 def test_list_parent_tasks_invalid_sort(client, task_base_path):
     """Invalid filters on /task/parents return 400."""
     client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     response = client.get(f"{task_base_path}/parents?sort_by={INVALID_DATA_SORT}")
     assert response.status_code == 400
 
-# INT-013/010
+# INT-013/012
 def test_list_parent_tasks_with_filter_and_sort(client, task_base_path):
     """GET /task/parents respects filters and sort."""
     client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
@@ -512,7 +513,7 @@ def test_list_parent_tasks_with_filter_and_sort(client, task_base_path):
     for item in data:
         assert 3 <= item["priority"] <= 7
 
-# INT-013/011
+# INT-013/013
 @pytest.mark.parametrize("invalid_combi", INVALID_DATA_FILTER_COMBI)
 def test_list_parent_tasks_invalid_filter(client, task_base_path, invalid_combi):
     """Invalid filters on /task/parents return 400."""
@@ -523,7 +524,7 @@ def test_list_parent_tasks_invalid_filter(client, task_base_path, invalid_combi)
     response = client.get(f"{task_base_path}/parents?filters={invalid_combi}")
     assert response.status_code == 400
 
-# INT-013/012
+# INT-013/014
 def test_list_subtasks_success(client, task_base_path):
     """GET /task/{id}/subtasks returns correct children."""
     parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD)).json()
@@ -535,7 +536,7 @@ def test_list_subtasks_success(client, task_base_path):
     data = resp.json()
     assert any(st["id"] == child["id"] for st in data)
 
-# INT-013/013
+# INT-013/015
 def test_list_subtasks_empty(client, task_base_path):
     """Parent with no subtasks should return empty list."""
     parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD)).json()
@@ -543,13 +544,13 @@ def test_list_subtasks_empty(client, task_base_path):
     assert resp.status_code == 200
     assert resp.json() == []
 
-# INT-013/014
+# INT-013/016
 def test_list_subtasks_nonexistent_parent(client, task_base_path):
     """Nonexistent parent id returns 404 for subtasks."""
     resp = client.get(f"{task_base_path}/{INVALID_TASK_ID_NONEXISTENT}/subtasks")
     assert resp.status_code == 404
 
-# INT-013/015
+# INT-013/017
 def test_list_subtasks_inactive_parent(client, task_base_path):
     """Inactive parent should return 404 when fetching subtasks."""
     parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD)).json()
@@ -557,7 +558,7 @@ def test_list_subtasks_inactive_parent(client, task_base_path):
     resp = client.get(f"{task_base_path}/{parent['id']}/subtasks")
     assert resp.status_code == 404
 
-# INT-013/016
+# INT-013/018
 def test_list_tasks_invalid_project(client, task_base_path):
     resp = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     assert resp.status_code == 201

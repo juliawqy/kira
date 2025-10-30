@@ -163,4 +163,4 @@ def list_user_tasks(user_id: int) -> list[int]:
     if user_service.get_user(user_id) is None:
         raise ValueError("User not found")
 
-    return assignment_service.list_user_tasks(user_id)
+    return assignment_service.list_tasks_for_user(user_id)

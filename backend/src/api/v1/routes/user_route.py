@@ -34,8 +34,6 @@ def create_user(payload: UserCreate):
     
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except TypeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
 
@@ -108,8 +106,6 @@ def delete_user(user_id: int):
         return deleted_user
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
 
 
 # ---- Password -------------------------------------------------------------

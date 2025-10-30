@@ -69,8 +69,7 @@ def test_detach_subtasks_multiple_children_success(mock_session_local):
     assert all(results)
     assert mock_session.delete.call_count == 3
 
-
-# UNI-023/009
+# UNI-023/003
 @patch("backend.src.services.task.SessionLocal")
 def test_delete_parent_task_with_detach_links_preserves_children(mock_session_local):
     """Delete parent task with detach_links=True removes relationships but preserves child tasks"""
@@ -99,8 +98,7 @@ def test_delete_parent_task_with_detach_links_preserves_children(mock_session_lo
     mock_session.add.assert_called_once_with(mock_parent_task)
     mock_session.flush.assert_called_once()
 
-
-# UNI-023/011
+# UNI-023/004
 @patch("backend.src.services.task.SessionLocal")
 def test_detach_subtask_sql_query_validation(mock_session_local):
     """Verify SQL query structure for detach operation"""

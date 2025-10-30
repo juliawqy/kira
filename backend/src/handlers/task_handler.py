@@ -157,11 +157,9 @@ def update_task(
             new_values[f] = after
 
     if updated_fields:
-        try:
-            assignees = assignment_service.list_assignees(task_id)
-            recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
-        except Exception:
-            recipients = None
+        # try:
+        assignees = assignment_service.list_assignees(task_id)
+        recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
 
         resp = get_notification_service().notify_activity(
             user_email=kwargs.get("user_email"),
@@ -287,9 +285,6 @@ def delete_task(task_id: int):
     task = task_service.get_task_with_subtasks(task_id)
     if not task:
         raise ValueError("Task not found.")
-    
-    if task.active is False:
-        raise ValueError("Task not found")
 
     deleted = task_service.delete_task(task_id)
     return deleted

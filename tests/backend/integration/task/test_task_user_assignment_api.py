@@ -30,7 +30,9 @@ from tests.mock_data.task.integration_data import (
     VALID_ASSIGNMENT_PAYLOAD,
     VALID_ASSIGNMENT_PAYLOAD_MULTIPLE,
     INVALID_ASSIGNMENT_PAYLOAD,
-    EMPTY_ASSIGNMENT_PAYLOAD
+    EMPTY_ASSIGNMENT_PAYLOAD,
+    VALID_USER_ADMIN,
+    VALID_USER_EMPLOYEE
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -267,8 +269,8 @@ def test_list_assignees_api_success(client, task_base_path, create_test_task, cr
     assert len(assignees) == 2
     
     assignee_ids = [assignee["user_id"] for assignee in assignees]
-    assert VALID_USER_ADMIN_TASK_ASSIGNMENT["user_id"] in assignee_ids
-    assert VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"] in assignee_ids
+    assert VALID_USER_ADMIN["user_id"] in assignee_ids
+    assert VALID_USER_EMPLOYEE["user_id"] in assignee_ids
     
     for assignee in assignees:
         assert "user_id" in assignee
@@ -288,16 +290,35 @@ def test_list_assignees_api_no_assignments(client, task_base_path, create_test_t
     assert assignees == []
 
 # INT-026/016
-def test_list_assignees_api_task_not_found(client, task_base_path):
+def test_list_assignees_api_task_not_found(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """List assignees for nonexistent task returns 404."""
     response = client.get(f"{task_base_path}/{INVALID_TASK_ID_NONEXISTENT}/assignees")
     
     assert response.status_code == 404
     assert "Task" in response.json()["detail"] and "not found" in response.json()["detail"]
 
+# INT-026/017
+def test_list_tasks_by_user_success(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
+
+    assign_response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
+    assert assign_response.status_code == 200
+
+    response = client.get(f"{task_base_path}/user/{VALID_USER_ADMIN['user_id']}")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+
+# INT-026/018
+def test_list_tasks_by_invalid_user(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
+    assign_response = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees", json=VALID_ASSIGNMENT_PAYLOAD_MULTIPLE)
+    assert assign_response.status_code == 200
+
+    response = client.get(f"{task_base_path}/user/{INVALID_USER_ID}")
+    assert response.status_code == 404
+
 # ================================ Database Persistence Tests ================================
 
-# INT-026/017
+# INT-026/019
 def test_assign_users_database_persistence(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """Verify that user assignments persist in the database."""
 
@@ -311,10 +332,10 @@ def test_assign_users_database_persistence(client, task_base_path, create_test_t
     
     assert len(db_assignments) == 2
     assignment_tuples = [(row[0], row[1]) for row in db_assignments]
-    assert (EXPECTED_TASK_RESPONSE["id"], VALID_USER_ADMIN_TASK_ASSIGNMENT["user_id"]) in assignment_tuples
-    assert (EXPECTED_TASK_RESPONSE["id"], VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"]) in assignment_tuples
+    assert (EXPECTED_TASK_RESPONSE["id"], VALID_USER_ADMIN["user_id"]) in assignment_tuples
+    assert (EXPECTED_TASK_RESPONSE["id"], VALID_USER_EMPLOYEE["user_id"]) in assignment_tuples
 
-# INT-026/018
+# INT-026/020
 def test_unassign_users_database_removal(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """Verify that unassigning users removes records from the database."""
 
@@ -336,7 +357,7 @@ def test_unassign_users_database_removal(client, task_base_path, create_test_tas
     ).scalar()
     assert db_assignments == 0
 
-# INT-026/019
+# INT-026/021
 def test_clear_task_assignees_database_removal(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """Verify that clearing task assignees removes all records from the database."""
 
@@ -360,7 +381,7 @@ def test_clear_task_assignees_database_removal(client, task_base_path, create_te
 
 # ================================ Complete Workflow Tests ================================
 
-# INT-026/020
+# INT-026/022
 def test_complete_assignment_workflow(client, task_base_path, create_test_task, create_test_users_and_project, test_db_session):
     """Test complete workflow: assign users, list assignees, unassign some, list again."""
 
@@ -381,7 +402,7 @@ def test_complete_assignment_workflow(client, task_base_path, create_test_task, 
     assert list_response2.status_code == 200
     assignees2 = list_response2.json()
     assert len(assignees2) == 1
-    assert assignees2[0]["user_id"] == VALID_USER_EMPLOYEE_TASK_ASSIGNMENT["user_id"]
+    assert assignees2[0]["user_id"] == VALID_USER_EMPLOYEE["user_id"]
     
     clear_response = client.delete(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/assignees/all")
     assert clear_response.status_code == 200
@@ -392,7 +413,7 @@ def test_complete_assignment_workflow(client, task_base_path, create_test_task, 
     assignees3 = list_response3.json()
     assert len(assignees3) == 0
 
-# INT-026/021
+# INT-026/023
 def test_multiple_tasks_assignment_independence(client, task_base_path, create_test_users_and_project, test_db_session):
     """Test that assignments to different tasks are independent."""
     

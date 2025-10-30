@@ -332,11 +332,21 @@ VALID_TASK_ASSIGNMENT = {
     "user_id": 1,
 }
 
-VALID_USER = {
+VALID_USER_ADMIN = {
     "user_id": 1,
-    "email": "tester@example.com",
-    "name": "Tester",
+    "email": "alice.admin@example.com",
+    "name": "Alice Admin",
     "role": UserRole.MANAGER.value,
+    "admin": True,
+    "hashed_pw": "Adm!nPass123",
+    "department_id": None
+}
+
+VALID_USER_EMPLOYEE = {
+    "user_id": 2,
+    "email": "bob.employee@example.com",
+    "name": "Bob Employee",
+    "role": UserRole.STAFF.value,
     "admin": False,
     "hashed_pw": "hashed_pw",
     "department_id": None,
