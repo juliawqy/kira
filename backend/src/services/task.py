@@ -162,8 +162,7 @@ def set_task_status(task_id: int, new_status: str) -> Task:
             session.add(new_task)
         
         task.status = new_status
-        if new_status == TaskStatus.COMPLETED.value and recurring > 0:
-            task.active = False
+
         session.add(task)
         session.flush()
         

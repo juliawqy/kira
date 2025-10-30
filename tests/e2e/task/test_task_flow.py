@@ -14,8 +14,14 @@ import threading
 import socket
 import uvicorn
 import backend.src.services.task as svc
+import backend.src.services.project as project_service
+import backend.src.services.user as user_service
+import backend.src.services.task_assignment as assignment_service
+import backend.src.services.notification as notification_service
+import backend.src.services.email as email_service
 from backend.src.database.models.project import Project
 from backend.src.database.models.user import User
+from backend.src.database.models.task import Task
 from backend.src.main import app
 
 @pytest.fixture(scope="session")
@@ -77,6 +83,7 @@ def reset_database_tables(test_engine_task):
 
     Session = sessionmaker(bind=test_engine_task, future=True)
     with Session() as session:
+        session.execute(delete(Task))
         session.execute(delete(Project))
         session.execute(delete(User))
         session.commit()
@@ -104,7 +111,12 @@ def app_server(test_engine_task):
         future=True,
     )
     svc.SessionLocal = TestingSessionLocal
-
+    project_service.SessionLocal = TestingSessionLocal
+    user_service.SessionLocal = TestingSessionLocal
+    assignment_service.SessionLocal = TestingSessionLocal
+    notification_service.SessionLocal = TestingSessionLocal
+    email_service.SessionLocal = TestingSessionLocal
+    
     port = None
     for candidate in [8010, 8011, 8012, 8013, 8014, 8015, 8016, 8017, 8018, 8019, 8020]:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

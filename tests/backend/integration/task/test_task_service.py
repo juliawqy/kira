@@ -10,11 +10,10 @@ from backend.src.database.models.user import User
 from backend.src.database.models.parent_assignment import ParentAssignment
 from backend.src.services import task as task_service
 from tests.mock_data.task.integration_data import (
-    TASK_CREATE_PAYLOAD,
-    TASK_CREATE_CHILD,
+    TASK_CREATE_PAYLOAD_SERVICE,
+    TASK_CREATE_CHILD_SERVICE,
     TASK_UPDATE_PAYLOAD,
-    EXPECTED_TASK_RESPONSE,
-    INACTIVE_TASK_PAYLOAD,
+    INACTIVE_TASK_PAYLOAD_SERVICE,
     VALID_PROJECT,
     VALID_PROJECT_2,
     VALID_USER_ADMIN,
@@ -66,7 +65,7 @@ def seed_project_and_user(test_db_session, clean_db):
 # INT-131/001
 def test_add_task_creates_entry(test_db_session):
     """Direct call to add_task inserts one row."""
-    task = task_service.add_task(**TASK_CREATE_PAYLOAD)
+    task = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
     assert task.id is not None
     count = test_db_session.execute(
         text("SELECT COUNT(*) FROM task WHERE id=:i"), {"i": task.id}
@@ -77,7 +76,7 @@ def test_add_task_creates_entry(test_db_session):
 # INT-131/002
 def test_update_task_modifies_fields(test_db_session):
     """update_task should modify only provided fields."""
-    created = task_service.add_task(**TASK_CREATE_PAYLOAD)
+    created = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
     updated = task_service.update_task(
         created.id,
         **{k: v for k, v in TASK_UPDATE_PAYLOAD.items() if k in {"title", "description"}},
@@ -96,7 +95,7 @@ def test_update_task_invalid_id_raises(test_db_session):
 # INT-131/004
 def test_set_task_status_completed_creates_next_occurrence(test_db_session):
     """Recurring completed tasks spawn next occurrence."""
-    payload = dict(TASK_CREATE_PAYLOAD)
+    payload = dict(TASK_CREATE_PAYLOAD_SERVICE)
     payload["recurring"] = 7
     payload["deadline"] = date.today()
     t = task_service.add_task(**payload)
@@ -111,7 +110,7 @@ def test_set_task_status_completed_creates_next_occurrence(test_db_session):
 # INT-131/005
 def test_set_task_status_completed_no_deadline_raises(test_db_session):
     """Recurring task without deadline should raise error."""
-    payload = dict(TASK_CREATE_PAYLOAD)
+    payload = dict(TASK_CREATE_PAYLOAD_SERVICE)
     payload["recurring"] = 3
     payload["deadline"] = None
     t = task_service.add_task(**payload)
@@ -122,8 +121,8 @@ def test_set_task_status_completed_no_deadline_raises(test_db_session):
 # INT-131/006
 def test_list_tasks_filters_and_sorts(test_db_session):
     """list_tasks applies filters and sorting correctly."""
-    task_service.add_task(**TASK_CREATE_PAYLOAD)
-    inactive = task_service.add_task(**INACTIVE_TASK_PAYLOAD)
+    task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
+    inactive = task_service.add_task(**INACTIVE_TASK_PAYLOAD_SERVICE)
     task_service.delete_task(inactive.id)
     tasks = task_service.list_tasks(active_only=True)
     assert all(t.active for t in tasks)
@@ -133,8 +132,8 @@ def test_list_tasks_filters_and_sorts(test_db_session):
 # INT-131/007
 def test_list_parent_tasks_and_sorting(test_db_session):
     """list_parent_tasks returns only non-subtasks."""
-    p = task_service.add_task(**TASK_CREATE_PAYLOAD)
-    c = task_service.add_task(**TASK_CREATE_CHILD)
+    p = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
+    c = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
     task_service.link_subtask(p.id, c.id)
     parents = task_service.list_parent_tasks()
     assert all(
@@ -154,8 +153,8 @@ def test_list_parent_tasks_invalid_sort_raises(test_db_session):
 # INT-131/009
 def test_attach_and_detach_subtasks_success(test_db_session):
     """Attach then detach subtasks correctly updates DB."""
-    p = task_service.add_task(**TASK_CREATE_PAYLOAD)
-    c = task_service.add_task(**TASK_CREATE_CHILD)
+    p = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
+    c = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
     parent = task_service.attach_subtasks(p.id, [c.id])
     assert any(link.subtask_id == c.id for link in parent.subtask_links)
     result = task_service.detach_subtask(p.id, c.id)
@@ -169,9 +168,9 @@ def test_attach_and_detach_subtasks_success(test_db_session):
 # INT-131/010
 def test_attach_subtasks_conflict_parent_raises(test_db_session):
     """Re-attaching child to another parent raises ValueError."""
-    p1 = task_service.add_task(**TASK_CREATE_PAYLOAD)
-    p2 = task_service.add_task(**TASK_CREATE_CHILD)
-    c = task_service.add_task(**TASK_CREATE_CHILD)
+    p1 = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
+    p2 = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
+    c = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
     task_service.attach_subtasks(p1.id, [c.id])
     with pytest.raises(ValueError, match="already have a parent"):
         task_service.attach_subtasks(p2.id, [c.id])
@@ -180,9 +179,9 @@ def test_attach_subtasks_conflict_parent_raises(test_db_session):
 # INT-131/011
 def test_attach_subtasks_cycle_guard_triggers(test_db_session):
     """Cycle detection logic should raise ValueError."""
-    a = task_service.add_task(**TASK_CREATE_PAYLOAD)
-    b = task_service.add_task(**TASK_CREATE_CHILD)
-    c = task_service.add_task(**TASK_CREATE_CHILD)
+    a = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
+    b = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
+    c = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
     task_service.attach_subtasks(a.id, [b.id])
     task_service.attach_subtasks(b.id, [c.id])
     with pytest.raises(ValueError, match="Cycle detected"):
@@ -192,8 +191,8 @@ def test_attach_subtasks_cycle_guard_triggers(test_db_session):
 # INT-131/012
 def test_link_subtask_cycle_guard(test_db_session):
     """_assert_no_cycle inside link_subtask prevents loops."""
-    p = task_service.add_task(**TASK_CREATE_PAYLOAD)
-    c = task_service.add_task(**TASK_CREATE_CHILD)
+    p = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
+    c = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
     task_service.link_subtask(p.id, c.id)
     with pytest.raises(ValueError, match="Cycle detected"):
         task_service.link_subtask(c.id, p.id)
@@ -202,8 +201,8 @@ def test_link_subtask_cycle_guard(test_db_session):
 # INT-131/013
 def test_delete_task_sets_inactive_and_removes_links(test_db_session):
     """Soft delete marks inactive and deletes ParentAssignments."""
-    p = task_service.add_task(**TASK_CREATE_PAYLOAD)
-    c = task_service.add_task(**TASK_CREATE_CHILD)
+    p = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
+    c = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
     task_service.link_subtask(p.id, c.id)
     before = test_db_session.execute(text("SELECT COUNT(*) FROM parent_assignment")).scalar()
     assert before == 1
@@ -216,8 +215,8 @@ def test_delete_task_sets_inactive_and_removes_links(test_db_session):
 # INT-131/014
 def test_get_task_with_subtasks_returns_children(test_db_session):
     """get_task_with_subtasks should eager load subtasks."""
-    p = task_service.add_task(**TASK_CREATE_PAYLOAD)
-    c = task_service.add_task(**TASK_CREATE_CHILD)
+    p = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
+    c = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
     task_service.link_subtask(p.id, c.id)
     fetched = task_service.get_task_with_subtasks(p.id)
     assert fetched is not None
@@ -227,7 +226,7 @@ def test_get_task_with_subtasks_returns_children(test_db_session):
 # INT-131/015
 def test_list_project_tasks_by_user_and_invalid(test_db_session):
     """list_project_tasks_by_user returns tasks for user only."""
-    t = task_service.add_task(**TASK_CREATE_PAYLOAD)
+    t = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
     res = task_service.list_project_tasks_by_user(t.project_id, VALID_USER_ADMIN["user_id"])
     assert all(x.project_id == t.project_id for x in res)
 
@@ -245,9 +244,9 @@ def test_delete_nonexistent_task_raises(test_db_session):
 # INT-131/017
 def test_assert_no_cycle_detects_multi_level_cycle(test_db_session):
     """Directly test _assert_no_cycle BFS traversal."""
-    t1 = task_service.add_task(**TASK_CREATE_PAYLOAD)
-    t2 = task_service.add_task(**TASK_CREATE_CHILD)
-    t3 = task_service.add_task(**TASK_CREATE_CHILD)
+    t1 = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
+    t2 = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
+    t3 = task_service.add_task(**TASK_CREATE_CHILD_SERVICE)
 
     test_db_session.add(ParentAssignment(parent_id=t1.id, subtask_id=t2.id))
     test_db_session.add(ParentAssignment(parent_id=t2.id, subtask_id=t3.id))
@@ -262,7 +261,7 @@ def test_assert_no_cycle_detects_multi_level_cycle(test_db_session):
 # INT-131/018
 def test_attach_empty_subtask_list_returns_parent(test_db_session):
     """Empty subtask list returns hydrated parent without changes."""
-    p = task_service.add_task(**TASK_CREATE_PAYLOAD)
+    p = task_service.add_task(**TASK_CREATE_PAYLOAD_SERVICE)
     result = task_service.attach_subtasks(p.id, [])
     assert result.id == p.id
     assert result.subtask_links == []

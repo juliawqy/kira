@@ -9,7 +9,8 @@ TASK_CREATE_PAYLOAD = {
     "title": "Default Task",
     "start_date": (date.today() + timedelta(days=3)),
     "deadline": (date.today() + timedelta(days=10)),
-    "project_id": 1
+    "project_id": 1,
+    "creator_id": 1,
 }
 
 EXPECTED_TASK_RESPONSE = {
@@ -30,19 +31,22 @@ INVALID_TASK_CREATE = {
 
 INVALID_TASK_CREATE_TITLE = {
     "title": "   ",
-    "project_id": 1
+    "project_id": 1,
+    "creator_id": 1,
 }
 
 INVALID_TASK_CREATE_INVALID_PARENT = {
     "title": "Task with Invalid Parent",
     "parent_id": 99999,
-    "project_id": 2
+    "project_id": 2,
+    "creator_id": 1,
 }
 
 INVALID_TASK_CREATE_INACTIVE_PARENT = {
     "title": "Task with Inactive Parent",
     "parent_id": 1,
-    "project_id": 2
+    "project_id": 2,
+    "creator_id": 1,
 }
 
 TASK_2_PAYLOAD = {
@@ -53,7 +57,8 @@ TASK_2_PAYLOAD = {
     "status": TaskStatus.IN_PROGRESS.value,
     "priority": 9,
     "project_id": 2,
-    "active": True
+    "active": True,
+    "creator_id": 1,
 }
 
 TASK_2 = {
@@ -73,7 +78,8 @@ TASK_3_PAYLOAD = {
     "start_date": (date.today() - timedelta(days=10)),
     "deadline": (date.today() - timedelta(days=5)),
     "project_id": 1,
-    "priority": 1
+    "priority": 1,
+    "creator_id": 1,
 }
 
 TASK_3 = {
@@ -94,7 +100,8 @@ TASK_4_PAYLOAD = {
     "deadline": (date.today() + timedelta(days=7)),
     "project_id": 1,
     "status": TaskStatus.IN_PROGRESS.value,
-    "priority": 10
+    "priority": 10,
+    "creator_id": 1,
 }
 
 TASK_4 = {
@@ -113,20 +120,23 @@ INVALID_PRIORITIES = [-1, 0, 11, "High", 3.14, [], {}]
 
 INVALID_PRIORITY_TASK_PAYLOAD_BASE = {
     "title": "Invalid Priority Task",
-    "project_id": 1
+    "project_id": 1,
+    "creator_id": 1,
 }
 
 INVALID_STATUSES = ["In progress", "DONE", "Todo", None, "", 123]
 
 INVALID_STATUS_TASK_PAYLOAD_BASE = {
     "title": "Invalid Status Task",
-    "project_id": 1
+    "project_id": 1,
+    "creator_id": 1,
 }
 
 INACTIVE_TASK_PAYLOAD = {
     "title": "Inactive Task",
     "project_id": 2,
-    "active": False
+    "active": False,
+    "creator_id": 1,
 }
 
 INACTIVE_TASK = {
@@ -144,7 +154,8 @@ INACTIVE_TASK = {
 
 INACTIVE_SUBTASK_PAYLOAD = {
     "title": "Inactive Subtask",
-    "project_id": 1
+    "project_id": 1,
+    "creator_id": 1,
 }
 
 INACTIVE_SUBTASK = {
@@ -157,11 +168,13 @@ INACTIVE_SUBTASK = {
     "priority": 5,
     "project_id": 1,
     "active": False,
+    "creator_id": 1,
 }
 
 TASK_CREATE_CHILD = {
     "title": "Task First Child",
     "project_id": 1,
+    "creator_id": 1
 }
 
 EXPECTED_TASK_CHILD_RESPONSE = {
@@ -327,6 +340,15 @@ VALID_CREATE_PAYLOAD_ADMIN = {
     "admin": True
 }
 
+VALID_CREATE_PAYLOAD_MANAGER = {
+    "name": "Eve Manager",
+    "email": "eve.manager@example.com",
+    "role": UserRole.MANAGER,
+    "hashed_pw": "Manag3rPass!",
+    "department_id": None,
+    "admin": False
+}
+
 VALID_TASK_ASSIGNMENT = {
     "task_id": 1,
     "user_id": 1,
@@ -352,6 +374,16 @@ VALID_USER_EMPLOYEE = {
     "department_id": None,
 }
 
+VALID_USER_MANAGER = {
+    "user_id": 3,
+    "email": "eve.manager@example.com",
+    "name": "Eve Manager",
+    "role": UserRole.MANAGER.value,
+    "admin": False,
+    "hashed_pw": "Manag3rPass!",
+    "department_id": None
+}
+
 VALID_USER_ADMIN_TASK_ASSIGNMENT = {
     "user_id": 1,
     "name": "Alice Admin",
@@ -374,7 +406,24 @@ VALID_USER_EMPLOYEE_TASK_ASSIGNMENT = {
 
 INVALID_USER_ID = 99999
 
-VALID_ASSIGNMENT_PAYLOAD = {"user_ids": [1]}
-VALID_ASSIGNMENT_PAYLOAD_MULTIPLE = {"user_ids": [1, 2]}
+VALID_ASSIGNMENT_PAYLOAD = {"user_ids": [2]}
+VALID_ASSIGNMENT_PAYLOAD_MULTIPLE = {"user_ids": [2, 3]}
 INVALID_ASSIGNMENT_PAYLOAD = {"user_ids": [999999]}
 EMPTY_ASSIGNMENT_PAYLOAD = {"user_ids": []}
+
+TASK_CREATE_PAYLOAD_SERVICE = {
+    "title": "Default Task",
+    "start_date": (date.today() + timedelta(days=3)),
+    "deadline": (date.today() + timedelta(days=10)),
+    "project_id": 1,
+}
+
+TASK_CREATE_CHILD_SERVICE = {
+    "title": "Task First Child",
+    "project_id": 1,
+}
+
+INACTIVE_TASK_PAYLOAD_SERVICE = {
+    "title": "Inactive Task",
+    "project_id": 1,
+}

@@ -350,11 +350,13 @@ def test_list_tasks_excludes_inactive(client, task_base_path):
 
     for payload in (
         TASK_CREATE_PAYLOAD,
-        INACTIVE_TASK_PAYLOAD    
+        TASK_2_PAYLOAD,
     ):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
+    inactive = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/delete")
+    assert inactive.status_code == 200
     response = client.get(f"{task_base_path}/")
     assert response.status_code == 200
     data = response.json()
@@ -366,16 +368,18 @@ def test_list_task_by_project(client, task_base_path):
         TASK_CREATE_PAYLOAD,
         TASK_2_PAYLOAD,     
         TASK_3_PAYLOAD,     
-        TASK_4_PAYLOAD,
-        INACTIVE_TASK_PAYLOAD    
+        TASK_4_PAYLOAD,  
     ):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
+    inactive = client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/delete")
+    assert inactive.status_code == 200
+
     response = client.get(f"{task_base_path}/project/{VALID_PROJECT_ID}")
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 3
+    assert len(data) == 2
 
     response = client.get(f"{task_base_path}/project/{VALID_PROJECT_ID_INACTIVE_TASK}")
     assert response.status_code == 200
@@ -388,8 +392,7 @@ def test_list_task_by_invalid_project(client, task_base_path):
         TASK_CREATE_PAYLOAD,
         TASK_2_PAYLOAD,     
         TASK_3_PAYLOAD,     
-        TASK_4_PAYLOAD,
-        INACTIVE_TASK_PAYLOAD    
+        TASK_4_PAYLOAD,  
     ):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
