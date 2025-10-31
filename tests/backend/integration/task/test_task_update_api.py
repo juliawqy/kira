@@ -20,7 +20,9 @@ from tests.mock_data.task.integration_data import (
     INVALID_TASK_ID_NONEXISTENT,
     VALID_PROJECT,
     VALID_PROJECT_2,
-    VALID_USER,
+    VALID_USER_ADMIN,
+    INVALID_PRIORITIES,
+    INVALID_UPDATE_PAYLOAD_WITH_ACTIVE,
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -57,7 +59,7 @@ def test_db_session(test_engine):
 def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
     
-    manager = User(**VALID_USER)
+    manager = User(**VALID_USER_ADMIN)
     test_db_session.add(manager)
     test_db_session.flush()
 
@@ -129,6 +131,26 @@ def test_update_task_empty_payload(client, task_base_path):
     assert data["priority"] == original_data["priority"]
     assert data["project_id"] == original_data["project_id"]
     assert data["status"] == original_data["status"]
+
+# INT-003/005
+@pytest.mark.parametrize("invalid_priority", INVALID_PRIORITIES)
+def test_update_task_invalid_priority(client, task_base_path, invalid_priority):
+    """Verify updating task with invalid priority returns 422."""
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
+    assert response.status_code == 201
+    task_id = EXPECTED_TASK_RESPONSE["id"]
+
+    response = client.patch(f"{task_base_path}/{task_id}", json={"priority": invalid_priority})
+    assert response.status_code == 422
+
+# INT-003/006
+def test_update_task_active_field_does_not_update(client, task_base_path):
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
+    assert response.status_code == 201
+    task_id = EXPECTED_TASK_RESPONSE["id"]
+
+    response = client.patch(f"{task_base_path}/{task_id}", json=serialize_payload(INVALID_UPDATE_PAYLOAD_WITH_ACTIVE))
+    assert response.json()["active"] == EXPECTED_TASK_RESPONSE["active"]
 
 # INT-022/001
 @pytest.mark.parametrize("valid_status", [status.value for status in TaskStatus])

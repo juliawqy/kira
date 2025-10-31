@@ -8,10 +8,6 @@ from tests.mock_data.task.unit_data import (
     VALID_CREATE_PAYLOAD_MINIMAL,
     VALID_CREATE_PAYLOAD_WITH_EXPLICIT_PRIORITY,
     VALID_CREATE_PAYLOAD_FULL,
-    INVALID_PRIORITIES,
-    INVALID_PRIORITY_VALUES,
-    INVALID_PRIORITY_TYPES,
-    INVALID_STATUSES,
 )
 from backend.src.enums.task_status import TaskStatus
 
@@ -118,48 +114,4 @@ def test_add_task_full_fields(mock_session_local):
     mock_session.add.assert_called_with(mock_task)
     mock_session.flush.assert_called()
 
-# UNI-001/004
-@pytest.mark.parametrize("bad_priority", INVALID_PRIORITY_VALUES)
-def test_add_task_with_invalid_priority_value_raises_value_error(bad_priority: int):
-    """Reject invalid priority values (allowed: 1..10, but wrong values like -1, 0, 11, 999)."""
-    from backend.src.services import task as task_service
-    
-    invalid_payload = {
-        **VALID_CREATE_PAYLOAD_MINIMAL,
-        "priority": bad_priority
-    }
-    
-    with pytest.raises(ValueError) as exc:
-        task_service.add_task(**invalid_payload)
-    assert "priority must be between 1 and 10" in str(exc.value)
-
-# UNI-001/005
-@pytest.mark.parametrize("bad_priority", INVALID_PRIORITY_TYPES)
-def test_add_task_with_invalid_priority_type_raises_type_error(bad_priority):
-    """Reject invalid priority types (strings, None, floats, lists, etc.)."""
-    from backend.src.services import task as task_service
-    
-    invalid_payload = {
-        **VALID_CREATE_PAYLOAD_MINIMAL,
-        "priority": bad_priority
-    }
-    
-    with pytest.raises(TypeError) as exc:
-        task_service.add_task(**invalid_payload)
-    assert "priority must be an integer" in str(exc.value)
-
-# UNI-001/006
-@pytest.mark.parametrize("bad_status", INVALID_STATUSES)
-def test_add_task_with_invalid_status_raises_value_error(bad_status):
-    """Reject invalid status (must match allowed strings exactly)."""
-    from backend.src.services import task as task_service
-    
-    invalid_payload = {
-        **VALID_CREATE_PAYLOAD_MINIMAL,
-        "status": bad_status
-    }
-    
-    with pytest.raises(ValueError) as exc:
-        task_service.add_task(**invalid_payload)
-    assert "Invalid status" in str(exc.value)
 

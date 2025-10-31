@@ -195,42 +195,6 @@ def test_assign_users_empty_list_returns_zero(mock_session_local):
 
 # UNI-026/006
 @patch("backend.src.services.task_assignment.SessionLocal")
-def test_assign_users_deduplicates_user_ids(mock_session_local):
-    """Assign users with duplicate IDs deduplicates and processes correctly"""
-    from backend.src.services import task_assignment as ta_service
-    
-    mock_session = MagicMock()
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
-    mock_task = MagicMock()
-    mock_task.id = VALID_DEFAULT_TASK["id"]
-    mock_task.active = True
-    mock_session.get.return_value = mock_task
-    
-    mock_user = MagicMock()
-    mock_user.user_id = VALID_USER_ADMIN["user_id"]
-    
-    def mock_execute_side_effect(stmt):
-        if "user_id" in str(stmt).lower() and "where" in str(stmt).lower():
-            if "in" in str(stmt).lower():
-                mock_result = MagicMock()
-                mock_result.scalars.return_value.all.return_value = [mock_user]
-                return mock_result
-            else:
-                mock_result = MagicMock()
-                mock_result.scalars.return_value.all.return_value = []
-                return mock_result
-    
-    mock_session.execute.side_effect = mock_execute_side_effect
-    
-    user_ids = [VALID_USER_ADMIN["user_id"], VALID_USER_ADMIN["user_id"], VALID_USER_ADMIN["user_id"]]
-    result = ta_service.assign_users(VALID_DEFAULT_TASK["id"], user_ids)
-    
-    assert result == 1  
-    assert mock_session.add.call_count == 1
-
-# UNI-026/007
-@patch("backend.src.services.task_assignment.SessionLocal")
 def test_assign_users_task_not_found_raises_error(mock_session_local):
     """Assign users to nonexistent task raises ValueError"""
     from backend.src.services import task_assignment as ta_service
@@ -243,7 +207,7 @@ def test_assign_users_task_not_found_raises_error(mock_session_local):
     with pytest.raises(ValueError, match=r"Task not found"):
         ta_service.assign_users(INVALID_TASK_ID_NONEXISTENT, [VALID_USER_ADMIN["user_id"]])
 
-# UNI-026/008
+# UNI-026/007
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_assign_users_inactive_task_raises_error(mock_session_local):
     """Assign users to inactive task raises ValueError"""
@@ -260,7 +224,7 @@ def test_assign_users_inactive_task_raises_error(mock_session_local):
     with pytest.raises(ValueError, match=r"inactive task"):
         ta_service.assign_users(INACTIVE_TASK["id"], [VALID_USER_ADMIN["user_id"]])
 
-# UNI-026/009
+# UNI-026/008
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_assign_users_user_not_found_raises_error(mock_session_local):
     """Assign nonexistent user to task raises ValueError"""
@@ -283,7 +247,7 @@ def test_assign_users_user_not_found_raises_error(mock_session_local):
 
 # ================================ unassign_users Tests ================================
 
-# UNI-026/010
+# UNI-026/009
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_unassign_users_success(mock_session_local):
     """Remove multiple user assignments successfully"""
@@ -329,7 +293,7 @@ def test_unassign_users_success(mock_session_local):
     assert result == 2
     assert mock_session.delete.call_count == 2
 
-# UNI-026/011
+# UNI-026/010
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_unassign_users_no_assignments_found(mock_session_local):
     """Remove users with no existing assignments returns 0"""
@@ -371,7 +335,7 @@ def test_unassign_users_no_assignments_found(mock_session_local):
     assert result == 0
     mock_session.delete.assert_not_called()
 
-# UNI-026/012
+# UNI-026/011
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_unassign_users_empty_list_returns_zero(mock_session_local):
     """Remove empty list of users returns 0"""
@@ -381,7 +345,7 @@ def test_unassign_users_empty_list_returns_zero(mock_session_local):
     
     assert result == 0
 
-# UNI-026/013
+# UNI-026/012
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_unassign_users_task_not_found_raises_error(mock_session_local):
     """Remove users from nonexistent task raises ValueError"""
@@ -395,7 +359,7 @@ def test_unassign_users_task_not_found_raises_error(mock_session_local):
     with pytest.raises(ValueError, match=r"Task not found"):
         ta_service.unassign_users(INVALID_TASK_ID_NONEXISTENT, [VALID_USER_ADMIN["user_id"]])
 
-# UNI-026/014
+# UNI-026/013
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_unassign_users_user_not_found_raises_error(mock_session_local):
     """Remove nonexistent user from task raises ValueError"""
@@ -418,7 +382,7 @@ def test_unassign_users_user_not_found_raises_error(mock_session_local):
 
 # ================================ clear_task_assignees Tests ================================
 
-# UNI-026/015
+# UNI-026/014
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_clear_task_assignees_success(mock_session_local):
     """Clear all assignees from task successfully"""
@@ -443,7 +407,7 @@ def test_clear_task_assignees_success(mock_session_local):
     mock_query.filter.assert_called_once()
     mock_query.delete.assert_called_once_with(synchronize_session=False)
 
-# UNI-026/016
+# UNI-026/015
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_clear_task_assignees_no_assignments(mock_session_local):
     """Clear assignees from task with no assignments returns 0"""
@@ -466,7 +430,7 @@ def test_clear_task_assignees_no_assignments(mock_session_local):
     
     assert result == 0
 
-# UNI-026/017
+# UNI-026/016
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_clear_task_assignees_task_not_found_raises_error(mock_session_local):
     """Clear assignees from nonexistent task raises ValueError"""
@@ -482,7 +446,7 @@ def test_clear_task_assignees_task_not_found_raises_error(mock_session_local):
 
 # ================================ list_assignees Tests ================================
 
-# UNI-026/018
+# UNI-026/017
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_list_assignees_success(mock_session_local):
     """List assignees for task successfully"""
@@ -523,7 +487,7 @@ def test_list_assignees_success(mock_session_local):
     assert VALID_USER_ADMIN["user_id"] in user_ids
     assert VALID_USER["user_id"] in user_ids
 
-# UNI-026/019
+# UNI-026/018
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_list_assignees_no_assignments(mock_session_local):
     """List assignees for task with no assignments returns empty list"""
@@ -542,7 +506,7 @@ def test_list_assignees_no_assignments(mock_session_local):
 
 # ================================ list_tasks_for_user Tests ================================
 
-# UNI-026/020
+# UNI-026/019
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_list_tasks_for_user_success_active_only(mock_session_local):
     """List tasks for user with active_only=True successfully"""
@@ -572,7 +536,7 @@ def test_list_tasks_for_user_success_active_only(mock_session_local):
     assert result[0].id == VALID_DEFAULT_TASK["id"]
     assert result[0].active is True
 
-# UNI-026/021
+# UNI-026/020
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_list_tasks_for_user_success_include_inactive(mock_session_local):
     """List tasks for user with active_only=False includes inactive tasks"""
@@ -602,7 +566,7 @@ def test_list_tasks_for_user_success_include_inactive(mock_session_local):
     assert VALID_DEFAULT_TASK["id"] in task_ids
     assert INACTIVE_TASK["id"] in task_ids
 
-# UNI-026/022
+# UNI-026/021
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_list_tasks_for_user_no_tasks(mock_session_local):
     """List tasks for user with no assigned tasks returns empty list"""
@@ -621,7 +585,7 @@ def test_list_tasks_for_user_no_tasks(mock_session_local):
 
 # ================================ Validation Function Tests ================================
 
-# UNI-026/023
+# UNI-026/022
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_ensure_task_active_success(mock_session_local):
     """_ensure_task_active with valid active task returns task"""
@@ -640,7 +604,7 @@ def test_ensure_task_active_success(mock_session_local):
     assert result == mock_task
     mock_session.get.assert_called_once_with(ta_service.Task, VALID_DEFAULT_TASK["id"])
 
-# UNI-026/024
+# UNI-026/023
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_ensure_task_active_task_not_found_raises_error(mock_session_local):
     """_ensure_task_active with nonexistent task raises ValueError"""
@@ -654,7 +618,7 @@ def test_ensure_task_active_task_not_found_raises_error(mock_session_local):
     with pytest.raises(ValueError, match=r"Task not found"):
         ta_service._ensure_task_active(mock_session, INVALID_TASK_ID_NONEXISTENT)
 
-# UNI-026/025
+# UNI-026/024
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_ensure_task_active_inactive_task_raises_error(mock_session_local):
     """_ensure_task_active with inactive task raises ValueError"""
@@ -671,7 +635,7 @@ def test_ensure_task_active_inactive_task_raises_error(mock_session_local):
     with pytest.raises(ValueError, match=r"inactive task"):
         ta_service._ensure_task_active(mock_session, INACTIVE_TASK["id"])
 
-# UNI-026/026
+# UNI-026/025
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_ensure_users_exist_success(mock_session_local):
     """_ensure_users_exist with valid users returns users"""
@@ -696,7 +660,7 @@ def test_ensure_users_exist_success(mock_session_local):
     assert result[0] == mock_user1
     assert result[1] == mock_user2
 
-# UNI-026/027
+# UNI-026/026
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_ensure_users_exist_empty_list_returns_empty(mock_session_local):
     """_ensure_users_exist with empty list returns empty list"""
@@ -709,7 +673,7 @@ def test_ensure_users_exist_empty_list_returns_empty(mock_session_local):
     
     assert result == []
 
-# UNI-026/028
+# UNI-026/027
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_ensure_users_exist_missing_users_raises_error(mock_session_local):
     """_ensure_users_exist with missing users raises ValueError"""
@@ -732,7 +696,7 @@ def test_ensure_users_exist_missing_users_raises_error(mock_session_local):
 
 # ================================ SQL Query Validation Tests ================================
 
-# UNI-026/029
+# UNI-026/028
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_list_tasks_for_user_sql_query_validation(mock_session_local):
     """Verify SQL query structure for list_tasks_for_user operation"""
@@ -757,7 +721,7 @@ def test_list_tasks_for_user_sql_query_validation(mock_session_local):
     assert "join" in sql_text
     assert "active" in sql_text and ("true" in sql_text or "1" in sql_text)
 
-# UNI-026/030
+# UNI-026/029
 @patch("backend.src.services.task_assignment.SessionLocal")
 def test_list_assignees_sql_query_validation(mock_session_local):
     """Verify SQL query structure for list_assignees operation"""

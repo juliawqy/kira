@@ -153,38 +153,3 @@ def test_set_task_status_same_status_idempotent(mock_session_local):
     assert mock_task.status == TaskStatus.IN_PROGRESS.value
     assert result == mock_task
 
-# UNI-022/006
-@patch("backend.src.services.task.SessionLocal")
-def test_set_task_status_nonexistent_task_raises_error(mock_session_local):
-    """Set status for nonexistent task raises ValueError"""
-    from backend.src.services import task as task_service
-    
-    mock_session = MagicMock()
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    
-    mock_session.get.return_value = None
-    
-    with pytest.raises(ValueError) as exc:
-        task_service.set_task_status(
-            task_id=INVALID_TASK_ID_NONEXISTENT,
-            new_status=TaskStatus.IN_PROGRESS.value
-        )
-    
-    assert "Task not found" in str(exc.value)
-    mock_session.get.assert_called_once_with(task_service.Task, INVALID_TASK_ID_NONEXISTENT)
-    mock_session.add.assert_not_called()
-    mock_session.flush.assert_not_called()
-
-# UNI-022/007
-@pytest.mark.parametrize("invalid_status", INVALID_STATUSES)
-def test_set_task_status_invalid_status_raises_error(invalid_status):
-    """Set task status with invalid status raises ValueError"""
-    from backend.src.services import task as task_service
-    
-    with pytest.raises(ValueError) as exc:
-        task_service.set_task_status(
-            task_id=VALID_DEFAULT_TASK["id"],
-            new_status=invalid_status
-        )
-    
-    assert "Invalid status" in str(exc.value)

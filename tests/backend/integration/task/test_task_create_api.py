@@ -16,11 +16,15 @@ from tests.mock_data.task.integration_data import (
     EXPECTED_RESPONSE_FIELDS,
     TASK_CREATE_CHILD,
     INVALID_TASK_ID_NONEXISTENT,
-    INACTIVE_TASK_PAYLOAD,
     TASK_3_PAYLOAD,
     VALID_PROJECT,
     VALID_PROJECT_2,
-    VALID_USER
+    VALID_USER_ADMIN,
+    INVALID_PRIORITIES,
+    INVALID_PRIORITY_TASK_PAYLOAD_BASE,
+    INVALID_STATUS,
+    INVALID_STATUS_TASK_PAYLOAD_BASE,
+    INVALID_TASK_CREATE_TITLE
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -75,7 +79,7 @@ def verify_database_state(test_db_session):
 def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
 
-    manager = User(**VALID_USER)
+    manager = User(**VALID_USER_ADMIN)
     test_db_session.add(manager)
     test_db_session.flush()
 
@@ -151,6 +155,45 @@ def test_create_task_inactive_parent(client, task_base_path):
     response = client.post(f"{task_base_path}/", json=INVALID_TASK_CREATE_INACTIVE_PARENT)
     assert response.status_code == 400
 
+# INT-001/005
+@pytest.mark.parametrize("invalid_priority", INVALID_PRIORITIES)
+def test_create_task_invalid_priority(client, task_base_path, verify_database_state, invalid_priority):
+    """Create task with invalid priority value"""
+    initial_count = verify_database_state()
+
+    payload = INVALID_PRIORITY_TASK_PAYLOAD_BASE
+    payload["priority"] = invalid_priority
+    response = client.post(f"{task_base_path}/", json=payload)
+    assert response.status_code == 422
+
+    final_count = verify_database_state()
+    assert final_count == initial_count
+
+# INT-001/006
+@pytest.mark.parametrize("invalid_status", INVALID_STATUS)
+def test_create_task_invalid_status(client, task_base_path, verify_database_state, invalid_status):
+    """Create task with invalid status value"""
+    initial_count = verify_database_state()
+
+    payload = INVALID_STATUS_TASK_PAYLOAD_BASE
+    payload["status"] = invalid_status
+    response = client.post(f"{task_base_path}/", json=payload)
+    assert response.status_code == 422
+
+    final_count = verify_database_state()
+    assert final_count == initial_count
+
+# INT-001/007
+def test_create_task_invalid_title(client, task_base_path, verify_database_state):
+    """Create task with invalid (empty/whitespace) title"""
+    initial_count = verify_database_state()
+
+    response = client.post(f"{task_base_path}/", json=INVALID_TASK_CREATE_TITLE)
+    assert response.status_code == 400
+
+    final_count = verify_database_state()
+    assert final_count == initial_count
+
 # INT-013/001
 def test_create_parent_assignment_success(client, task_base_path, test_db_session, verify_database_state):
     """Attach a child task to a parent task via API; verify assignment persists in DB."""
@@ -210,8 +253,10 @@ def test_create_parent_assignment_nonexistent_parent(client, task_base_path, tes
 def test_create_parent_assignment_inactive_parent(client, task_base_path, test_db_session):
     """Attaching a child to an inactive parent should return 400 and no DB row created."""
 
-    parent_resp = client.post(f"{task_base_path}/", json=serialize_payload(INACTIVE_TASK_PAYLOAD))
+    parent_resp = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     parent_task = parent_resp.json()
+
+    client.post(f"{task_base_path}/{parent_task['id']}/delete")
 
     child_resp = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_CHILD))
     child_task = child_resp.json()
@@ -286,3 +331,29 @@ def test_create_parent_assignment_attach_nonexistent_child(client, task_base_pat
 
     resp = client.post(f"{task_base_path}/{parent_id}/subtasks", json={"subtask_ids": [INVALID_TASK_ID_NONEXISTENT]})
     assert resp.status_code == 404
+
+# INT-013/007
+def test_attach_subtask_self_reference_returns_400(client, task_base_path):
+    """A task cannot be its own parent."""
+    task = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD)).json()
+    resp = client.post(
+        f"{task_base_path}/{task['id']}/subtasks",
+        json={"subtask_ids": [task["id"]]},
+    )
+    assert resp.status_code == 400
+    assert "cannot be its own parent" in resp.json()["detail"].lower()
+
+# INT-013/008
+def test_attach_inactive_subtask_returns_404(client, task_base_path):
+    """Inactive subtasks cannot be attached."""
+    parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD)).json()
+    inactive = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_CHILD)).json()
+
+    client.post(f"{task_base_path}/{inactive['id']}/delete")
+
+    resp = client.post(
+        f"{task_base_path}/{parent['id']}/subtasks",
+        json={"subtask_ids": [inactive["id"]]},
+    )
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()

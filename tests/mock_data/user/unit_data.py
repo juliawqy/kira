@@ -27,7 +27,6 @@ VALID_CREATE_PAYLOAD_ADMIN = {
     "password": "Adm!nPass123",
     "department_id": 10,
     "admin": True,
-    "created_by_admin": True,  
 }
 
 VALID_CREATE_PAYLOAD_USER = {
@@ -37,7 +36,6 @@ VALID_CREATE_PAYLOAD_USER = {
     "password": "Empl@yee123",
     "department_id": 20,
     "admin": False,
-    "created_by_admin": True, 
 }
 
 # Invalid create payloads
@@ -48,7 +46,6 @@ INVALID_CREATE_SHORT_PASSWORD = {
     "password": "short",
     "department_id": None,
     "admin": False,
-    "created_by_admin": True,
 }
 
 INVALID_CREATE_NO_SPECIAL = {
@@ -58,7 +55,6 @@ INVALID_CREATE_NO_SPECIAL = {
     "password": "LongButNoSpecial1",
     "department_id": None,
     "admin": False,
-    "created_by_admin": True,
 }
 
 INVALID_CREATE_BAD_EMAIL = {
@@ -68,7 +64,6 @@ INVALID_CREATE_BAD_EMAIL = {
     "password": "Valid!Pass1",
     "department_id": None,
     "admin": False,
-    "created_by_admin": True,
 }
 
 INVALID_CREATE_BAD_ROLE = {
@@ -78,7 +73,6 @@ INVALID_CREATE_BAD_ROLE = {
     "password": "Valid!Pass1",
     "department_id": None,
     "admin": False,
-    "created_by_admin": True,
 }
 
 INVALID_CREATE_NO_NAME = {
@@ -88,7 +82,6 @@ INVALID_CREATE_NO_NAME = {
     "password": "Valid!Pass1",
     "department_id": None,
     "admin": False,
-    "created_by_admin": True,
 }
 
 INVALID_CREATE_BAD_ADMIN = {
@@ -98,7 +91,6 @@ INVALID_CREATE_BAD_ADMIN = {
     "password": "Adm!nPass123",
     "department_id": 10,
     "admin": "yes",
-    "created_by_admin": True,
 }
 
 INVALID_CREATE_UNAUTHORISED = {
@@ -108,7 +100,6 @@ INVALID_CREATE_UNAUTHORISED = {
     "password": "Unauth!Pass123",
     "department_id": 20,
     "admin": False,
-    "created_by_admin": False,
 }
 
 # Update payloads
@@ -119,17 +110,14 @@ VALID_UPDATE_DEPARTMENT = {"department_id": 30}
 # Delete payloads
 VALID_DELETE_PAYLOAD = {
     "user_id": 1,
-    "is_admin": True
 }
 
 INVALID_DELETE_PAYLOAD_NONEXISTENT_USER = {
     "user_id": 9999,
-    "is_admin": True
 }
 
 INVALID_DELETE_PAYLOAD_NOT_ADMIN = {
     "user_id": 1,
-    "is_admin": False
 }
 
 # Password change payloads

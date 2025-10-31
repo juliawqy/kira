@@ -10,6 +10,8 @@ from tests.mock_data.user.e2e_data import E2E_USER_WORKFLOW, E2E_SELECTORS, VALI
 from backend.src.database.models.user import User
 from backend.src.database.models.department import Department
 import backend.src.services.user as svc
+import backend.src.services.department as department_svc
+import backend.src.services.team as team_svc
 import threading
 import socket
 import uvicorn
@@ -94,6 +96,8 @@ def app_server(test_engine_user):
         future=True,
     )
     svc.SessionLocal = TestingSessionLocal
+    department_svc.SessionLocal = TestingSessionLocal
+    team_svc.SessionLocal = TestingSessionLocal
 
     port = None
     for candidate in [8010, 8011, 8012, 8013, 8014, 8015, 8016, 8017, 8018, 8019, 8020]:
@@ -126,7 +130,7 @@ def test_user_data():
 
 
 # E2E-057/001
-def test_complete_user_crud_workflow_ui_only(driver, isolated_database, app_server, test_user_data):
+def test_complete_user_crud_workflow_ui_only(driver, isolated_database, app_server, reset_database_tables, test_user_data):
     """
     Full user CRUD flow against a fresh test server per test.
     app_server fixture ensures a fresh DB and server, even if previous test crashed.

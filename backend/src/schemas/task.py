@@ -5,7 +5,9 @@ from typing import Optional, List, Literal, Annotated
 from pydantic import BaseModel, ConfigDict, Field
 from backend.src.enums.task_status import TaskStatus
 
+
 # ---------- Read models ----------
+
 
 class TaskRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -31,7 +33,12 @@ class TaskWithSubTasks(TaskRead):
         serialization_alias="subTasks", 
     )
 
+class SubtaskIds(BaseModel):
+    subtask_ids: List[int] = []  # allow empty list -> idempotent no-op
+
+
 # ---------- Write models ----------
+
 
 class TaskCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -46,7 +53,9 @@ class TaskCreate(BaseModel):
     tag: Optional[str] = None
     project_id: int
     active: bool = True
-    parent_id: Optional[int] = None      
+    parent_id: Optional[int] = None   
+
+    creator_id: int   
 
 class TaskUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)

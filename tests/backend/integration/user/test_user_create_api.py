@@ -16,6 +16,7 @@ from tests.mock_data.user.integration_data import (
     INVALID_CREATE_NO_NAME,
     INVALID_CREATE_BAD_ADMIN,
     INVALID_CREATE_UNAUTHORISED,
+    INVALID_CREATE_INVALID_DEPARTMENT
 )
 
 @pytest.fixture
@@ -139,6 +140,7 @@ def test_create_user_failure_duplicate_email(client, user_base_path, test_db_ses
         (INVALID_CREATE_NO_NAME, 422),          
         (INVALID_CREATE_BAD_ADMIN, 422),        
         (INVALID_CREATE_UNAUTHORISED, 403),     
+        (INVALID_CREATE_INVALID_DEPARTMENT, 400),
     ],
 )
 def test_create_user_invalid_payload(client, user_base_path, invalid_payload, expected_status):

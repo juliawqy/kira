@@ -46,7 +46,7 @@ def verify_database_state(test_db_session):
         print(f"Database state changed: {initial_count} -> {final_count} users")
 
 
-# INT-053/005
+# INT-053/006
 def test_change_password_success(client, user_base_path):
 
     resp = client.post(f"{user_base_path}/", json=(VALID_CREATE_PAYLOAD_USER))
@@ -56,7 +56,7 @@ def test_change_password_success(client, user_base_path):
     assert response.status_code == 200
     assert response.json() is True       
 
-# INT-053/006
+# INT-053/007
 def test_change_password_wrong_current(client, user_base_path):
 
     resp = client.post(f"{user_base_path}/", json=(VALID_CREATE_PAYLOAD_USER))
@@ -66,7 +66,7 @@ def test_change_password_wrong_current(client, user_base_path):
     assert response.status_code == 403
     assert "Current password is incorrect" in response.json()["detail"]
 
-# INT-053/007
+# INT-053/008
 def test_change_password_user_not_found(client, user_base_path):
 
     # other ValueError messages should map to 400 per route code
@@ -74,4 +74,3 @@ def test_change_password_user_not_found(client, user_base_path):
     response = client.post(f"{user_base_path}/{INVALID_USER_ID}/password", json=VALID_PASSWORD_CHANGE)
     assert response.status_code == 400
     assert "User not found" in response.json()["detail"]
-        

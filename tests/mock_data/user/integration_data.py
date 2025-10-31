@@ -96,7 +96,7 @@ INVALID_CREATE_BAD_ADMIN = {
     "email": "bad.admin@example.com",
     "role": UserRole.MANAGER,
     "password": "Adm!nPass123",
-    "department_id": 10,
+    "department_id": None,
     "admin": "not_a_boolean",
     "created_by_admin": True,
 }
@@ -106,17 +106,31 @@ INVALID_CREATE_UNAUTHORISED = {
     "email": "unauth.user@example.com",
     "role": UserRole.STAFF,
     "password": "Unauth!Pass123",
-    "department_id": 20,
+    "department_id": None,
     "admin": False,
     "created_by_admin": False,
 }
 
+INVALID_CREATE_INVALID_DEPARTMENT = {
+    "name": "Invalid Dept",
+    "email": "invalid.dept@example.com",
+    "role": UserRole.STAFF,
+    "password": "Valid!Pass1",
+    "department_id": 9999,
+    "admin": False,
+    "created_by_admin": True,
+}
+
 INVALID_EMAIL_UPDATE = {
-    "email": "alice.admin@example.com"  # assuming this email already exists
+    "email": "alice.admin@example.com" 
 }
 
 INVALID_INVALID_ROLE_UPDATE = {
     "role": "invalid_role"
+}
+
+INVALID_DEPARTMENT_UPDATE = {
+    "department_id": 9999
 }
 
 VALID_UPDATE_NAME = {"name": "Alice A."}
