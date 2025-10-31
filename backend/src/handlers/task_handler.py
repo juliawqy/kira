@@ -176,11 +176,12 @@ def update_task(
         except Exception:
             pass
         logger.info(
+            "Task update notification dispatched",
             extra={
                 "task_id": updated.id,
                 "type": NotificationType.TASK_UPDATE.value,
                 "success": getattr(resp, "success", None),
-                "message": getattr(resp, "message", None),
+                "email_message": getattr(resp, "message", None),
                 "recipients_count": getattr(resp, "recipients_count", None),
                 "email_id": getattr(resp, "email_id", None),
             },

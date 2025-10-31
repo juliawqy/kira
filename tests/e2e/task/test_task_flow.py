@@ -116,6 +116,19 @@ def app_server(test_engine_task):
     assignment_service.SessionLocal = TestingSessionLocal
     notification_service.SessionLocal = TestingSessionLocal
     email_service.SessionLocal = TestingSessionLocal
+
+    import smtplib
+
+    class DummySMTP:
+        def __init__(self, *a, **kw): pass
+        def starttls(self): print("Mock TLS skipped")
+        def login(self, *a, **kw): print("Mock login skipped")
+        def send_message(self, *a, **kw): print("Mock send_message skipped")
+        def quit(self): pass
+
+    smtplib.SMTP = DummySMTP
+    smtplib.SMTP_SSL = DummySMTP
+    print("SMTP class is now:", smtplib.SMTP.__name__)
     
     port = None
     for candidate in [8010, 8011, 8012, 8013, 8014, 8015, 8016, 8017, 8018, 8019, 8020]:
