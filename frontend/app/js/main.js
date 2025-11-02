@@ -112,7 +112,7 @@ function applyCalendarFilters() {
   }
   
   // Re-render calendar with filtered tasks
-  renderCalendar(filteredTasks);
+  renderCalendar(filteredTasks, { log, reload: () => autoReload() });
 }
 
 async function loadParents(){
@@ -160,6 +160,46 @@ async function loadParents(){
 
 let _reloadTimer = null;
 function autoReload(delay=80){ clearTimeout(_reloadTimer); _reloadTimer = setTimeout(loadParents, delay); }
+
+// User selection functionality
+function initializeUserSelection() {
+  // Set default user (Cong) only if no user is currently selected
+  if (!CURRENT_USER) {
+    const defaultUser = USERS.find(u => u.user_id === 1) || USERS[0];
+    if (defaultUser) {
+      setCurrentUser(defaultUser);
+    }
+  }
+  updateUserSelectionUI();
+}
+
+function updateUserSelectionUI() {
+  const congBtn = document.getElementById("userCong");
+  const juliaBtn = document.getElementById("userJulia");
+  
+  if (CURRENT_USER) {
+    // Remove active class from all buttons
+    congBtn?.classList.remove("active");
+    juliaBtn?.classList.remove("active");
+    
+    // Add active class to current user button
+    if (CURRENT_USER.user_id === 1) {
+      congBtn?.classList.add("active");
+    } else if (CURRENT_USER.user_id === 2) {
+      juliaBtn?.classList.add("active");
+    }
+  }
+}
+
+function switchUser(userId) {
+  const user = USERS.find(u => u.user_id === userId);
+  if (user) {
+    setCurrentUser(user);
+    updateUserSelectionUI();
+    // Reload tasks for the new user
+    loadParents();
+  }
+}
 
 // Wire tabs
 function switchTab(tabName) {
@@ -247,50 +287,11 @@ document.addEventListener("DOMContentLoaded", () => {
   btnToggleCreate?.addEventListener("click", () => document.getElementById("dlgCreate")?.showModal());
   btnToggleCreateFab?.addEventListener("click", () => document.getElementById("dlgCreate")?.showModal());
 
+  // Initialize dialogs
+  bindCalendarNav();
+  bindCreateForm(log, () => autoReload());
+  bindEditDialog(log, () => autoReload());
+
   // First load
   loadParents();
 });
-
-// User selection functionality
-function initializeUserSelection() {
-  // Set default user (Cong) only if no user is currently selected
-  if (!CURRENT_USER) {
-    const defaultUser = USERS.find(u => u.user_id === 1) || USERS[0];
-    if (defaultUser) {
-      setCurrentUser(defaultUser);
-    }
-  }
-  updateUserSelectionUI();
-}
-
-function updateUserSelectionUI() {
-  const congBtn = document.getElementById("userCong");
-  const juliaBtn = document.getElementById("userJulia");
-  
-  if (CURRENT_USER) {
-    // Remove active class from all buttons
-    congBtn?.classList.remove("active");
-    juliaBtn?.classList.remove("active");
-    
-    // Add active class to current user button
-    if (CURRENT_USER.user_id === 1) {
-      congBtn?.classList.add("active");
-    } else if (CURRENT_USER.user_id === 2) {
-      juliaBtn?.classList.add("active");
-    }
-  }
-}
-
-function switchUser(userId) {
-  const user = USERS.find(u => u.user_id === userId);
-  if (user) {
-    setCurrentUser(user);
-    updateUserSelectionUI();
-    // Reload tasks for the new user
-    loadParents();
-  }
-}
-
-bindCalendarNav();
-bindCreateForm(log, () => autoReload());
-bindEditDialog(log, () => autoReload());

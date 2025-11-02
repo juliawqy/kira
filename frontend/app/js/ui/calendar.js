@@ -1,5 +1,6 @@
 import { CAL_MONTH, setCalMonth, addMonths, fmtYMD, parseYMD } from "../state.js";
 import { escapeHtml, getSubtasks } from "../state.js";
+import { openCalTaskPanel } from "./cards.js";
 
 function normalizeTaskDate(task, mode){
   const by = mode === "start" ? (task.start_date || task.startDate) : (task.deadline || task.due || task.due_date);
@@ -20,7 +21,7 @@ function flattenTasksWithSubs(tasks){
   return out;
 }
 
-export function renderCalendar(tasks){
+export function renderCalendar(tasks, { log, reload } = {}){
   const calendarPanel = document.getElementById("calendarPanel");
   const calendarEl = document.getElementById("calendar");
   const calTitle = document.getElementById("calTitle");
@@ -82,7 +83,7 @@ export function renderCalendar(tasks){
         const project = (t.project_id != null) ? `· P${t.project_id}` : "";
         el.innerHTML = `${t.__isSub ? "↳ " : ""}${title} <span class="small">${project}</span>`;
         el.title = `${title}${project ? " " + project : ""}`;
-        el.addEventListener("click", () => document.dispatchEvent(new CustomEvent("open-edit", { detail: t })));
+        el.addEventListener("click", () => openCalTaskPanel(t, { log, reload }));
         cell.appendChild(el);
       });
       if (items.length > 5){
@@ -109,10 +110,6 @@ export function bindCalendarNav(){
   });
   document.getElementById("calNext").addEventListener("click", () => {
     setCalMonth(addMonths(CAL_MONTH, +1));
-    document.dispatchEvent(new Event("redraw-calendar"));
-  });
-  document.getElementById("calToday").addEventListener("click", () => {
-    setCalMonth(new Date());
     document.dispatchEvent(new Event("redraw-calendar"));
   });
 }
