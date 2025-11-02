@@ -1,4 +1,4 @@
-import { CAL_MONTH, setCalMonth, addMonths, fmtYMD, parseYMD } from "../state.js";
+import { CAL_MONTH, setCalMonth, addMonths, fmtYMD, parseYMD, isCurrentUserStaff } from "../state.js";
 import { escapeHtml, getSubtasks } from "../state.js";
 import { openCalTaskPanel } from "./cards.js";
 
@@ -6,6 +6,15 @@ function normalizeTaskDate(task, mode){
   const by = mode === "start" ? (task.start_date || task.startDate) : (task.deadline || task.due || task.due_date);
   const fallback = mode === "start" ? (task.deadline || task.due || task.due_date) : (task.start_date || task.startDate);
   return parseYMD(by) || parseYMD(fallback) || null;
+}
+
+function isTaskOverdue(task){
+  if (!task.deadline) return false;
+  const deadline = parseYMD(task.deadline);
+  if (!deadline) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return deadline < today && task.status !== "Completed";
 }
 
 function flattenTasksWithSubs(tasks){
@@ -79,6 +88,12 @@ export function renderCalendar(tasks, { log, reload } = {}){
       items.slice(0,5).forEach(t => {
         const el = document.createElement("div");
         el.className = "cal-task";
+        
+        // Add overdue styling for staff members
+        if (isCurrentUserStaff() && isTaskOverdue(t)) {
+          el.classList.add("cal-task-overdue");
+        }
+        
         const title = escapeHtml(t.title || `(untitled #${t.id})`);
         const project = (t.project_id != null) ? `· P${t.project_id}` : "";
         el.innerHTML = `${t.__isSub ? "↳ " : ""}${title} <span class="small">${project}</span>`;
