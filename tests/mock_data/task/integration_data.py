@@ -384,6 +384,16 @@ VALID_USER_MANAGER = {
     "department_id": None
 }
 
+VALID_USER_DIRECTOR = {
+    "user_id": 4,
+    "email": "david.director@example.com",
+    "name": "David Director",
+    "role": UserRole.DIRECTOR.value,
+    "admin": True,
+    "hashed_pw": "Direct0rPass!",
+    "department_id": 1  # Will be set in test fixture
+}
+
 VALID_USER_ADMIN_TASK_ASSIGNMENT = {
     "user_id": 1,
     "name": "Alice Admin",
