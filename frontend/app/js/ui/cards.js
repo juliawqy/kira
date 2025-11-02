@@ -1,6 +1,6 @@
 // js/ui/cards.js
 import { apiTask } from "../api.js";
-import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers, isCurrentUserStaff, CURRENT_USER, LAST_TASKS } from "../state.js";
+import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers, isCurrentUserStaff, CURRENT_USER, LAST_TASKS, parseYMD } from "../state.js";
 import { field } from "./dom.js";
 
 /* ----------------------------- panel state ----------------------------- */
@@ -9,6 +9,16 @@ let panelNestLevel = 0;
 /* ----------------------------- safe log ----------------------------- */
 function asLog(log) {
   return typeof log === "function" ? log : (...args) => console.log(...args);
+}
+
+/* ----------------------------- overdue check ----------------------------- */
+function isTaskOverdue(task) {
+  if (!task.deadline) return false;
+  const deadline = parseYMD(task.deadline);
+  if (!deadline) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return deadline < today && task.status !== "Completed";
 }
 
 /**
@@ -95,6 +105,11 @@ export function renderTaskCard(task, { log, reload }) {
   const el = document.createElement("div");
   el.className = "task";
   el.dataset.id = task.id;
+
+  // Add overdue styling for staff members
+  if (isCurrentUserStaff() && isTaskOverdue(task)) {
+    el.classList.add("task-overdue");
+  }
 
   // Compact header
   const header = document.createElement("div");
@@ -536,6 +551,11 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
 
   const row = document.createElement("div");
   row.className = "subtask-row";
+
+  // Add overdue styling for staff members
+  if (isCurrentUserStaff() && isTaskOverdue(st)) {
+    row.classList.add("subtask-overdue");
+  }
 
   // Compact header (matching parent task structure)
   const header = document.createElement("div");
