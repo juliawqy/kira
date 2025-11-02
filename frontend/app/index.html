@@ -18,6 +18,8 @@
           <div class="user-selection">
             <button class="user-btn" id="userCong" data-user-id="1">Cong</button>
             <button class="user-btn" id="userJulia" data-user-id="2">Julia</button>
+            <button class="user-btn" id="userManager" data-user-id="3">Manager</button>
+            <button class="user-btn" id="userDirector" data-user-id="4">Director</button>
           </div>
         </div>
       </div>
@@ -28,6 +30,8 @@
       <div class="tabs">
         <button class="tab-btn active" id="tabList" data-tab="list">List View</button>
         <button class="tab-btn" id="tabCalendar" data-tab="calendar">Calendar View</button>
+        <button class="tab-btn staff-only" id="tabTeamSchedule" data-tab="teamSchedule">Project Schedule</button>
+        <button class="tab-btn manager-only" id="tabTimeline" data-tab="timeline">Timeline View</button>
       </div>
     </div>
 
@@ -131,6 +135,132 @@
           </div>
         </div>
         <div id="calendar"></div>
+      </div>
+    </div>
+
+    <!-- Team Schedule View Tab (Staff Only) -->
+    <div class="tab-content" id="tabContentTeamSchedule">
+      <!-- Team Schedule panel -->
+      <div class="panel cal-wrap" id="teamSchedulePanel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="cal-nav-btn" id="teamCalPrev" type="button">← Prev</button>
+            <div id="teamCalTitle" class="cal-title"></div>
+            <button class="cal-nav-btn" id="teamCalNext" type="button">Next →</button>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="teamCalDateMode" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="due" selected>Deadline</option>
+              <option value="start">Start date</option>
+            </select>
+            <select id="teamCalFilterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Status</option>
+              <option value="To-do">To-do</option>
+              <option value="In-progress">In-progress</option>
+              <option value="Blocked">Blocked</option>
+            </select>
+            <select id="teamCalFilterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Priority</option>
+              <option value="high">High (8-10)</option>
+              <option value="medium">Medium (5-7)</option>
+              <option value="low">Low (1-4)</option>
+            </select>
+            <select id="teamCalFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="1" selected>Project Alpha (1)</option>
+              <option value="2">Project Beta (2)</option>
+              <option value="3">Project Gamma (3)</option>
+            </select>
+            <select id="teamCalFilterTag" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Tags</option>
+              <option value="logistics">Logistics</option>
+              <option value="documentation">Documentation</option>
+              <option value="testing">Testing</option>
+              <option value="development">Development</option>
+              <option value="meeting">Meeting</option>
+              <option value="completed">Completed</option>
+              <option value="bugfix">Bugfix</option>
+              <option value="design">Design</option>
+              <option value="research">Research</option>
+              <option value="audit">Audit</option>
+            </select>
+          </div>
+        </div>
+        <div id="teamCalendar"></div>
+      </div>
+    </div>
+
+    <!-- Timeline View Tab (Manager/Director Only) -->
+    <div class="tab-content" id="tabContentTimeline">
+      <!-- Timeline sub-tabs -->
+      <div class="panel" style="margin-top: 12px; padding-bottom: 0;">
+        <div class="tabs">
+          <button class="tab-btn active" id="timelineTabList" data-timeline-sub="list">List</button>
+          <button class="tab-btn" id="timelineTabGantt" data-timeline-sub="gantt">Gantt</button>
+        </div>
+      </div>
+
+      <!-- Timeline List View -->
+      <div class="timeline-sub-content active" id="timelineSubContentList">
+        <div class="panel" style="margin-top: 12px;" id="timelinePanel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2 style="margin:0;">Timeline View</h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select id="timelineFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Projects</option>
+                <option value="1">Project Alpha (1)</option>
+                <option value="2">Project Beta (2)</option>
+                <option value="3">Project Gamma (3)</option>
+              </select>
+              <select id="timelineFilterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Status</option>
+                <option value="To-do">To-do</option>
+                <option value="In-progress">In-progress</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Completed">Completed</option>
+              </select>
+              <select id="timelineFilterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Priority</option>
+                <option value="high">High (8-10)</option>
+                <option value="medium">Medium (5-7)</option>
+                <option value="low">Low (1-4)</option>
+              </select>
+            </div>
+          </div>
+          <div id="timeline"></div>
+        </div>
+      </div>
+
+      <!-- Timeline Gantt View -->
+      <div class="timeline-sub-content" id="timelineSubContentGantt">
+        <div class="panel" style="margin-top: 12px;" id="timelineGanttPanel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2 style="margin:0;">Gantt View</h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select id="ganttFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Projects</option>
+                <option value="1">Project Alpha (1)</option>
+                <option value="2">Project Beta (2)</option>
+                <option value="3">Project Gamma (3)</option>
+              </select>
+              <select id="ganttFilterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Status</option>
+                <option value="To-do">To-do</option>
+                <option value="In-progress">In-progress</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Completed">Completed</option>
+              </select>
+              <select id="ganttFilterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Priority</option>
+                <option value="high">High (8-10)</option>
+                <option value="medium">Medium (5-7)</option>
+                <option value="low">Low (1-4)</option>
+              </select>
+              <button class="cal-nav-btn" id="ganttZoomOut" type="button" title="Zoom Out">−</button>
+              <button class="cal-nav-btn" id="ganttZoomIn" type="button" title="Zoom In">+</button>
+            </div>
+          </div>
+          <div id="timelineGantt"></div>
+        </div>
       </div>
     </div>
 

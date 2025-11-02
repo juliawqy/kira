@@ -418,6 +418,14 @@
     border-bottom-color: var(--accent);
   }
   
+  .tab-btn.staff-only {
+    display: none;
+  }
+  
+  .tab-btn.manager-only {
+    display: none;
+  }
+  
   .tab-content {
     display: none;
   }
@@ -1046,8 +1054,193 @@
     transform: scale(0.98);
   }
   
+  /* Timeline View Styles */
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 16px;
+  }
+  
+  .timeline-header-left h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .timeline-header-right {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sub);
+  }
+  
+  .timeline-project-section {
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .timeline-project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .timeline-project-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .timeline-project-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+    color: var(--sub);
+  }
+  
+  .timeline-overdue-badge {
+    padding: 2px 8px;
+    background: #fee2e2;
+    color: #dc2626;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  
+  .timeline-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+  }
+  
+  .timeline-progress-bar {
+    flex: 1;
+    height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .timeline-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-2) 0%, #22c55e 100%);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+  }
+  
+  .timeline-progress-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--sub);
+    white-space: nowrap;
+  }
+  
+  .timeline-tasks-list {
+    padding: 16px;
+  }
+  
+  .timeline-task-card {
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .timeline-task-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(29, 78, 216, 0.1);
+  }
+  
+  .timeline-task-card.timeline-task-overdue {
+    border-color: #dc2626;
+    background: #fef2f2;
+  }
+  
+  .timeline-task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  
+  .timeline-task-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    flex: 1;
+  }
+  
+  .timeline-task-id {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  
+  .timeline-task-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .timeline-task-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--sub);
+  }
+  
+  .timeline-task-assignees {
+    display: flex;
+    align-items: center;
+  }
+  
+  .timeline-task-dates {
+    display: flex;
+    align-items: center;
+  }
+  
+  .timeline-subtasks {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  
+  .timeline-subtasks-label {
+    font-size: 13px;
+    color: var(--sub);
+    font-weight: 500;
+  }
+  
   /* Responsive tweaks */
   @media (max-width: 860px) {
     .grid.two, .grid.three { grid-template-columns: 1fr; }
+    .timeline-project-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .timeline-progress-container {
+      width: 100%;
+    }
+    .timeline-task-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
   }
   
