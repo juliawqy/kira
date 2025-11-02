@@ -30,6 +30,7 @@ from tests.mock_data.task.integration_data import (
     VALID_PROJECT_2,
     INVALID_PROJECT_ID,
     VALID_USER_ADMIN,
+    VALID_USER_MANAGER,
     INVALID_USER_ID
 )
 
@@ -68,7 +69,8 @@ def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
     
     manager = User(**VALID_USER_ADMIN)
-    test_db_session.add(manager)
+    manager2 = User(**VALID_USER_MANAGER)
+    test_db_session.add_all([manager, manager2])
     test_db_session.flush()
 
     project = Project(**VALID_PROJECT)
@@ -568,3 +570,28 @@ def test_list_tasks_invalid_project(client, task_base_path):
 
     response = client.get(f"{task_base_path}/project/{INVALID_PROJECT_ID}")
     assert response.status_code == 400
+
+# INT-002/014
+def test_list_tasks_by_manager_success(client, task_base_path):
+    """Test getting all tasks for projects managed by a manager."""
+    # Create tasks in different projects
+    for payload in (TASK_CREATE_PAYLOAD, TASK_2_PAYLOAD, TASK_3_PAYLOAD, TASK_4_PAYLOAD):
+        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
+        assert resp.status_code == 201
+
+    # Get tasks for manager (user_id=1 manages both project 1 and 2)
+    response = client.get(f"{task_base_path}/manager/1")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    # Should get all 4 tasks since manager manages both projects
+    assert len(data) == 4
+
+# INT-002/015
+def test_list_tasks_by_manager_no_projects(client, task_base_path):
+    """Test getting tasks for a manager with no projects."""
+    response = client.get(f"{task_base_path}/manager/{VALID_USER_MANAGER['user_id']}")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 0

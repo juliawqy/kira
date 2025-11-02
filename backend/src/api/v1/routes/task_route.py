@@ -11,6 +11,7 @@ from backend.src.schemas.comment import CommentCreate, CommentRead, CommentUpdat
 import backend.src.handlers.task_assignment_handler as assignment_handler
 import backend.src.handlers.task_handler as task_handler
 import backend.src.handlers.comment_handler as comment_handler
+import backend.src.handlers.project_handler as project_handler
 
 router = APIRouter(prefix="/task", tags=["task"])
 
@@ -73,6 +74,26 @@ def list_project_tasks_by_user(project_id: int, user_id: int):
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/manager/{manager_id}", response_model=List[TaskWithSubTasks], name="list_tasks_by_manager")
+def list_tasks_by_manager(manager_id: int):
+    """Get all tasks in projects managed by a specific manager."""
+    try:
+        # Get all projects managed by this user
+        projects = project_handler.get_projects_by_manager(manager_id)
+        if not projects:
+            return []
+        
+        # Get all tasks from these projects
+        all_tasks = []
+        for project in projects:
+            tasks = task_handler.list_tasks_by_project(project["project_id"])
+            all_tasks.extend(tasks)
+        
+        return all_tasks
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/parents", response_model=List[TaskRead], name="list_parent_tasks")

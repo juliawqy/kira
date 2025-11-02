@@ -38,6 +38,20 @@ def get_project_by_id(project_id: int) -> Dict:
             "active": project.active
         }
 
+def get_projects_by_manager(project_manager_id: int) -> list[dict]:
+    """Return all projects managed by a given manager."""
+    with SessionLocal() as session:
+        projects = session.query(Project).filter_by(project_manager=project_manager_id).all()
+        result = []
+        for proj in projects:
+            result.append({
+                "project_id": proj.project_id,
+                "project_name": proj.project_name,
+                "project_manager": proj.project_manager,
+                "active": proj.active
+            })
+        return result
+
 def assign_user_to_project(project_id: int, user_id: int) -> dict:
     """Assign a user to a project. No role restrictions."""
     with SessionLocal.begin() as session:
