@@ -44,3 +44,7 @@ export const isTaskAssignedToCurrentUser = (task) => {
     (assignee.user_id || assignee.id) === CURRENT_USER.user_id
   );
 };
+
+export const isCurrentUserStaff = () => {
+  return CURRENT_USER && CURRENT_USER.role === "Staff";
+};

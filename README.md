@@ -12,27 +12,50 @@
 3. install dependencies
    `pip install -r requirements.txt`
 
-4. Create database and setup tables (SQLite)
-   `python -m backend.src.database.db_setup_tables`
+4. Initialize database with sample data (SQLite)
+   `python init_db.py`
 
-5. run project
-   `uvicorn backend.src.main:app --reload`
+   This will create all tables and seed initial test data including:
+
+   - Users: Cong, Julia (Staff), Manager1, Director1
+   - Projects: Project Alpha, Project Beta
+   - Tasks assigned to users with various statuses
+   - Comments on tasks
+
+   Note: If you need to reset the database, delete `backend/src/database/kira.db` first
+
+5. Run backend project
+   `python -m uvicorn backend.src.main:app --reload`
    Access swagger docs: http://localhost:8000/docs
 
-6. install frontend dependencies and run frontend (in a separate terminal)
+6. Install frontend dependencies and run frontend (in a separate terminal)
    `cd frontend && npm install`
    `npm start`
 
    Access frontend: http://localhost:3000
 
-7. if you modify table structure (like `Task`),
+7. If you modify table structure (like `Task`),
    a. delete old database
    windows: `del backend\src\database\kira.db`
    mac: `rm backend/src/database/kira.db`
-   b. rerun table creation
-   `python -m backend.src.database.db_setup_tables`
+   b. rerun database initialization
+   `python init_db.py`
 
 ### Take note that the files in `.gitignore` are _NOT_ to be pushed into git (venv, kira.db etc.)
+
+## Default Test Accounts
+
+After running `init_db.py`, you can use these test accounts:
+
+**Staff Users:**
+
+- Cong: `cong@example.com` / `Password123!`
+- Julia: `julia@example.com` / `Password123!`
+
+**Administrative Users:**
+
+- Manager1: `manager@example.com` / `Password123!`
+- Director1: `director@example.com` / `Password123!`
 
 ## Testing
 
