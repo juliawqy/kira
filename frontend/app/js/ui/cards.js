@@ -1,6 +1,6 @@
 // js/ui/cards.js
 import { apiTask } from "../api.js";
-import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml } from "../state.js";
+import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers } from "../state.js";
 import { field } from "./dom.js";
 
 /* ----------------------------- safe log ----------------------------- */
@@ -49,7 +49,7 @@ async function setStatus(id, action, log, reload, callback) {
     if (callback) {
       callback(newStatus);
     } else {
-      reload();
+    reload();
     }
   } catch (e) {
     slog("Status error", String(e));
@@ -65,7 +65,7 @@ async function deleteTask(id, log, reload, callback) {
     if (callback) {
       callback();
     } else {
-      reload();
+    reload();
     }
   } catch (e) {
     slog("Delete error", String(e));
@@ -246,6 +246,9 @@ export function renderTaskCard(task, { log, reload }) {
     details.appendChild(renderAssigneeDisplay(task, { log }));
   }
 
+  // Comments section (always show for all tasks)
+  details.appendChild(renderCommentsSection(task, { log, reload }));
+
   // Subtasks section
   const subs = getSubtasks(task);
   if (Array.isArray(subs) && subs.length > 0) {
@@ -364,7 +367,7 @@ function renderAssigneeControls(task, { log, reload }) {
       renderAssignees(updatedAssignees || []);
     } catch (e) { slog("Assign error", String(e)); alert(e.message); }
   }));
-  
+
   // Add cancel button
   addRow.appendChild(btn("Cancel", "btn", () => {
     assSelect.value = "";
@@ -409,7 +412,7 @@ function renderAssigneeControls(task, { log, reload }) {
       if (chipsInlineEl) {
         chipsInlineEl.appendChild(none);
       } else {
-        current.appendChild(none);
+      current.appendChild(none);
       }
       return;
     }
@@ -419,7 +422,7 @@ function renderAssigneeControls(task, { log, reload }) {
       const chip = document.createElement("span");
       chip.className = "assignee-chip";
       chip.textContent = a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`;
-      
+
       const remove = document.createElement("button");
       remove.className = "assignee-remove";
       remove.innerHTML = "×";
@@ -534,7 +537,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
   // Compact header
   const header = document.createElement("div");
   header.className = "subtask-header";
-  
+
   const left = document.createElement("div");
   left.className = "subtask-info";
   const bits = [
@@ -695,7 +698,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
       reload();
     } catch (e) { slog("Detach error", String(e)); alert(e.message); }
   }));
-  
+
   actionsSection.appendChild(actionRow);
   details.appendChild(actionsSection);
 
@@ -714,4 +717,359 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
   });
 
   return row;
+}
+
+/* ------------------------- Comments Section ------------------------- */
+
+function renderCommentsSection(task, { log, reload }) {
+  const slog = asLog(log);
+
+  const commentsWrap = document.createElement("div");
+  commentsWrap.className = "task-section";
+
+  // Section label with comment count
+  const sectionLabel = document.createElement("div");
+  sectionLabel.className = "task-section-label";
+  const labelText = document.createElement("span");
+  labelText.textContent = "Comments";
+  sectionLabel.appendChild(labelText);
+  
+  const countEl = document.createElement("span");
+  countEl.className = "comment-count";
+  countEl.id = `comment-count-${task.id}`;
+  sectionLabel.appendChild(countEl);
+  
+  commentsWrap.appendChild(sectionLabel);
+
+  // Comments container
+  const commentsContainer = document.createElement("div");
+  commentsContainer.className = "comments-container";
+  commentsContainer.id = `comments-${task.id}`;
+  commentsWrap.appendChild(commentsContainer);
+
+  // Add comment form (only for non-completed tasks)
+  if (task.status !== "Completed") {
+    const addCommentForm = document.createElement("div");
+    addCommentForm.className = "add-comment-form";
+    
+    const textarea = document.createElement("textarea");
+    textarea.placeholder = "Add a comment...";
+    textarea.className = "comment-input";
+    textarea.id = `comment-input-${task.id}`;
+    
+    const userSelect = document.createElement("select");
+    userSelect.className = "comment-user-select";
+    userSelect.id = `comment-user-${task.id}`;
+    
+    // Populate user dropdown
+    const users = getUsers();
+    if (users && users.length > 0) {
+      users.forEach(user => {
+        const option = document.createElement("option");
+        option.value = user.user_id || user.id;
+        option.textContent = user.name || user.full_name || user.email;
+        userSelect.appendChild(option);
+      });
+    }
+    
+    const submitBtn = document.createElement("button");
+    submitBtn.textContent = "Add Comment";
+    submitBtn.className = "btn primary comment-submit";
+    submitBtn.addEventListener("click", async () => {
+      const commentText = textarea.value.trim();
+      const userId = parseInt(userSelect.value);
+      
+      if (!commentText || !userId) {
+        alert("Please enter a comment and select a user");
+        return;
+      }
+      
+      try {
+        await addCommentToTask(task.id, userId, commentText, slog);
+        textarea.value = "";
+        await loadCommentsForTask(task.id, slog);
+        // Don't reload - just refresh comments locally to keep task expanded
+      } catch (error) {
+        alert("Failed to add comment: " + error.message);
+      }
+    });
+    
+    addCommentForm.appendChild(textarea);
+    addCommentForm.appendChild(userSelect);
+    addCommentForm.appendChild(submitBtn);
+    commentsWrap.appendChild(addCommentForm);
+  }
+
+  // Load and render comments
+  loadCommentsForTask(task.id, slog);
+
+  return commentsWrap;
+}
+
+async function loadCommentsForTask(taskId, log) {
+  const slog = asLog(log);
+  
+  try {
+    const comments = await apiTask(`/${taskId}/comment`, { method: "GET" });
+    renderComments(comments || [], taskId);
+    slog("Loaded comments for task", taskId, comments);
+  } catch (error) {
+    slog("Failed to load comments", error);
+    renderComments([], taskId);
+  }
+}
+
+function renderComments(comments, taskId) {
+  const container = document.getElementById(`comments-${taskId}`);
+  const countEl = document.getElementById(`comment-count-${taskId}`);
+  
+  if (!container) return;
+  
+  // Update count
+  if (countEl) {
+    if (!comments || comments.length === 0) {
+      countEl.textContent = "";
+    } else {
+      countEl.textContent = ` (${comments.length})`;
+    }
+  }
+  
+  container.innerHTML = "";
+  
+  if (!comments || comments.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "comment-empty";
+    empty.textContent = "No comments yet";
+    container.appendChild(empty);
+      return;
+    }
+  
+  // Sort comments by timestamp (newest first)
+  const sortedComments = [...comments].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  sortedComments.forEach(comment => {
+    const commentEl = renderCommentCard(comment);
+    container.appendChild(commentEl);
+  });
+}
+
+function renderCommentCard(comment) {
+  const card = document.createElement("div");
+  card.className = "comment-card";
+  card.setAttribute("data-comment-id", comment.comment_id);
+  
+  const header = document.createElement("div");
+  header.className = "comment-header";
+  
+  // User info
+  const userInfo = document.createElement("div");
+  userInfo.className = "comment-user";
+  
+  const user = getUsers()?.find(u => (u.user_id || u.id) === comment.user_id);
+  const userName = user?.name || user?.full_name || user?.email || `User ${comment.user_id}`;
+  
+  const userAvatar = document.createElement("div");
+  userAvatar.className = "comment-avatar";
+  userAvatar.textContent = userName.charAt(0).toUpperCase();
+  
+  const userDetails = document.createElement("div");
+  userDetails.className = "comment-user-details";
+  
+  const userNameEl = document.createElement("span");
+  userNameEl.className = "comment-user-name";
+  userNameEl.textContent = userName;
+  
+  const timestampEl = document.createElement("span");
+  timestampEl.className = "comment-timestamp";
+  timestampEl.textContent = formatTimestamp(comment.timestamp);
+  
+  userDetails.appendChild(userNameEl);
+  userDetails.appendChild(timestampEl);
+  
+  userInfo.appendChild(userAvatar);
+  userInfo.appendChild(userDetails);
+  header.appendChild(userInfo);
+  
+  // Actions (edit/delete) - only show for non-completed tasks
+  const actions = document.createElement("div");
+  actions.className = "comment-actions";
+  
+  // Check if current user can edit this comment (for now, allow all users)
+  // In a real app, you'd check if current user is the comment author
+  const canEdit = true; // TODO: Implement proper user authentication
+  
+  if (canEdit) {
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit";
+    editBtn.className = "btn-small comment-edit";
+    editBtn.addEventListener("click", () => {
+      editComment(comment, card);
+    });
+    
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.className = "btn-small comment-delete";
+    deleteBtn.addEventListener("click", () => {
+      if (confirm("Are you sure you want to delete this comment?")) {
+        deleteComment(comment.comment_id);
+      }
+    });
+    
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+  }
+  
+  header.appendChild(actions);
+  
+  const content = document.createElement("div");
+  content.className = "comment-content";
+  content.textContent = comment.comment;
+  
+  card.appendChild(header);
+  card.appendChild(content);
+  
+  return card;
+}
+
+async function addCommentToTask(taskId, userId, commentText, log) {
+  const slog = asLog(log);
+  
+  const payload = {
+    user_id: userId,
+    comment: commentText
+  };
+  
+  try {
+    const result = await apiTask(`/${taskId}/comment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    
+    slog("Added comment", result);
+    return result;
+  } catch (error) {
+    slog("Failed to add comment", error);
+    throw error;
+  }
+}
+
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffHours < 1) {
+    return "Just now";
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  } else {
+    return date.toLocaleDateString();
+  }
+}
+
+async function editComment(comment, commentCard) {
+  const contentEl = commentCard.querySelector('.comment-content');
+  const actionsEl = commentCard.querySelector('.comment-actions');
+  
+  // Create edit form
+  const editForm = document.createElement('div');
+  editForm.className = 'comment-edit-form';
+  
+  const textarea = document.createElement('textarea');
+  textarea.value = comment.comment;
+  textarea.className = 'comment-edit-input';
+  
+  const buttonRow = document.createElement('div');
+  buttonRow.className = 'comment-edit-buttons';
+  
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.className = 'btn primary btn-small';
+  saveBtn.addEventListener('click', async () => {
+    const newText = textarea.value.trim();
+    if (!newText) {
+      alert('Comment cannot be empty');
+      return;
+    }
+    
+    try {
+      await updateComment(comment.comment_id, newText);
+      // Replace the content
+      contentEl.textContent = newText;
+      // Remove edit form
+      commentCard.removeChild(editForm);
+      // Show actions again
+      actionsEl.style.display = 'flex';
+    } catch (error) {
+      alert('Failed to update comment: ' + error.message);
+    }
+  });
+  
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn btn-small';
+  cancelBtn.addEventListener('click', () => {
+    // Remove edit form
+    commentCard.removeChild(editForm);
+    // Show actions again
+    actionsEl.style.display = 'flex';
+  });
+  
+  buttonRow.appendChild(saveBtn);
+  buttonRow.appendChild(cancelBtn);
+  
+  editForm.appendChild(textarea);
+  editForm.appendChild(buttonRow);
+  
+  // Hide actions and content, show edit form
+  actionsEl.style.display = 'none';
+  contentEl.style.display = 'none';
+  commentCard.appendChild(editForm);
+  
+  // Focus the textarea
+  textarea.focus();
+  textarea.select();
+}
+
+async function deleteComment(commentId) {
+  try {
+    await apiTask(`/comment/${commentId}`, { method: "DELETE" });
+    
+    // Find and remove the comment card from DOM
+    const commentCard = document.querySelector(`[data-comment-id="${commentId}"]`);
+    if (commentCard) {
+      commentCard.remove();
+      
+      // Update comment count
+      const taskId = commentCard.closest('.task').dataset.taskId;
+      if (taskId) {
+        await loadCommentsForTask(taskId, console.log);
+      }
+    }
+  } catch (error) {
+    alert('Failed to delete comment: ' + error.message);
+  }
+}
+
+async function updateComment(commentId, newText) {
+  const payload = {
+    comment: newText
+  };
+  
+  try {
+    const result = await apiTask(`/comment/${commentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    
+    return result;
+  } catch (error) {
+    throw error;
+  }
 }

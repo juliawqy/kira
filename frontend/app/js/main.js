@@ -1,5 +1,5 @@
 import { apiTask, apiUser } from "./api.js";
-import { USERS, setUsers, LAST_TASKS, setLastTasks } from "./state.js";
+import { USERS, setUsers, LAST_TASKS, setLastTasks, CURRENT_USER, setCurrentUser, getTasksForCurrentUser } from "./state.js";
 import { renderTaskCard } from "./ui/cards.js";
 import { renderCalendar, bindCalendarNav } from "./ui/calendar.js";
 import { bindCreateForm } from "./ui/createForm.js";
@@ -16,6 +16,9 @@ async function loadUsers(){
     const data = await apiUser("/", { method: "GET" });
     setUsers(Array.isArray(data) ? data : (data.items || []));
     log("GET /user/", USERS);
+    
+    // Initialize user selection after users are loaded
+    initializeUserSelection();
   }catch(e){
     setUsers([]);
     log("GET users error", String(e));
@@ -28,8 +31,9 @@ function applyFilters() {
   const filterProject = document.getElementById("filterProject")?.value || "";
   const ongoingEl = document.getElementById("ongoing");
   
-  // Get all ongoing tasks (non-completed)
-  const ongoingTasks = LAST_TASKS.filter(t => t.status !== "Completed");
+  // Get tasks for current user, then filter ongoing tasks (non-completed)
+  const userTasks = getTasksForCurrentUser();
+  const ongoingTasks = userTasks.filter(t => t.status !== "Completed");
   
   // Apply filters
   let filteredTasks = ongoingTasks;
@@ -74,9 +78,7 @@ async function loadParents(){
   try{
     await loadUsers();
     const data = await apiTask("/", { method: "GET" });
-    console.log("Loaded tasks data:", data);
     setLastTasks(Array.isArray(data) ? data : []);
-    console.log("LAST_TASKS set to:", LAST_TASKS);
     
     const showCalendar = viewCalendar?.checked;
     const showList = viewList?.checked;
@@ -91,9 +93,10 @@ async function loadParents(){
     
     // Handle list view
     if (showList) {
-      // Render completed tasks
+      // Render completed tasks for current user
       completedEl.innerHTML = "";
-      const completedTasks = LAST_TASKS.filter(t => t.status === "Completed");
+      const userTasks = getTasksForCurrentUser();
+      const completedTasks = userTasks.filter(t => t.status === "Completed");
       completedTasks.forEach(t => completedEl.appendChild(renderTaskCard(t, { log, reload: () => autoReload() })));
       
       // Apply filters for ongoing tasks
@@ -144,6 +147,48 @@ function openCreateDialog() {
 
 btnToggleCreate?.addEventListener("click", openCreateDialog);
 btnToggleCreateFab?.addEventListener("click", openCreateDialog);
+
+// User selection functionality
+function initializeUserSelection() {
+  // Set default user (Cong)
+  const defaultUser = USERS.find(u => u.user_id === 1) || USERS[0];
+  if (defaultUser) {
+    setCurrentUser(defaultUser);
+    updateUserSelectionUI();
+  }
+}
+
+function updateUserSelectionUI() {
+  const congBtn = document.getElementById("userCong");
+  const juliaBtn = document.getElementById("userJulia");
+  
+  if (CURRENT_USER) {
+    // Remove active class from all buttons
+    congBtn?.classList.remove("active");
+    juliaBtn?.classList.remove("active");
+    
+    // Add active class to current user button
+    if (CURRENT_USER.user_id === 1) {
+      congBtn?.classList.add("active");
+    } else if (CURRENT_USER.user_id === 2) {
+      juliaBtn?.classList.add("active");
+    }
+  }
+}
+
+function switchUser(userId) {
+  const user = USERS.find(u => u.user_id === userId);
+  if (user) {
+    setCurrentUser(user);
+    updateUserSelectionUI();
+    // Reload tasks for the new user
+    loadParents();
+  }
+}
+
+// Wire user selection buttons
+document.getElementById("userCong")?.addEventListener("click", () => switchUser(1));
+document.getElementById("userJulia")?.addEventListener("click", () => switchUser(2));
 
 // First load
 loadParents();
