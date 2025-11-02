@@ -12,6 +12,8 @@ import backend.src.handlers.task_assignment_handler as assignment_handler
 import backend.src.handlers.task_handler as task_handler
 import backend.src.handlers.comment_handler as comment_handler
 import backend.src.handlers.project_handler as project_handler
+import backend.src.handlers.department_handler as department_handler
+import backend.src.services.user as user_service
 
 router = APIRouter(prefix="/task", tags=["task"])
 
@@ -89,6 +91,40 @@ def list_tasks_by_manager(manager_id: int):
         all_tasks = []
         for project in projects:
             tasks = task_handler.list_tasks_by_project(project["project_id"])
+            all_tasks.extend(tasks)
+        
+        return all_tasks
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/director/{director_id}", response_model=List[TaskWithSubTasks], name="list_tasks_by_director")
+def list_tasks_by_director(director_id: int):
+    """Get all tasks for users in the department managed by a specific director."""
+    try:
+        # Get the director's department_id
+        director = user_service.get_user(director_id)
+        if not director or not director.department_id:
+            return []
+        
+        dept_id = director.department_id
+        
+        # Get all users in this department (directly assigned)
+        direct_users = department_handler.view_users_in_department(dept_id)
+        all_user_ids = {user["user_id"] for user in direct_users}
+        
+        # Get all teams in this department
+        teams = department_handler.view_teams_in_department(dept_id)
+        
+        # Get all users in these teams
+        for team in teams:
+            team_users = department_handler.get_users_in_team(team["team_id"])
+            all_user_ids.update(user["user_id"] for user in team_users)
+        
+        # Get all tasks assigned to these users
+        all_tasks = []
+        for user_id in all_user_ids:
+            tasks = assignment_handler.list_user_tasks(user_id)
             all_tasks.extend(tasks)
         
         return all_tasks

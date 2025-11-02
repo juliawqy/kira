@@ -5,6 +5,9 @@ import pytest
 from datetime import date, timedelta, datetime
 from backend.src.database.models.project import Project
 from backend.src.database.models.user import User
+from backend.src.database.models.department import Department
+from backend.src.database.models.team import Team
+from backend.src.database.models.team_assignment import TeamAssignment
 
 from backend.src.enums.task_status import TaskStatus
 from tests.mock_data.task.integration_data import (
@@ -30,7 +33,9 @@ from tests.mock_data.task.integration_data import (
     VALID_PROJECT_2,
     INVALID_PROJECT_ID,
     VALID_USER_ADMIN,
+    VALID_USER_EMPLOYEE,
     VALID_USER_MANAGER,
+    VALID_USER_DIRECTOR,
     INVALID_USER_ID
 )
 
@@ -591,6 +596,75 @@ def test_list_tasks_by_manager_success(client, task_base_path):
 def test_list_tasks_by_manager_no_projects(client, task_base_path):
     """Test getting tasks for a manager with no projects."""
     response = client.get(f"{task_base_path}/manager/{VALID_USER_MANAGER['user_id']}")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 0
+
+# INT-002/016
+def test_list_tasks_by_director_success(client, task_base_path, test_db_session):
+    """Test getting all tasks for users in director's department."""
+    # Get existing users from create_test_project fixture
+    existing_admin = test_db_session.query(User).filter(User.user_id == VALID_USER_ADMIN['user_id']).first()
+    existing_manager = test_db_session.query(User).filter(User.user_id == VALID_USER_MANAGER['user_id']).first()
+    
+    # Create director first (without department_id)
+    director_data = VALID_USER_DIRECTOR.copy()
+    director_data['department_id'] = None
+    director = User(**director_data)
+    test_db_session.add(director)
+    test_db_session.flush()
+    
+    # Create department with director as manager
+    dept = Department(department_id=1, department_name="Engineering", manager_id=director.user_id)
+    test_db_session.add(dept)
+    test_db_session.flush()
+    
+    # Update director with department_id
+    director.department_id = 1
+    test_db_session.add(director)
+    
+    # Update existing users with department_id
+    existing_admin.department_id = 1
+    existing_manager.department_id = 1
+    test_db_session.add_all([existing_admin, existing_manager])
+    test_db_session.flush()
+    
+    # Create team in department
+    team = Team(team_id=1, team_name="Alpha Team", manager_id=VALID_USER_ADMIN['user_id'], department_id=1, team_number="010100")
+    test_db_session.add(team)
+    test_db_session.flush()
+    
+    # Assign users to team
+    ta1 = TeamAssignment(team_id=1, user_id=existing_admin.user_id)
+    ta2 = TeamAssignment(team_id=1, user_id=existing_manager.user_id)
+    test_db_session.add_all([ta1, ta2])
+    test_db_session.commit()
+    
+    # Create tasks and assign them
+    for payload in (TASK_CREATE_PAYLOAD, TASK_2_PAYLOAD, TASK_3_PAYLOAD, TASK_4_PAYLOAD):
+        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
+        assert resp.status_code == 201
+    
+    # Get tasks for director
+    response = client.get(f"{task_base_path}/director/{director.user_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    # Should get all 4 tasks since both users in department have tasks
+    assert len(data) >= 4
+
+# INT-002/017
+def test_list_tasks_by_director_no_department(client, task_base_path, test_db_session):
+    """Test getting tasks for a director with no department."""
+    # Create director without department
+    director_no_dept = VALID_USER_DIRECTOR.copy()
+    director_no_dept['department_id'] = None
+    director = User(**director_no_dept)
+    test_db_session.add(director)
+    test_db_session.commit()
+    
+    response = client.get(f"{task_base_path}/director/{director.user_id}")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)

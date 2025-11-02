@@ -12,12 +12,17 @@ import backend.src.services.task as svc
 import backend.src.services.task_assignment as task_assignment_svc
 import backend.src.services.project as project_svc
 import backend.src.services.user as user_svc
+import backend.src.services.department as department_svc
+import backend.src.services.team as team_svc
 
 from backend.src.database.models.task import Task
 from backend.src.database.models.parent_assignment import ParentAssignment
 from backend.src.database.models.project import Project
 from backend.src.database.models.task_assignment import TaskAssignment
 from backend.src.database.models.user import User
+from backend.src.database.models.department import Department
+from backend.src.database.models.team import Team
+from backend.src.database.models.team_assignment import TeamAssignment as TeamAssignmentModel
 
 
 @pytest.fixture(scope="session")
@@ -71,6 +76,8 @@ def client(test_engine):
     project_svc.SessionLocal = TestingSessionLocal
     task_assignment_svc.SessionLocal = TestingSessionLocal
     user_svc.SessionLocal = TestingSessionLocal
+    department_svc.SessionLocal = TestingSessionLocal
+    team_svc.SessionLocal = TestingSessionLocal
 
     with TestClient(app) as c:
         yield c
@@ -96,9 +103,12 @@ def clean_db(test_engine):
 
     TestingSession = sessionmaker(bind=test_engine, future=True)
     with TestingSession.begin() as s:
+        s.execute(delete(TeamAssignmentModel))
         s.execute(delete(TaskAssignment))
         s.execute(delete(ParentAssignment))
         s.execute(delete(Task))
+        s.execute(delete(Team))
+        s.execute(delete(Department))
         s.execute(delete(Project))
         s.execute(delete(User))
     yield
