@@ -673,9 +673,12 @@
     border-radius: 8px; 
     padding: 12px; 
     border: 1px solid var(--border);
-    display: flex;
+    display: none;
     flex-direction: column;
     gap: 10px;
+  }
+  .task-section.expanded .subtasks {
+    display: flex;
   }
   
   /* Subtasks header */
@@ -710,18 +713,24 @@
   .subtask-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
   }
-  .subtask-info {
+  .subtask-id {
+    font-weight: 600;
+    color: var(--sub);
+    font-size: 13px;
+    min-width: 50px;
+  }
+  .subtask-title {
     flex: 1;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .subtask-meta {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
-  }
-  .subtask-expander-icon {
-    color: var(--sub);
-    font-size: 14px;
   }
   .subtask-badge {
     padding: 2px 6px;
@@ -733,56 +742,128 @@
     background: #e0e7ff;
     color: #4338ca;
   }
-  /* Subtask dialog popup */
-  .subtask-dialog {
-    border: none;
-    border-radius: 12px;
-    padding: 0;
-    max-width: 90vw;
-    background: transparent;
+  .subtask-badge.priority {
+    background: #fef3c7;
+    color: #92400e;
   }
-  .subtask-dialog::backdrop {
+  /* Subtask right-side panel */
+  .subtask-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .subtask-panel.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  
+  /* When subtask opens from a task panel, position it on left */
+  .subtask-panel.nested {
+    z-index: 1001;
+  }
+  
+  .subtask-panel.nested .subtask-panel-content {
+    right: auto;
+    left: 0;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+    transform: translateX(-100%);
+  }
+  
+  .subtask-panel.nested.active .subtask-panel-content {
+    transform: translateX(0);
+  }
+  
+  /* Nested-to-nested: from a nested subtask, open further nested on right side */
+  .subtask-panel.nested.nested-again {
+    z-index: 1002;
+  }
+  
+  .subtask-panel.nested.nested-again .subtask-panel-content {
+    left: auto;
+    right: 0;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+  }
+  
+  .subtask-panel.nested.nested-again.active .subtask-panel-content {
+    transform: translateX(0);
+  }
+  
+  .subtask-panel-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(2px);
   }
-  .subtask-dialog-content {
+  
+  .subtask-panel-content {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 600px;
     background: var(--panel);
-    border-radius: 12px;
-    padding: 20px;
-    min-width: 500px;
-    max-width: 700px;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
   }
-  .subtask-dialog-header {
+  
+  .subtask-panel.active .subtask-panel-content {
+    transform: translateX(0);
+  }
+  
+  #subtaskPanelInner {
+    padding: 24px;
+    min-height: 100%;
+  }
+  
+  .subtask-panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
   }
-  .subtask-dialog-header h3 {
+  
+  .subtask-panel-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text);
   }
-  .subtask-dialog-close {
+  
+  .subtask-panel-close {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 28px;
     color: var(--sub);
     cursor: pointer;
     padding: 0;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 4px;
     transition: all 0.2s;
   }
-  .subtask-dialog-close:hover {
+  
+  .subtask-panel-close:hover {
+    background: var(--muted);
     color: var(--text);
-    transform: scale(1.1);
   }
   .subtask-details {
     display: block;
@@ -797,6 +878,94 @@
     gap: 6px;
     flex-wrap: wrap;
     margin-bottom: 8px;
+  }
+  
+  /* Calendar task left-side panel */
+  .cal-task-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .cal-task-panel.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  
+  .cal-task-panel-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+  }
+  
+  .cal-task-panel-content {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 600px;
+    background: var(--panel);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .cal-task-panel.active .cal-task-panel-content {
+    transform: translateX(0);
+  }
+  
+  #calTaskPanelInner {
+    padding: 24px;
+    min-height: 100%;
+  }
+  
+  .cal-task-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .cal-task-panel-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  
+  .cal-task-panel-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--sub);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  
+  .cal-task-panel-close:hover {
+    background: var(--muted);
+    color: var(--text);
   }
   
   /* Create form helpers */

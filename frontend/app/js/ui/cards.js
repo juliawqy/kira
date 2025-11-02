@@ -1,7 +1,10 @@
 // js/ui/cards.js
 import { apiTask } from "../api.js";
-import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers, isCurrentUserStaff, CURRENT_USER } from "../state.js";
+import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers, isCurrentUserStaff, CURRENT_USER, LAST_TASKS } from "../state.js";
 import { field } from "./dom.js";
+
+/* ----------------------------- panel state ----------------------------- */
+let panelNestLevel = 0;
 
 /* ----------------------------- safe log ----------------------------- */
 function asLog(log) {
@@ -234,20 +237,15 @@ export function renderTaskCard(task, { log, reload }) {
     document.dispatchEvent(new CustomEvent("open-edit", { detail: task }));
   }));
   
-  // Only show actions for non-completed tasks
-  if (task.status !== "Completed") {
-    actionsSection.appendChild(actionRow);
-    details.appendChild(actionsSection);
-    
-    // Assignee controls: hide for staff users, show for others
-    if (!isCurrentUserStaff()) {
-      details.appendChild(renderAssigneeControls(task, { log, reload }));
-    } else {
-      // For staff users, show read-only assignees (same as completed tasks)
-      details.appendChild(renderAssigneeDisplay(task, { log }));
-    }
+  // Always show actions (including for completed tasks)
+  actionsSection.appendChild(actionRow);
+  details.appendChild(actionsSection);
+  
+  // Assignee controls: only for non-completed tasks and non-staff users
+  if (task.status !== "Completed" && !isCurrentUserStaff()) {
+    details.appendChild(renderAssigneeControls(task, { log, reload }));
   } else {
-    // For completed tasks, show read-only assignees
+    // For completed tasks or staff users, show read-only assignees
     details.appendChild(renderAssigneeDisplay(task, { log }));
   }
 
@@ -258,7 +256,7 @@ export function renderTaskCard(task, { log, reload }) {
   const subs = getSubtasks(task);
   if (Array.isArray(subs) && subs.length > 0) {
     const subtasksSection = document.createElement("div");
-    subtasksSection.className = "task-section";
+    subtasksSection.className = "task-section expanded";
     
     const subtasksHeader = document.createElement("div");
     subtasksHeader.className = "subtasks-header";
@@ -539,45 +537,58 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
   const row = document.createElement("div");
   row.className = "subtask-row";
 
-  // Compact header
+  // Compact header (matching parent task structure)
   const header = document.createElement("div");
   header.className = "subtask-header";
 
-  const left = document.createElement("div");
-  left.className = "subtask-info";
-  const bits = [
-    `<strong>#${st.id}</strong>`,
-    escapeHtml(st.title || ""),
-    `<span class="subtask-badge status">${st.status}</span>`
-  ];
-  left.innerHTML = bits.join(" &nbsp; ");
-  header.appendChild(left);
+  const taskId = document.createElement("div");
+  taskId.className = "subtask-id";
+  taskId.textContent = `#${st.id}`;
+  header.appendChild(taskId);
 
-  const expander = document.createElement("div");
-  expander.className = "subtask-expander-icon";
-  expander.textContent = "▼";
-  header.appendChild(expander);
+  const taskTitle = document.createElement("div");
+  taskTitle.className = "subtask-title";
+  taskTitle.textContent = st.title || "";
+  header.appendChild(taskTitle);
+
+  const meta = document.createElement("div");
+  meta.className = "subtask-meta";
+
+  // Status badge
+  if (st.status) {
+    const statusBadge = document.createElement("span");
+    statusBadge.className = "subtask-badge status";
+    statusBadge.textContent = st.status;
+    meta.appendChild(statusBadge);
+  }
+
+  // Priority badge
+  const priority = getPriorityDisplay(st);
+  if (priority && priority !== "—") {
+    const priorityBadge = document.createElement("span");
+    priorityBadge.className = "subtask-badge priority";
+    priorityBadge.textContent = `P${priority}`;
+    meta.appendChild(priorityBadge);
+  }
+
+  header.appendChild(meta);
   
   row.appendChild(header);
 
-  // Create popup dialog for subtask details
-  const dialog = document.createElement("dialog");
-  dialog.className = "subtask-dialog";
+  // Create content for right-side panel
+  const panelInner = document.createElement("div");
   
-  const dialogContent = document.createElement("div");
-  dialogContent.className = "subtask-dialog-content";
-  
-  const dialogHeader = document.createElement("div");
-  dialogHeader.className = "subtask-dialog-header";
-  dialogHeader.innerHTML = `<h3>#${st.id} - ${escapeHtml(st.title || "")}</h3>`;
+  const panelHeader = document.createElement("div");
+  panelHeader.className = "subtask-panel-header";
+  panelHeader.innerHTML = `<h3>#${st.id} - ${escapeHtml(st.title || "")}</h3>`;
   
   const closeBtn = document.createElement("button");
-  closeBtn.className = "subtask-dialog-close";
+  closeBtn.className = "subtask-panel-close";
   closeBtn.innerHTML = "×";
-  closeBtn.addEventListener("click", () => dialog.close());
-  dialogHeader.appendChild(closeBtn);
+  closeBtn.addEventListener("click", () => closeSubtaskPanel());
+  panelHeader.appendChild(closeBtn);
   
-  dialogContent.appendChild(dialogHeader);
+  panelInner.appendChild(panelHeader);
   
   const details = document.createElement("div");
   details.className = "subtask-details";
@@ -603,6 +614,16 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
   metadata.className = "task-details-grid";
   
   const fields = [];
+  
+  // Parent task
+  if (parentId) {
+    const parentTask = LAST_TASKS.find(t => t.id === parentId);
+    if (parentTask) {
+      fields.push(field("Parent Task", `#${parentId} - ${parentTask.title}`));
+    } else {
+      fields.push(field("Parent Task", `#${parentId}`));
+    }
+  }
   
   if (st.start_date) {
     fields.push(field("Start Date", st.start_date));
@@ -654,7 +675,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
     try { 
       await setStatus(st.id, "start", slog, reload, (newStatus) => {
         if (statusBadge) statusBadge.textContent = newStatus;
-        dialog.close();
+        closeSubtaskPanel();
         // Always reload after status changes
         reload();
       }); 
@@ -664,7 +685,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
     try { 
       await setStatus(st.id, "block", slog, reload, (newStatus) => {
         if (statusBadge) statusBadge.textContent = newStatus;
-        dialog.close();
+        closeSubtaskPanel();
         // Always reload after status changes
         reload();
       }); 
@@ -674,7 +695,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
     try { 
       await setStatus(st.id, "complete", slog, reload, (newStatus) => {
         if (statusBadge) statusBadge.textContent = newStatus;
-        dialog.close();
+        closeSubtaskPanel();
         // Always reload after completion
         reload();
       }); 
@@ -684,7 +705,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
     try { 
       await deleteTask(st.id, slog, reload, () => {
         row.remove(); // Remove subtask from view
-        dialog.close();
+        closeSubtaskPanel();
         // Reload to ensure parent task subtask count is updated
         reload();
       }); 
@@ -698,38 +719,294 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
       await apiTask(`/${parentId}/subtasks/${st.id}`, { method: "DELETE" });
       slog(`DELETE /task/${parentId}/subtasks/${st.id}`, "204");
       row.remove(); // Remove subtask from view
-      dialog.close();
+      closeSubtaskPanel();
       // Reload to ensure parent task subtask count is updated
       reload();
     } catch (e) { slog("Detach error", String(e)); alert(e.message); }
   }));
 
+  // Always show actions (including for completed subtasks)
   actionsSection.appendChild(actionRow);
   details.appendChild(actionsSection);
 
-  // Assignee controls: hide for staff users
-  if (!isCurrentUserStaff()) {
+  // Assignee controls: only for non-completed subtasks and non-staff users
+  if (!isCurrentUserStaff() && st.status !== "Completed") {
     details.appendChild(renderAssigneeControls(st, { log, reload }));
   } else {
-    // For staff users, show read-only assignees
+    // For completed subtasks or staff users, show read-only assignees
     details.appendChild(renderAssigneeDisplay(st, { log }));
   }
   
   // Comments section (always show for all subtasks)
   details.appendChild(renderCommentsSection(st, { log, reload }));
   
-  dialogContent.appendChild(details);
-  dialog.appendChild(dialogContent);
+  // Subtasks section (check if this subtask has its own subtasks)
+  const subtasks = getSubtasks(st);
+  if (Array.isArray(subtasks) && subtasks.length > 0) {
+    const subtasksSection = document.createElement("div");
+    subtasksSection.className = "task-section expanded";
+    
+    const subtasksHeader = document.createElement("div");
+    subtasksHeader.className = "subtasks-header";
+    
+    const subtasksLabel = document.createElement("div");
+    subtasksLabel.className = "task-section-label";
+    subtasksLabel.textContent = `Subtasks (${subtasks.length})`;
+    subtasksHeader.appendChild(subtasksLabel);
+    
+    const expander = document.createElement("div");
+    expander.className = "subtask-expander";
+    expander.textContent = "▼";
+    subtasksHeader.appendChild(expander);
+    
+    subtasksSection.appendChild(subtasksHeader);
+
+    const subtasksList = document.createElement("div");
+    subtasksList.className = "subtasks";
+    subtasks.forEach(subtask => subtasksList.appendChild(renderSubtaskRow(st.id, subtask, { log, reload })));
+    subtasksSection.appendChild(subtasksList);
+    
+    // Toggle expansion
+    subtasksHeader.addEventListener("click", () => {
+      subtasksSection.classList.toggle("expanded");
+    });
+    
+    details.appendChild(subtasksSection);
+  }
   
-  // Don't append dialog to row, keep it separate
-  row.appendChild(dialog);
+  panelInner.appendChild(details);
   
-  // Open dialog on header click
+  // Open panel on header click
   header.addEventListener("click", () => {
-    dialog.showModal();
+    openSubtaskPanel(panelInner);
   });
 
   return row;
+}
+
+// Panel open/close functions
+function openSubtaskPanel(content) {
+  const panel = document.getElementById("subtaskPanel");
+  const panelInner = document.getElementById("subtaskPanelInner");
+  
+  if (panel && panelInner) {
+    panelInner.innerHTML = "";
+    panelInner.appendChild(content);
+    
+    // Check if calendar task panel is open - if so, nest the subtask on the left
+    const calPanel = document.getElementById("calTaskPanel");
+    
+    if (calPanel && calPanel.classList.contains("active")) {
+      panelNestLevel++;
+      
+      if (panelNestLevel === 1) {
+        panel.classList.add("nested");
+        panel.classList.remove("nested-again");
+      } else if (panelNestLevel >= 2) {
+        panel.classList.add("nested", "nested-again");
+      }
+    } else {
+      panelNestLevel = 0;
+      panel.classList.remove("nested", "nested-again");
+    }
+    
+    panel.classList.add("active");
+    
+    // Close on backdrop click
+    const backdrop = panel.querySelector(".subtask-panel-backdrop");
+    if (backdrop) {
+      backdrop.addEventListener("click", closeSubtaskPanel, { once: true });
+    }
+  }
+}
+
+function closeSubtaskPanel() {
+  const panel = document.getElementById("subtaskPanel");
+  if (panel) {
+    panel.classList.remove("active");
+    
+    // Reset nest level when closing all panels
+    if (panelNestLevel > 0) {
+      panelNestLevel--;
+    }
+  }
+}
+
+// Panel functions for calendar task details (exported)
+export function openCalTaskPanel(task, { log, reload }) {
+  const panel = document.getElementById("calTaskPanel");
+  const panelInner = document.getElementById("calTaskPanelInner");
+  
+  if (panel && panelInner) {
+    panelInner.innerHTML = "";
+    
+    // Create header
+    const header = document.createElement("div");
+    header.className = "cal-task-panel-header";
+    header.innerHTML = `<h3>#${task.id} - ${escapeHtml(task.title || "")}</h3>`;
+    
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "cal-task-panel-close";
+    closeBtn.innerHTML = "×";
+    closeBtn.addEventListener("click", () => closeCalTaskPanel());
+    header.appendChild(closeBtn);
+    
+    panelInner.appendChild(header);
+    
+    // Build details from scratch (similar to subtask panel)
+    const details = document.createElement("div");
+    details.className = "task-details";
+    details.style.display = "block";
+    
+    // Description
+    if (task.description) {
+      const descBox = document.createElement("div");
+      descBox.className = "task-description";
+      descBox.textContent = task.description;
+      details.appendChild(descBox);
+    }
+    
+    // Metadata section
+    const metadataSection = document.createElement("div");
+    metadataSection.className = "task-section";
+    
+    const metadataLabel = document.createElement("div");
+    metadataLabel.className = "task-section-label";
+    metadataLabel.textContent = "Details";
+    metadataSection.appendChild(metadataLabel);
+    
+    const metadata = document.createElement("div");
+    metadata.className = "task-details-grid";
+    
+    const fields = [];
+    
+    if (task.start_date) {
+      fields.push(field("Start Date", task.start_date));
+    }
+    if (task.deadline) {
+      fields.push(field("Deadline", task.deadline));
+    }
+    if (task.project_id != null) {
+      fields.push(field("Project", `#${task.project_id}`));
+    }
+    if (task.tag) {
+      fields.push(field("Tag", task.tag));
+    }
+    if (task.recurring && task.recurring > 0) {
+      fields.push(field("Recurring", `Every ${task.recurring} days`));
+    }
+    
+    fields.forEach((fieldEl, index) => {
+      metadata.appendChild(fieldEl);
+      if (index < fields.length - 1) {
+        const separator = document.createElement("span");
+        separator.textContent = "|";
+        separator.style.color = "var(--sub)";
+        separator.style.margin = "0 4px";
+        metadata.appendChild(separator);
+      }
+    });
+    
+    metadataSection.appendChild(metadata);
+    details.appendChild(metadataSection);
+    
+    // Actions section
+    const actionsSection = document.createElement("div");
+    actionsSection.className = "task-section";
+    
+    const actionsLabel = document.createElement("div");
+    actionsLabel.className = "task-section-label";
+    actionsLabel.textContent = "Actions";
+    actionsSection.appendChild(actionsLabel);
+    
+    const actionRow = document.createElement("div");
+    actionRow.className = "action-buttons";
+    
+    actionRow.appendChild(btn("Start", "btn", () => setStatus(task.id, "start", log, reload, (newStatus) => {
+      closeCalTaskPanel();
+      reload();
+    })));
+    actionRow.appendChild(btn("Block", "btn warn", () => setStatus(task.id, "block", log, reload, (newStatus) => {
+      closeCalTaskPanel();
+      reload();
+    })));
+    actionRow.appendChild(btn("Complete", "btn success", () => setStatus(task.id, "complete", log, reload, (newStatus) => {
+      closeCalTaskPanel();
+      reload();
+    })));
+    actionRow.appendChild(btn("Delete", "btn danger", () => deleteTask(task.id, log, reload, () => {
+      closeCalTaskPanel();
+      reload();
+    })));
+    actionRow.appendChild(btn("Edit", "btn primary", () => {
+      document.dispatchEvent(new CustomEvent("open-edit", { detail: task }));
+    }));
+    
+    actionsSection.appendChild(actionRow);
+    details.appendChild(actionsSection);
+    
+    // Assignee controls: only for non-completed tasks and non-staff users
+    if (task.status !== "Completed" && !isCurrentUserStaff()) {
+      details.appendChild(renderAssigneeControls(task, { log, reload }));
+    } else {
+      details.appendChild(renderAssigneeDisplay(task, { log }));
+    }
+    
+    // Comments section
+    details.appendChild(renderCommentsSection(task, { log, reload }));
+    
+    // Subtasks section
+    const subs = getSubtasks(task);
+    if (Array.isArray(subs) && subs.length > 0) {
+      const subtasksSection = document.createElement("div");
+      subtasksSection.className = "task-section expanded";
+      
+      const subtasksHeader = document.createElement("div");
+      subtasksHeader.className = "subtasks-header";
+      
+      const subtasksLabel = document.createElement("div");
+      subtasksLabel.className = "task-section-label";
+      subtasksLabel.textContent = `Subtasks (${subs.length})`;
+      subtasksHeader.appendChild(subtasksLabel);
+      
+      const expander = document.createElement("div");
+      expander.className = "subtask-expander";
+      expander.textContent = "▼";
+      subtasksHeader.appendChild(expander);
+      
+      subtasksSection.appendChild(subtasksHeader);
+      
+      const subtasksList = document.createElement("div");
+      subtasksList.className = "subtasks";
+      subs.forEach(st => subtasksList.appendChild(renderSubtaskRow(task.id, st, { log, reload })));
+      subtasksSection.appendChild(subtasksList);
+      
+      subtasksHeader.addEventListener("click", () => {
+        subtasksSection.classList.toggle("expanded");
+      });
+      
+      details.appendChild(subtasksSection);
+    }
+    
+    panelInner.appendChild(details);
+    
+    panel.classList.add("active");
+    
+    // Close on backdrop click
+    const backdrop = panel.querySelector(".cal-task-panel-backdrop");
+    if (backdrop) {
+      backdrop.addEventListener("click", closeCalTaskPanel, { once: true });
+    }
+  }
+}
+
+export function closeCalTaskPanel() {
+  const panel = document.getElementById("calTaskPanel");
+  if (panel) {
+    panel.classList.remove("active");
+    // Reset nest level when the task panel closes
+    panelNestLevel = 0;
+  }
 }
 
 /* ------------------------- Comments Section ------------------------- */
@@ -760,73 +1037,71 @@ function renderCommentsSection(task, { log, reload }) {
   commentsContainer.id = `comments-${task.id}`;
   commentsWrap.appendChild(commentsContainer);
 
-  // Add comment form (only for non-completed tasks)
-  if (task.status !== "Completed") {
-    const addCommentForm = document.createElement("div");
-    addCommentForm.className = "add-comment-form";
-    
-    const textarea = document.createElement("textarea");
-    textarea.placeholder = "Add a comment...";
-    textarea.className = "comment-input";
-    textarea.id = `comment-input-${task.id}`;
-    
-    const userSelect = document.createElement("select");
-    userSelect.className = "comment-user-select";
-    userSelect.id = `comment-user-${task.id}`;
-    
-    // Populate user dropdown
-    const users = getUsers();
-    let selectedUserId = null;
-    
-    if (users && users.length > 0) {
-      users.forEach(user => {
-        const option = document.createElement("option");
-        option.value = user.user_id || user.id;
-        option.textContent = user.name || user.full_name || user.email;
-        
-        // Auto-select current user for staff
-        if (isCurrentUserStaff() && CURRENT_USER && 
-            (user.user_id || user.id) === CURRENT_USER.user_id) {
-          option.selected = true;
-          selectedUserId = option.value;
-        }
-        
-        userSelect.appendChild(option);
-      });
+  // Add comment form (always show for all tasks, including completed)
+  const addCommentForm = document.createElement("div");
+  addCommentForm.className = "add-comment-form";
+  
+  const textarea = document.createElement("textarea");
+  textarea.placeholder = "Add a comment...";
+  textarea.className = "comment-input";
+  textarea.id = `comment-input-${task.id}`;
+  
+  const userSelect = document.createElement("select");
+  userSelect.className = "comment-user-select";
+  userSelect.id = `comment-user-${task.id}`;
+  
+  // Populate user dropdown
+  const users = getUsers();
+  let selectedUserId = null;
+  
+  if (users && users.length > 0) {
+    users.forEach(user => {
+      const option = document.createElement("option");
+      option.value = user.user_id || user.id;
+      option.textContent = user.name || user.full_name || user.email;
       
-      // Hide the dropdown for staff users since they're auto-selected
-      if (isCurrentUserStaff()) {
-        userSelect.style.display = "none";
-      }
-    }
-    
-    const submitBtn = document.createElement("button");
-    submitBtn.textContent = "Add Comment";
-    submitBtn.className = "btn primary comment-submit";
-    submitBtn.addEventListener("click", async () => {
-      const commentText = textarea.value.trim();
-      const userId = parseInt(userSelect.value);
-      
-      if (!commentText || !userId) {
-        alert("Please enter a comment and select a user");
-        return;
+      // Auto-select current user for staff
+      if (isCurrentUserStaff() && CURRENT_USER && 
+          (user.user_id || user.id) === CURRENT_USER.user_id) {
+        option.selected = true;
+        selectedUserId = option.value;
       }
       
-      try {
-        await addCommentToTask(task.id, userId, commentText, slog);
-        textarea.value = "";
-        await loadCommentsForTask(task.id, slog);
-        // Don't reload - just refresh comments locally to keep task expanded
-      } catch (error) {
-        alert("Failed to add comment: " + error.message);
-      }
+      userSelect.appendChild(option);
     });
     
-    addCommentForm.appendChild(textarea);
-    addCommentForm.appendChild(userSelect);
-    addCommentForm.appendChild(submitBtn);
-    commentsWrap.appendChild(addCommentForm);
+    // Hide the dropdown for staff users since they're auto-selected
+    if (isCurrentUserStaff()) {
+      userSelect.style.display = "none";
+    }
   }
+  
+  const submitBtn = document.createElement("button");
+  submitBtn.textContent = "Add Comment";
+  submitBtn.className = "btn primary comment-submit";
+  submitBtn.addEventListener("click", async () => {
+    const commentText = textarea.value.trim();
+    const userId = parseInt(userSelect.value);
+    
+    if (!commentText || !userId) {
+      alert("Please enter a comment and select a user");
+      return;
+    }
+    
+    try {
+      await addCommentToTask(task.id, userId, commentText, slog);
+      textarea.value = "";
+      await loadCommentsForTask(task.id, slog);
+      // Don't reload - just refresh comments locally to keep task expanded
+    } catch (error) {
+      alert("Failed to add comment: " + error.message);
+    }
+  });
+  
+  addCommentForm.appendChild(textarea);
+  addCommentForm.appendChild(userSelect);
+  addCommentForm.appendChild(submitBtn);
+  commentsWrap.appendChild(addCommentForm);
 
   // Load and render comments
   loadCommentsForTask(task.id, slog);
