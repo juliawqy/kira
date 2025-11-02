@@ -5,10 +5,13 @@ from typing import Iterable, Optional
 from datetime import date
 from datetime import datetime
 
+from datetime import date, datetime, timedelta
+from typing import Dict, Any
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
 from backend.src.services import project as project_service
 from backend.src.services.notification import get_notification_service
+from backend.src.services.email import get_email_service
 from backend.src.services import task_assignment as assignment_service
 from backend.src.enums.notification import NotificationType
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
@@ -17,6 +20,8 @@ from backend.src.enums.task_sort import TaskSort, ALLOWED_SORTS
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 
+from backend.src.enums.email import EmailType
+from backend.src.schemas.email import EmailMessage, EmailRecipient
 from fastapi import HTTPException
 
 
@@ -92,53 +97,171 @@ def create_task(
 
     return task
 
-def notify_task_assignees(
-    task_id: int,
-    message: str = "Task update notification",
-    type_of_alert: str = "task_update",
-):
-    """Send email notification to all assigned users of a task.
+def upcoming_task_reminder(task_id: int):
+    """Send upcoming deadline reminder email to all assigned users of a task.
+    
+    Assumes this is called exactly one day before the deadline.
 
     Returns a dict with keys: success, message, recipients_count, email_id (optional).
     """
     # Verify task exists
     task = task_service.get_task_with_subtasks(task_id)
     if not task:
-        # Raise 404 directly to match original route behavior
         raise HTTPException(status_code=404, detail="Task not found")
+
+    # Check if task has a deadline
+    if not task.deadline:
+        return {
+            "success": False,
+            "message": "Task does not have a deadline",
+            "recipients_count": 0,
+        }
 
     # Resolve recipients from assignees that have an email
     assignees = assignment_service.list_assignees(task_id)
     recipients = [u.email for u in assignees if getattr(u, 'email', None)]
 
+    # Fallback to test recipient if no assignees found
     if not recipients:
+        email_service = get_email_service()
+        test_email = getattr(email_service.settings, 'test_recipient_email', None)
+        if test_email:
+            recipients = [test_email]
+        else:
+            return {
+                "success": True,
+                "message": "No assigned users with email addresses found",
+                "recipients_count": 0,
+            }
+
+    # Get project name if available
+    project_name = None
+    if task.project_id:
+        try:
+            project = project_service.get_project_by_id(task.project_id)
+            if project:
+                project_name = project.get("project_name")
+        except Exception:
+            pass
+
+    # Prepare template data - assume 1 day until deadline
+    template_data = {
+        'task_id': task.id,
+        'task_title': task.title or "Untitled Task",
+        'deadline_date': task.deadline.strftime('%Y-%m-%d'),
+        'priority': task.priority or "N/A",
+        'description': task.description,
+        'project_name': project_name,
+        'time_until_deadline': "tomorrow",
+        'task_url': f"http://localhost:8000/tasks/{task.id}"
+    }
+
+    # Send email using template
+    email_service = get_email_service()
+    
+    # Create recipients list
+    recipient_list = [EmailRecipient(email=email) for email in recipients]
+    
+    # Create email message
+    email_message = EmailMessage(
+        recipients=recipient_list,
+        content={
+            'subject': f"Upcoming Deadline: {task.title or 'Untitled Task'}",
+            'template_name': 'upcoming_deadline',
+            'template_data': template_data
+        },
+        email_type=EmailType.UPCOMING_DEADLINE
+    )
+    
+    # Send email
+    response = email_service.send_email(email_message)
+
+    return {
+        "success": getattr(response, 'success', None),
+        "message": getattr(response, 'message', None),
+        "recipients_count": getattr(response, 'recipients_count', 0),
+        "email_id": getattr(response, 'email_id', None),
+    }
+
+
+def overdue_task_reminder(task_id: int):
+    """Send overdue deadline reminder email to all assigned users of a task.
+    
+    Assumes this is called exactly one day after the deadline.
+
+    Returns a dict with keys: success, message, recipients_count, email_id (optional).
+    """
+    # Verify task exists
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Check if task has a deadline
+    if not task.deadline:
         return {
-            "success": True,
-            "message": "No assigned users with email addresses found",
+            "success": False,
+            "message": "Task does not have a deadline",
             "recipients_count": 0,
         }
 
-    # Validate alert type against enum
-    valid_alerts = [alert.value for alert in NotificationType]
-    if type_of_alert not in valid_alerts:
-        # Keep 400 validation behavior consistent with original route implementation
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid type_of_alert. Must be one of: {valid_alerts}",
-        )
+    # Resolve recipients from assignees that have an email
+    assignees = assignment_service.list_assignees(task_id)
+    recipients = [u.email for u in assignees if getattr(u, 'email', None)]
 
-    # Send notification
-    notification_service = get_notification_service()
-    response = notification_service.notify_activity(
-        user_email="system@kira.local",
-        task_id=task_id,
-        task_title=getattr(task, 'title', None) or "Untitled Task",
-        type_of_alert=type_of_alert,
-        updated_fields=["Custom Message"],
-        old_values={"Custom Message": "Manual notification sent"},
-        new_values={"Custom Message": message},
-        to_recipients=recipients,
+    # Fallback to test recipient if no assignees found
+    if not recipients:
+        email_service = get_email_service()
+        test_email = getattr(email_service.settings, 'test_recipient_email', None)
+        if test_email:
+            recipients = [test_email]
+        else:
+            return {
+                "success": True,
+                "message": "No assigned users with email addresses found",
+                "recipients_count": 0,
+            }
+
+    # Get project name if available
+    project_name = None
+    if task.project_id:
+        try:
+            project = project_service.get_project_by_id(task.project_id)
+            if project:
+                project_name = project.get("project_name")
+        except Exception:
+            pass
+
+    # Prepare template data - assume 1 day overdue
+    template_data = {
+        'task_id': task.id,
+        'task_title': task.title or "Untitled Task",
+        'deadline_date': task.deadline.strftime('%Y-%m-%d'),
+        'priority': task.priority or "N/A",
+        'description': task.description,
+        'project_name': project_name,
+        'days_overdue': "1 day",
+        'task_url': f"http://localhost:8000/tasks/{task.id}"
+    }
+
+    # Send email using template
+    email_service = get_email_service()
+    
+    # Create recipients list
+    recipient_list = [EmailRecipient(email=email) for email in recipients]
+    
+    # Create email message
+    email_message = EmailMessage(
+        recipients=recipient_list,
+        content={
+            'subject': f"Overdue Task: {task.title or 'Untitled Task'}",
+            'template_name': 'overdue_deadline',
+            'template_data': template_data
+        },
+        email_type=EmailType.OVERDUE_DEADLINE
     )
+    
+    # Send email
+    response = email_service.send_email(email_message)
 
     return {
         "success": getattr(response, 'success', None),

@@ -211,33 +211,41 @@ def clear_task_assignees(task_id: int):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-
-
-@router.post("/{task_id}/notify-assignees", name="notify_task_assignees")
-def notify_task_assignees(
-    task_id: int, 
-    message: str = "Task update notification",
-    type_of_alert: str = "task_update"
-):
+@router.post("/{task_id}/notify-upcoming", name="notify_upcoming_task")
+def notify_upcoming_task(task_id: int):
     """
-    Send email notification to all assigned users of a task.
+    Send upcoming deadline reminder email to all assigned users of a task.
     
     Args:
         task_id: ID of the task
-        message: Optional custom message for the notification
-        type_of_alert: Type of alert (task_update, comment_create, task_assgn, etc.)
         
     Returns:
         Email response with success status and recipient count
     """
     try:
-        return task_handler.notify_task_assignees(task_id, message, type_of_alert)
+        return task_handler.upcoming_task_reminder(task_id)
     except HTTPException as e:
-        # Wrap handler HTTPExceptions to match integration expectations
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error sending notification: {e.status_code}: {e.detail}",
-        )
+        raise e
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
+
+@router.post("/{task_id}/notify-overdue", name="notify_overdue_task")
+def notify_overdue_task(task_id: int):
+    """
+    Send overdue deadline reminder email to all assigned users of a task.
+    
+    Args:
+        task_id: ID of the task
+        
+    Returns:
+        Email response with success status and recipient count
+    """
+    try:
+        return task_handler.overdue_task_reminder(task_id)
+    except HTTPException as e:
+        raise e
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
