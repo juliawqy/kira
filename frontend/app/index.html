@@ -9,8 +9,17 @@
 <body>
   <div class="wrap">
     <div class="header-bar">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <img src="./kira_logo.png" alt="Kira Logo" style="height: 40px; width: auto;" />
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <img src="./kira_logo.png" alt="Kira Logo" style="height: 40px; width: auto;" />
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 14px; color: var(--sub);">Logged in as:</span>
+          <div class="user-selection">
+            <button class="user-btn" id="userCong" data-user-id="1">Cong</button>
+            <button class="user-btn" id="userJulia" data-user-id="2">Julia</button>
+          </div>
+        </div>
       </div>
     </div>
 

@@ -2,10 +2,12 @@
 export let USERS = [];
 export let LAST_TASKS = [];
 export let CAL_MONTH = startOfMonth(new Date());
+export let CURRENT_USER = null;
 
 export function setUsers(list){ USERS = list || []; }
 export function setLastTasks(list){ LAST_TASKS = list || []; }
 export function setCalMonth(d){ CAL_MONTH = startOfMonth(d); }
+export function setCurrentUser(user){ CURRENT_USER = user; }
 
 // Date helpers
 export function startOfMonth(d){ const x = new Date(d); x.setDate(1); x.setHours(0,0,0,0); return x; }
@@ -22,3 +24,23 @@ export const escapeHtml = (s) => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;
 export const getSubtasks = (t) => t.subTasks || t.subtasks || [];
 export const getAssignees = (t) => t.assignees || t.users || [];
 export const getPriorityDisplay = (t) => (typeof t.priority === "number" ? String(t.priority) : (t.priority || "—"));
+export const getUsers = () => USERS;
+
+// User filtering helpers
+export const getTasksForCurrentUser = () => {
+  if (!CURRENT_USER) return LAST_TASKS;
+  return LAST_TASKS.filter(task => {
+    const assignees = getAssignees(task);
+    return assignees.some(assignee => 
+      (assignee.user_id || assignee.id) === CURRENT_USER.user_id
+    );
+  });
+};
+
+export const isTaskAssignedToCurrentUser = (task) => {
+  if (!CURRENT_USER) return false;
+  const assignees = getAssignees(task);
+  return assignees.some(assignee => 
+    (assignee.user_id || assignee.id) === CURRENT_USER.user_id
+  );
+};
