@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Iterable
 
 from sqlalchemy import and_, select
+from sqlalchemy.orm import selectinload
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
@@ -55,7 +56,7 @@ def assign_users(task_id: int, user_ids: Iterable[int]) -> int:
         ).scalars().all()
         existing_set = set(existing)
 
-        to_create = [uid for uid in ids if uid not in existing_set]
+        to_create = [uid for uid in user_ids if uid not in existing_set]
         for uid in to_create:
             session.add(TaskAssignment(task_id=task_id, user_id=uid))
 
@@ -100,10 +101,6 @@ def clear_task_assignees(task_id: int) -> int:
 def list_assignees(task_id: int) -> list[UserRead]:
     """Return User rows assigned to the task."""
     with SessionLocal() as session:
-        # First check if task exists
-        task = session.get(Task, task_id)
-        if not task:
-            raise ValueError(f"Task with id {task_id} not found")
         
         user_ids = session.execute(
             select(TaskAssignment.user_id).where(TaskAssignment.task_id == task_id)
@@ -125,8 +122,9 @@ def list_tasks_for_user(
     with SessionLocal() as session:
         stmt = (
             select(Task)
+            .options(selectinload(Task.subtask_links))
             .join(TaskAssignment, TaskAssignment.task_id == Task.id)
-            .where(TaskAssignment.user_id == user_id)
+            .filter(TaskAssignment.user_id == user_id)
         )
         if active_only:
             stmt = stmt.where(Task.active.is_(True))

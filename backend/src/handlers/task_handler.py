@@ -1,110 +1,95 @@
+from __future__ import annotations
+
 import logging
+from typing import Iterable, Optional
+from datetime import date
+from datetime import datetime
+
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
 from backend.src.services import project as project_service
-from backend.src.services import comment as comment_service
 from backend.src.services.notification import get_notification_service
 from backend.src.services import task_assignment as assignment_service
 from backend.src.enums.notification import NotificationType
+from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
+from backend.src.enums.task_filter import TaskFilter, ALLOWED_FILTERS
+from backend.src.enums.task_sort import TaskSort, ALLOWED_SORTS
+from backend.src.database.db_setup import SessionLocal
+from backend.src.database.models.task import Task
+
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
-# -------- Project Handlers -------------------------------------------------------
-
-def list_tasks_by_project(project_id: int):
-    project = project_service.get_project_by_id(project_id)
-    if not project:
-        raise ValueError(f"Project {project_id} not found")
-
-    return task_service.list_tasks_by_project(project_id, active_only=True)
-
-def list_project_tasks_by_user(project_id: int, user_id: int):
-    project = project_service.get_project_by_id(project_id)
-    if not project:
-        raise ValueError(f"Project {project_id} not found")
-
-    user = user_service.get_user(user_id)
-    if not user:
-        raise ValueError(f"User {user_id} not found")
-
-    return task_service.list_project_tasks_by_user(project_id, user_id)
+# ---- Helpers ----------------------------------------------------------------
 
 
-# -------- Comment Handlers -------------------------------------------------------
+def _normalize_filter_dates(filter_dict: Optional[dict]) -> Optional[dict]:
+    """Convert date strings in filters into datetime.date objects."""
+
+    parsed = {}
+    for key, value in filter_dict.items():
+        if key in {"deadline_range", "start_date_range"}:
+            start, end = value
+            parsed[key] = [
+                datetime.strptime(start, "%Y-%m-%d").date(),
+                datetime.strptime(end, "%Y-%m-%d").date(),
+            ]
+        else:
+            parsed[key] = value
+    return parsed
 
 
-def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails: list[str] = None):
-    """Add a comment to a task with recipient emails from frontend."""
-    task = task_service.get_task_with_subtasks(task_id)
-    if not task:
-        raise ValueError(f"Task {task_id} not found")
+# -------- Task Handlers -------------------------------------------------------
 
-    user = user_service.get_user(user_id)
-    if not user:
-        raise ValueError(f"User {user_id} not found")
 
-    comment = comment_service.add_comment(task_id, user_id, comment_text)
-
-    if recipient_emails:
-        for email in recipient_emails:
-            recipient_user = user_service.get_user(email)
-            if not recipient_user:
-                logger.warning(f"Recipient email {email} not found in system")
-        # recipient_emails will be handled by notification_service later
-
-    return comment
-
-def list_comments(task_id: int):
-
-    task = task_service.get_task_with_subtasks(task_id)
-    if not task:
-        raise ValueError(f"Task {task_id} not found")
-
-    return comment_service.list_comments(task_id)
-
-def get_comment(comment_id: int):
-
-    comment = comment_service.get_comment(comment_id)
-    if not comment:
-        raise ValueError(f"Comment {comment_id} not found")
-    return comment
-
-def update_comment(comment_id: int, updated_text: str, requesting_user_id: int, recipient_emails: list[str] = None):
-    """Update a comment - only the author can update their comment."""
+def create_task(
+    title: str,
+    *,
+    description: Optional[str] = None,
+    start_date: Optional[date] = None,
+    deadline: Optional[date] = None,
+    priority: int = 5,
+    status: str = TaskStatus.TO_DO.value,
+    recurring: Optional[int] = 0,
+    tag: Optional[str] = None,
+    project_id: int,
+    active: bool = True,
+    parent_id: Optional[int] = None,
+    creator_id: int
+):
+    if not title or not title.strip():
+        raise ValueError("Task title cannot be empty or whitespace.")
     
-    existing_comment = comment_service.get_comment(comment_id)
-    if not existing_comment:
-        raise ValueError(f"Comment {comment_id} not found")
+    if parent_id is not None:
+        parent = task_service.get_task_with_subtasks(parent_id)
+        if not parent:
+            raise ValueError(f"Parent task {parent_id} not found.")
+        
+        if not parent.active:
+            raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
 
-    if existing_comment["user_id"] != requesting_user_id:
-        raise PermissionError("Only the comment author can update this comment")
-    
-    comment = comment_service.update_comment(comment_id, updated_text)
+    task = task_service.add_task(
+        title=title,
+        description=description,
+        start_date=start_date,
+        deadline=deadline,
+        priority=priority,
+        status=status,
+        recurring=recurring,
+        tag=tag,
+        project_id=project_id,
+        active=active,
+        parent_id=parent_id,
+    )
 
-    if recipient_emails:
-        for email in recipient_emails:
-            recipient_user = user_service.get_user(email)
-            if not recipient_user:
-                logger.warning(f"Recipient email {email} not found in system")
-        # recipient_emails will be handled by notification_service later
+    if parent_id is not None:
+        task_service.link_subtask(parent_id, task.id)
 
-    return comment
+    assignment_service.assign_users(task.id, [creator_id])
 
-def delete_comment(comment_id: int, requesting_user_id: int):
-    """Delete a comment - only the author can delete their comment."""
-    
-    existing_comment = comment_service.get_comment(comment_id)
-    if not existing_comment:
-        raise ValueError(f"Comment {comment_id} not found")
-    
-    if existing_comment["user_id"] != requesting_user_id:
-        raise PermissionError("Only the comment author can delete this comment")
-    
-    return comment_service.delete_comment(comment_id)
-
+    return task
 
 def update_task(
     task_id: int,
@@ -174,35 +159,193 @@ def update_task(
             new_values[f] = after
 
     if updated_fields:
+        
+        assignees = assignment_service.list_assignees(task_id)
+        recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
         try:
-            assignees = assignment_service.list_assignees(task_id)
-            recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
-        except Exception:
-            recipients = None
-
-        resp = get_notification_service().notify_activity(
-            user_email=kwargs.get("user_email"),
-            task_id=updated.id,
-            task_title=updated.title or "",
-            type_of_alert=NotificationType.TASK_UPDATE.value,
-            updated_fields=updated_fields,
-            old_values=old_values,
-            new_values=new_values,
-            to_recipients=recipients,
-        )
-        try:
-            logger.info(
-                "Notification response",
-                extra={
-                    "task_id": updated.id,
-                    "type": NotificationType.TASK_UPDATE.value,
-                    "success": getattr(resp, "success", None),
-                    "message": getattr(resp, "message", None),
-                    "recipients_count": getattr(resp, "recipients_count", None),
-                    "email_id": getattr(resp, "email_id", None),
-                },
+            resp = get_notification_service().notify_activity(
+                user_email=kwargs.get("user_email"),
+                task_id=updated.id,
+                task_title=updated.title or "",
+                type_of_alert=NotificationType.TASK_UPDATE.value,
+                updated_fields=updated_fields,
+                old_values=old_values,
+                new_values=new_values,
+                to_recipients=recipients,
             )
         except Exception:
             pass
-
+        logger.info(
+            "Task update notification dispatched",
+            extra={
+                "task_id": updated.id,
+                "type": NotificationType.TASK_UPDATE.value,
+                "success": getattr(resp, "success", None),
+                "email_message": getattr(resp, "message", None),
+                "recipients_count": getattr(resp, "recipients_count", None),
+                "email_id": getattr(resp, "email_id", None),
+            },
+        )
+    print("pass notif")
     return updated
+
+def get_task(task_id: int):
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        raise ValueError("Task not found.")
+
+    if task.active is False:
+        raise ValueError("Task not found")
+    
+    return task
+
+def set_task_status(task_id: int, status: str):
+    if status not in ALLOWED_STATUSES:
+        raise ValueError(f"Invalid status '{status}'")
+
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        raise ValueError("Task not found.")
+
+    updated_task = task_service.set_task_status(task_id, status)
+    return updated_task
+
+def list_tasks(*, 
+    active_only: bool = True, 
+    project_id: Optional[int] = None,
+    sort_by: Optional[str] = "priority_desc",
+    filter_by: Optional[dict] = None
+):
+    
+    if filter_by: 
+        invalid = [f for f in filter_by if f not in ALLOWED_FILTERS]
+        if invalid:
+            raise ValueError(f"Invalid filter keys: {invalid}")
+        
+        date_filters = set(filter_by) & {"deadline_range", "start_date_range"}
+        non_date_filters = set(filter_by) & {"priority_range", "status"}
+
+        if len(non_date_filters) > 1:
+            raise ValueError(f"Only one non-date filter allowed: {list(non_date_filters)}")
+        if date_filters and non_date_filters:
+            raise ValueError(
+                f"Date filters cannot be combined with other filter types. "
+                f"Date filters: {list(date_filters)}, other: {list(non_date_filters)}"
+            )
+
+    filter_by = _normalize_filter_dates(filter_by) if filter_by else None
+
+    if sort_by not in ALLOWED_SORTS:
+        raise ValueError(f"Invalid sort_by value '{sort_by}'")
+
+    tasks = task_service.list_tasks(
+        active_only=active_only,
+        project_id=project_id,
+        sort_by=sort_by,
+        filter_by=filter_by
+    )
+    return tasks
+
+def list_parent_tasks(*, 
+    active_only: bool = True, 
+    project_id: Optional[int] = None,
+    sort_by: Optional[str] = "priority_desc",
+    filter_by: Optional[dict] = None
+):
+
+    if filter_by: 
+        invalid = [f for f in filter_by if f not in ALLOWED_FILTERS]
+        if invalid:
+            raise ValueError(f"Invalid filter keys: {invalid}")
+        
+        date_filters = set(filter_by) & {"deadline_range", "start_date_range"}
+        non_date_filters = set(filter_by) & {"priority_range", "status"}
+
+        if len(non_date_filters) > 1:
+            raise ValueError(f"Only one non-date filter allowed: {list(non_date_filters)}")
+        if date_filters and non_date_filters:
+            raise ValueError(
+                f"Date filters cannot be combined with other filter types. "
+                f"Date filters: {list(date_filters)}, other: {list(non_date_filters)}"
+            )
+
+    filter_by = _normalize_filter_dates(filter_by) if filter_by else None
+
+    if sort_by not in ALLOWED_SORTS:
+        raise ValueError(f"Invalid sort_by value '{sort_by}'")
+
+    tasks = task_service.list_parent_tasks(
+        active_only=active_only,
+        project_id=project_id,
+        sort_by=sort_by,
+        filter_by=filter_by
+    )
+    return tasks
+
+def delete_task(task_id: int):
+    task = task_service.get_task_with_subtasks(task_id)
+    if not task:
+        raise ValueError("Task not found.")
+
+    deleted = task_service.delete_task(task_id)
+    return deleted
+
+
+# -------- Subtask Assignment Handlers -------------------------------------------------------
+
+
+def attach_subtasks(parent_id: int, subtask_ids: Iterable[int]) -> Task:
+
+    if parent_id in subtask_ids:
+        raise ValueError("A task cannot be its own parent")
+
+    parent = task_service.get_task_with_subtasks(parent_id)
+    if not parent:
+        raise ValueError(f"Parent task {parent_id} not found.")
+
+    if not parent.active:
+        raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
+
+    ids = sorted({int(sid) for sid in subtask_ids or []})
+    for subtask_id in ids:
+        subtask = task_service.get_task_with_subtasks(subtask_id)
+        if not subtask:
+            raise ValueError(f"Subtask {subtask_id} not found.")
+        if not subtask.active:
+            raise ValueError(f"Subtask {subtask_id} not found.")
+    
+    return task_service.attach_subtasks(parent_id, ids)
+
+
+def detach_subtask(parent_id: int, subtask_id: int) -> Task:
+
+    parent = task_service.get_task_with_subtasks(parent_id)
+    if not parent:
+        raise ValueError(f"Parent task {parent_id} not found.")
+
+    if subtask_id not in [t.id for t in parent.subtasks]:
+        raise ValueError(f"Link not found for parent={parent_id}, subtask={subtask_id}")
+
+    return task_service.detach_subtask(parent_id, subtask_id)
+
+
+# -------- Task x Project Handlers -------------------------------------------------------
+
+
+def list_tasks_by_project(project_id: int):
+    project = project_service.get_project_by_id(project_id)
+    if not project:
+        raise ValueError(f"Project {project_id} not found")
+
+    return task_service.list_tasks_by_project(project_id, active_only=True)
+
+def list_project_tasks_by_user(project_id: int, user_id: int):
+    project = project_service.get_project_by_id(project_id)
+    if not project:
+        raise ValueError(f"Project {project_id} not found")
+
+    user = user_service.get_user(user_id)
+    if not user:
+        raise ValueError(f"User {user_id} not found")
+
+    return task_service.list_project_tasks_by_user(project_id, user_id)

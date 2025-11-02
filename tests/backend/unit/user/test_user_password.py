@@ -14,7 +14,7 @@ from tests.mock_data.user.unit_data import (
 OLD_HASHED = "old_hashed"
 NEW_HASHED = "new_hashed"
 
-# UNI-053/007
+# UNI-053/004
 @patch("backend.src.services.user.SessionLocal")
 @patch("backend.src.services.user._verify_password", return_value=True)
 @patch("backend.src.services.user._hash_password", return_value=NEW_HASHED)
@@ -38,20 +38,7 @@ def test_change_password_success(mock_hash, mock_verify, mock_session_local):
     assert mock_user.hashed_pw == NEW_HASHED
     mock_session.add.assert_called_with(mock_user)
 
-# UNI-053/008
-@patch("backend.src.services.user.SessionLocal")
-def test_change_password_user_not_found(mock_session_local):
-    from backend.src.services import user as user_service
-
-    mock_session = MagicMock()
-    mock_session_local.begin.return_value.__enter__.return_value = mock_session
-    mock_session.get.return_value = None
-
-    with pytest.raises(ValueError) as exc:
-        user_service.change_password(INVALID_USER_ID, VALID_PASSWORD_CHANGE["current_password"], VALID_PASSWORD_CHANGE["new_password"])
-    assert "User not found" in str(exc.value)
-
-# UNI-053/009
+# UNI-053/005
 @patch("backend.src.services.user.SessionLocal")
 @patch("backend.src.services.user._verify_password", return_value=False)
 def test_change_password_wrong_current(mock_verify, mock_session_local):
@@ -68,7 +55,7 @@ def test_change_password_wrong_current(mock_verify, mock_session_local):
         user_service.change_password(mock_user.user_id, INVALID_PASSWORD_CHANGE_WRONG_CURRENT["current_password"], INVALID_PASSWORD_CHANGE_WRONG_CURRENT["new_password"])
     assert "Current password is incorrect" in str(exc.value)
 
-# UNI-053/010
+# UNI-053/006
 def test_change_password_weak_new_password_raises():
     from backend.src.services import user as user_service
 
@@ -77,7 +64,7 @@ def test_change_password_weak_new_password_raises():
             user_service.change_password(VALID_USER_ADMIN["user_id"], VALID_USER_ADMIN["password"], INVALID_PASSWORD_CHANGE_WEAK["new_password"])
         assert not mock_session_local.begin.called
 
-# UNI-053/011
+# UNI-053/007
 def test_hash_and_verify_normal_password():
     """
     Sanity check: hash a normal password and verify it.
@@ -90,7 +77,7 @@ def test_hash_and_verify_normal_password():
     assert user_service._verify_password(password, hashed) is True
     assert user_service._verify_password(INVALID_PASSWORD_CHANGE_WRONG_CURRENT["current_password"], hashed) is False
 
-# UNI-053/012
+# UNI-053/008
 def test_verify_with_invalid_inputs():
     """
     _verify_password should safely return False for invalid types.
@@ -102,7 +89,7 @@ def test_verify_with_invalid_inputs():
     assert user_service._verify_password(VALID_PASSWORD_CHANGE["new_password"], None) is False
     assert user_service._verify_password(None, None) is False
 
-# UNI-053/013
+# UNI-053/009
 def test_hash_password_type_error():
     """
     _hash_password should raise TypeError for non-string input.

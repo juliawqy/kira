@@ -1,5 +1,6 @@
 import logging
 import smtplib
+from backend.src.database.db_setup import SessionLocal
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from email.mime.text import MIMEText

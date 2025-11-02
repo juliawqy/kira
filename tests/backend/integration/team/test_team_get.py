@@ -180,6 +180,7 @@ def test_get_team_by_manager():
     assert isinstance(teams, list)
     assert len(teams) == 2
 
+
 # INT-139/006
 def test_get_team_by_manager_not_found():
     

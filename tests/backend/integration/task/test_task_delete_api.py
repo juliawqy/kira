@@ -21,7 +21,7 @@ from tests.mock_data.task.integration_data import (
     EXPECTED_TASK_CHILD_RESPONSE,
     VALID_PROJECT,
     VALID_PROJECT_2,
-    VALID_USER
+    VALID_USER_ADMIN,
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -58,7 +58,7 @@ def test_db_session(test_engine):
 def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
     
-    manager = User(**VALID_USER)
+    manager = User(**VALID_USER_ADMIN)
     test_db_session.add(manager)
     test_db_session.flush()
 
@@ -92,10 +92,12 @@ def test_delete_task_nonexistent_id_returns_404(client, task_base_path):
 # INT-004/003
 def test_delete_task_already_inactive_returns_404(client, task_base_path):
     """Verify deleting already inactive task returns 404."""
-    response = client.post(f"{task_base_path}/", json=serialize_payload(INACTIVE_TASK_PAYLOAD))
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     assert response.status_code == 201
-    task_id = INACTIVE_TASK["id"]
 
+    client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/delete")
+
+    task_id = INACTIVE_TASK["id"]
     response = client.post(f"{task_base_path}/{task_id}/delete")
     assert response.status_code == 404
 
@@ -250,4 +252,3 @@ def test_delete_task_parent_assignment_nonexistent_ids_return_404(client, task_b
 
     response = client.delete(f"{task_base_path}/{INVALID_TASK_ID_NONEXISTENT}/subtasks/{child_task_id}")
     assert response.status_code == 404
-

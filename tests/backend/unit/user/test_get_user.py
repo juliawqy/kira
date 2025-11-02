@@ -63,7 +63,6 @@ def test_get_user_not_found(mock_session_local):
 def test_list_users_empty(mock_session_local):
     from backend.src.services import user as user_service
 
-    # Mock session context manager
     mock_session = MagicMock()
     mock_session_local.return_value.__enter__.return_value = mock_session
 

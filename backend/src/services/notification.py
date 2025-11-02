@@ -2,6 +2,7 @@ import logging
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 
+from backend.src.database.db_setup import SessionLocal
 from .email import get_email_service
 from ..schemas.email import EmailResponse, EmailMessage, EmailRecipient, EmailType
 from ..enums.notification import NotificationType
