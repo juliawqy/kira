@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Project Report - KIRA</title>
+    <link rel="stylesheet" href="../src/styles/styles.css">
+    <style>
+        .export-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #1a237e;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .project-selector {
+            margin-bottom: 30px;
+        }
+        
+        .project-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .project-selector input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .project-selector input:focus {
+            outline: none;
+            border-color: #3949ab;
+            box-shadow: 0 0 0 2px rgba(57, 73, 171, 0.1);
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .export-btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .export-btn.pdf {
+            background-color: #d32f2f;
+            color: white;
+        }
+        
+        .export-btn.pdf:hover {
+            background-color: #b71c1c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .export-btn.excel {
+            background-color: #388e3c;
+            color: white;
+        }
+        
+        .export-btn.excel:hover {
+            background-color: #2e7d32;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .export-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .info-text {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            margin-top: 15px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="export-container">
+        <h1>Export Project Schedule Report</h1>
+        
+        <div class="project-selector">
+            <label for="projectIdInput">Enter Project ID:</label>
+            <input type="number" id="projectIdInput" placeholder="e.g., 1" min="1" step="1">
+        </div>
+        
+        <div class="export-buttons">
+            <button class="export-btn pdf" id="exportPdfBtn" onclick="exportPDF()" disabled>
+                📄 Export as PDF
+            </button>
+            <button class="export-btn excel" id="exportExcelBtn" onclick="exportExcel()" disabled>
+                📊 Export as Excel
+            </button>
+        </div>
+        
+        <div class="loading" id="loading">Generating report...</div>
+        <div class="info-text">
+            Generate a comprehensive schedule report showing all tasks grouped by status:
+            projected, in-progress, completed, and under review.
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/kira/app/api/v1';
+        let selectedProjectId = null;
+
+        function initializeProjectInput() {
+            const projectIdInput = document.getElementById('projectIdInput');
+            
+            // Handle input changes
+            projectIdInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                if (value && !isNaN(value) && parseInt(value) > 0) {
+                    selectedProjectId = parseInt(value);
+                    enableExportButtons();
+                } else {
+                    selectedProjectId = null;
+                    disableExportButtons();
+                }
+            });
+            
+            // Handle Enter key press
+            projectIdInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && selectedProjectId) {
+                    exportPDF(); // Default to PDF on Enter
+                }
+            });
+        }
+
+        function enableExportButtons() {
+            document.getElementById('exportPdfBtn').disabled = false;
+            document.getElementById('exportExcelBtn').disabled = false;
+        }
+
+        function disableExportButtons() {
+            document.getElementById('exportPdfBtn').disabled = true;
+            document.getElementById('exportExcelBtn').disabled = true;
+        }
+
+        async function exportPDF() {
+            if (!selectedProjectId) {
+                alert('Please select a project first');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            loading.classList.add('active');
+            disableExportButtons();
+
+            try {
+                const response = await fetch(`${API_BASE}/report/project/${selectedProjectId}/pdf`, {
+                    method: 'GET',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText}`);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `project_${selectedProjectId}_schedule_report.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                alert(`Failed to export PDF: ${error.message}`);
+                console.error('PDF export error:', error);
+            } finally {
+                loading.classList.remove('active');
+                enableExportButtons();
+            }
+        }
+
+        async function exportExcel() {
+            if (!selectedProjectId) {
+                alert('Please select a project first');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            loading.classList.add('active');
+            disableExportButtons();
+
+            try {
+                const response = await fetch(`${API_BASE}/report/project/${selectedProjectId}/excel`, {
+                    method: 'GET',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText}`);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `project_${selectedProjectId}_schedule_report.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                alert(`Failed to export Excel: ${error.message}`);
+                console.error('Excel export error:', error);
+            } finally {
+                loading.classList.remove('active');
+                enableExportButtons();
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', initializeProjectInput);
+    </script>
+</body>
+</html>
+

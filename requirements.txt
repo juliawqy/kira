@@ -16,3 +16,5 @@ pytest-selenium
 aiosmtplib      # for async SMTP client
 jinja2          # for email templates
 python-dotenv   # for environment variables
+reportlab       # for PDF generation
+openpyxl        # for Excel generation
