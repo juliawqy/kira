@@ -1,6 +1,6 @@
 // js/ui/cards.js
 import { apiTask } from "../api.js";
-import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers } from "../state.js";
+import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers, isCurrentUserStaff, CURRENT_USER } from "../state.js";
 import { field } from "./dom.js";
 
 /* ----------------------------- safe log ----------------------------- */
@@ -239,8 +239,13 @@ export function renderTaskCard(task, { log, reload }) {
     actionsSection.appendChild(actionRow);
     details.appendChild(actionsSection);
     
-    // Assignee controls with add/remove functionality
-    details.appendChild(renderAssigneeControls(task, { log, reload }));
+    // Assignee controls: hide for staff users, show for others
+    if (!isCurrentUserStaff()) {
+      details.appendChild(renderAssigneeControls(task, { log, reload }));
+    } else {
+      // For staff users, show read-only assignees (same as completed tasks)
+      details.appendChild(renderAssigneeDisplay(task, { log }));
+    }
   } else {
     // For completed tasks, show read-only assignees
     details.appendChild(renderAssigneeDisplay(task, { log }));
@@ -702,8 +707,16 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
   actionsSection.appendChild(actionRow);
   details.appendChild(actionsSection);
 
-  // Assignee controls
-  details.appendChild(renderAssigneeControls(st, { log, reload }));
+  // Assignee controls: hide for staff users
+  if (!isCurrentUserStaff()) {
+    details.appendChild(renderAssigneeControls(st, { log, reload }));
+  } else {
+    // For staff users, show read-only assignees
+    details.appendChild(renderAssigneeDisplay(st, { log }));
+  }
+  
+  // Comments section (always show for all subtasks)
+  details.appendChild(renderCommentsSection(st, { log, reload }));
   
   dialogContent.appendChild(details);
   dialog.appendChild(dialogContent);
@@ -763,13 +776,28 @@ function renderCommentsSection(task, { log, reload }) {
     
     // Populate user dropdown
     const users = getUsers();
+    let selectedUserId = null;
+    
     if (users && users.length > 0) {
       users.forEach(user => {
         const option = document.createElement("option");
         option.value = user.user_id || user.id;
         option.textContent = user.name || user.full_name || user.email;
+        
+        // Auto-select current user for staff
+        if (isCurrentUserStaff() && CURRENT_USER && 
+            (user.user_id || user.id) === CURRENT_USER.user_id) {
+          option.selected = true;
+          selectedUserId = option.value;
+        }
+        
         userSelect.appendChild(option);
       });
+      
+      // Hide the dropdown for staff users since they're auto-selected
+      if (isCurrentUserStaff()) {
+        userSelect.style.display = "none";
+      }
     }
     
     const submitBtn = document.createElement("button");
@@ -890,13 +918,12 @@ function renderCommentCard(comment) {
   userInfo.appendChild(userDetails);
   header.appendChild(userInfo);
   
-  // Actions (edit/delete) - only show for non-completed tasks
+  // Actions (edit/delete) - only show for comment author
   const actions = document.createElement("div");
   actions.className = "comment-actions";
   
-  // Check if current user can edit this comment (for now, allow all users)
-  // In a real app, you'd check if current user is the comment author
-  const canEdit = true; // TODO: Implement proper user authentication
+  // Check if current user is the comment author
+  const canEdit = CURRENT_USER && (CURRENT_USER.user_id === comment.user_id);
   
   if (canEdit) {
     const editBtn = document.createElement("button");
@@ -1001,6 +1028,8 @@ async function editComment(comment, commentCard) {
       await updateComment(comment.comment_id, newText);
       // Replace the content
       contentEl.textContent = newText;
+      // Show content again
+      contentEl.style.display = 'block';
       // Remove edit form
       commentCard.removeChild(editForm);
       // Show actions again
@@ -1014,6 +1043,8 @@ async function editComment(comment, commentCard) {
   cancelBtn.textContent = 'Cancel';
   cancelBtn.className = 'btn btn-small';
   cancelBtn.addEventListener('click', () => {
+    // Show content again
+    contentEl.style.display = 'block';
     // Remove edit form
     commentCard.removeChild(editForm);
     // Show actions again
@@ -1037,8 +1068,21 @@ async function editComment(comment, commentCard) {
 }
 
 async function deleteComment(commentId) {
+  if (!CURRENT_USER) {
+    alert('No current user set');
+    return;
+  }
+  
+  const payload = {
+    requesting_user_id: CURRENT_USER.user_id
+  };
+  
   try {
-    await apiTask(`/comment/${commentId}`, { method: "DELETE" });
+    await apiTask(`/comment/${commentId}`, { 
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
     
     // Find and remove the comment card from DOM
     const commentCard = document.querySelector(`[data-comment-id="${commentId}"]`);
@@ -1057,8 +1101,13 @@ async function deleteComment(commentId) {
 }
 
 async function updateComment(commentId, newText) {
+  if (!CURRENT_USER) {
+    throw new Error("No current user set");
+  }
+  
   const payload = {
-    comment: newText
+    comment: newText,
+    requesting_user_id: CURRENT_USER.user_id
   };
   
   try {

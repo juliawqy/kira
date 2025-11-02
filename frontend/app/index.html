@@ -23,81 +23,115 @@
       </div>
     </div>
 
-    <!-- View toggle -->
-    <div class="panel" style="margin-top: 12px;">
-      <div class="grid two" style="gap: 20px;">
-        <div class="form-field">
-          <label>View</label>
-          <div style="display: flex; gap: 20px; margin-top: 10px;">
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text);">
-              <input type="checkbox" id="viewCalendar" checked />
-              <span>Calendar</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text);">
-              <input type="checkbox" id="viewList" checked />
-              <span>List</span>
-            </label>
+    <!-- Tab Navigation -->
+    <div class="panel" style="margin-top: 12px; padding-bottom: 0;">
+      <div class="tabs">
+        <button class="tab-btn active" id="tabList" data-tab="list">List View</button>
+        <button class="tab-btn" id="tabCalendar" data-tab="calendar">Calendar View</button>
+      </div>
+    </div>
+
+    <!-- List View Tab -->
+    <div class="tab-content active" id="tabContentList">
+      <!-- On-going Tasks list -->
+      <div class="panel" style="margin-top: 12px;" id="ongoingPanel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h2 style="margin:0;">On-going Tasks</h2>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="filterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Status</option>
+              <option value="To-do">To-do</option>
+              <option value="In-progress">In-progress</option>
+              <option value="Blocked">Blocked</option>
+            </select>
+            <select id="filterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Priority</option>
+              <option value="high">High (8-10)</option>
+              <option value="medium">Medium (5-7)</option>
+              <option value="low">Low (1-4)</option>
+            </select>
+            <select id="filterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Projects</option>
+              <option value="1">Project Alpha (1)</option>
+              <option value="2">Project Beta (2)</option>
+              <option value="3">Project Gamma (3)</option>
+            </select>
+            <select id="filterTag" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Tags</option>
+              <option value="logistics">Logistics</option>
+              <option value="documentation">Documentation</option>
+              <option value="testing">Testing</option>
+              <option value="development">Development</option>
+              <option value="meeting">Meeting</option>
+              <option value="completed">Completed</option>
+              <option value="bugfix">Bugfix</option>
+              <option value="design">Design</option>
+              <option value="research">Research</option>
+              <option value="audit">Audit</option>
+            </select>
+            <button class="btn-create-task" id="btnToggleCreate" type="button" title="Create Task" style="margin-left: 4px;">+</button>
           </div>
         </div>
-        <div class="form-field">
-          <label>Calendar shows date</label>
-          <select id="calDateMode">
-            <option value="due" selected>Deadline (Due)</option>
-            <option value="start">Start date</option>
-          </select>
+        <div id="ongoing"></div>
+      </div>
+
+      <!-- Completed Tasks list -->
+      <div class="panel" style="margin-top: 12px;" id="completedPanel">
+        <h2 style="margin:0 0 12px 0;">Completed Tasks</h2>
+        <div id="completed"></div>
+      </div>
+    </div>
+
+    <!-- Calendar View Tab -->
+    <div class="tab-content" id="tabContentCalendar">
+      <!-- Calendar panel -->
+      <div class="panel cal-wrap" id="calendarPanel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="cal-nav-btn" id="calPrev" type="button">← Prev</button>
+            <div id="calTitle" class="cal-title"></div>
+            <button class="cal-nav-btn" id="calNext" type="button">Next →</button>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="calDateMode" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="due" selected>Deadline</option>
+              <option value="start">Start date</option>
+            </select>
+            <select id="calFilterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Status</option>
+              <option value="To-do">To-do</option>
+              <option value="In-progress">In-progress</option>
+              <option value="Blocked">Blocked</option>
+            </select>
+            <select id="calFilterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Priority</option>
+              <option value="high">High (8-10)</option>
+              <option value="medium">Medium (5-7)</option>
+              <option value="low">Low (1-4)</option>
+            </select>
+            <select id="calFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Projects</option>
+              <option value="1">Project Alpha (1)</option>
+              <option value="2">Project Beta (2)</option>
+              <option value="3">Project Gamma (3)</option>
+            </select>
+            <select id="calFilterTag" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Tags</option>
+              <option value="logistics">Logistics</option>
+              <option value="documentation">Documentation</option>
+              <option value="testing">Testing</option>
+              <option value="development">Development</option>
+              <option value="meeting">Meeting</option>
+              <option value="completed">Completed</option>
+              <option value="bugfix">Bugfix</option>
+              <option value="design">Design</option>
+              <option value="research">Research</option>
+              <option value="audit">Audit</option>
+            </select>
+          </div>
         </div>
+        <div id="calendar"></div>
       </div>
-      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--sub); line-height: 1.5;">
-        Tip: toggle Calendar and List views independently.
-      </div>
-    </div>
-
-    <!-- Calendar panel -->
-    <div class="panel cal-wrap sr" id="calendarPanel">
-      <div class="cal-head">
-        <button class="btn" id="calPrev" type="button">← Prev</button>
-        <div id="calTitle" class="muted" style="font-weight:600;"></div>
-        <button class="btn" id="calNext" type="button">Next →</button>
-        <span class="spacer"></span>
-        <button class="btn ghost" id="calToday" type="button">Today</button>
-      </div>
-      <div id="calendar"></div>
-    </div>
-
-
-    <!-- On-going Tasks list -->
-    <div class="panel" style="margin-top: 12px;" id="ongoingPanel">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h2 style="margin:0;">On-going Tasks</h2>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <select id="filterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
-            <option value="">All Status</option>
-            <option value="To-do">To-do</option>
-            <option value="In-progress">In-progress</option>
-            <option value="Blocked">Blocked</option>
-          </select>
-          <select id="filterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
-            <option value="">All Priority</option>
-            <option value="high">High (8-10)</option>
-            <option value="medium">Medium (5-7)</option>
-            <option value="low">Low (1-4)</option>
-          </select>
-          <select id="filterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
-            <option value="">All Projects</option>
-            <option value="1">Project Alpha (1)</option>
-            <option value="100">Project Beta (100)</option>
-            <option value="123">Project Gamma (123)</option>
-          </select>
-          <button class="btn-create-task" id="btnToggleCreate" type="button" title="Create Task" style="margin-left: 4px;">+</button>
-        </div>
-      </div>
-      <div id="ongoing"></div>
-    </div>
-
-    <!-- Completed Tasks list -->
-    <div class="panel" style="margin-top: 12px;" id="completedPanel">
-      <h2 style="margin:0 0 12px 0;">Completed Tasks</h2>
-      <div id="completed"></div>
     </div>
 
     <!-- Console -->
@@ -122,8 +156,8 @@
           <select id="c_project">
             <option value="" disabled selected>Select a project</option>
             <option value="1">Project Alpha (1)</option>
-            <option value="100">Project Beta (100)</option>
-            <option value="123">Project Gamma (123)</option>
+            <option value="2">Project Beta (2)</option>
+            <option value="3">Project Gamma (3)</option>
           </select>
           <div class="error" id="c_project_err"></div>
         </div>
