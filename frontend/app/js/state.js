@@ -48,3 +48,15 @@ export const isTaskAssignedToCurrentUser = (task) => {
 export const isCurrentUserStaff = () => {
   return CURRENT_USER && CURRENT_USER.role === "Staff";
 };
+
+export const isCurrentUserManager = () => {
+  return CURRENT_USER && CURRENT_USER.role === "Manager";
+};
+
+export const isCurrentUserDirector = () => {
+  return CURRENT_USER && CURRENT_USER.role === "Director";
+};
+
+export const isCurrentUserManagerOrDirector = () => {
+  return isCurrentUserManager() || isCurrentUserDirector();
+};

@@ -1,9 +1,10 @@
 import { apiTask, apiUser } from "./api.js";
-import { USERS, setUsers, LAST_TASKS, setLastTasks, CURRENT_USER, setCurrentUser, getTasksForCurrentUser } from "./state.js";
+import { USERS, setUsers, LAST_TASKS, setLastTasks, CURRENT_USER, setCurrentUser, getTasksForCurrentUser, isCurrentUserStaff, isCurrentUserManager, isCurrentUserDirector, isCurrentUserManagerOrDirector, CAL_MONTH, setCalMonth, addMonths } from "./state.js";
 import { renderTaskCard } from "./ui/cards.js";
 import { renderCalendar, bindCalendarNav } from "./ui/calendar.js";
 import { bindCreateForm } from "./ui/createForm.js";
 import { bindEditDialog } from "./ui/editDialog.js";
+import { renderTimeline } from "./ui/timeline.js";
 
 function log(label, payload) {
   const logEl = document.getElementById("log");
@@ -115,6 +116,171 @@ function applyCalendarFilters() {
   renderCalendar(filteredTasks, { log, reload: () => autoReload() });
 }
 
+function updateTeamProjectFilter(userTasks) {
+  const projectSelect = document.getElementById("teamCalFilterProject");
+  if (!projectSelect) return;
+  
+  // Extract unique project IDs from user's tasks
+  const userProjectIds = new Set();
+  userTasks.forEach(task => {
+    if (task.project_id) {
+      userProjectIds.add(task.project_id.toString());
+    }
+    // Also check subtasks
+    if (task.subTasks && Array.isArray(task.subTasks)) {
+      task.subTasks.forEach(subtask => {
+        if (subtask.project_id) {
+          userProjectIds.add(subtask.project_id.toString());
+        }
+      });
+    }
+  });
+  
+  // Get all option elements
+  const options = Array.from(projectSelect.options);
+  const currentValue = projectSelect.value;
+  
+  // Filter and re-populate options
+  projectSelect.innerHTML = "";
+  let validCurrentValue = null;
+  
+  options.forEach(option => {
+    const projectId = option.value;
+    if (userProjectIds.has(projectId)) {
+      const newOption = document.createElement("option");
+      newOption.value = projectId;
+      newOption.textContent = option.textContent;
+      if (option.selected || projectId === currentValue) {
+        newOption.selected = true;
+        validCurrentValue = projectId;
+      }
+      projectSelect.appendChild(newOption);
+    }
+  });
+  
+  // If current selection is invalid, select first available
+  if (!validCurrentValue && projectSelect.options.length > 0) {
+    projectSelect.options[0].selected = true;
+  }
+  
+  // If no projects available, show message
+  if (projectSelect.options.length === 0) {
+    const noProjectsOption = document.createElement("option");
+    noProjectsOption.value = "";
+    noProjectsOption.textContent = "No projects available";
+    noProjectsOption.disabled = true;
+    projectSelect.appendChild(noProjectsOption);
+  }
+}
+
+async function renderTeamCalendar() {
+  const teamCalendarEl = document.getElementById("teamCalendar");
+  const teamCalTitle = document.getElementById("teamCalTitle");
+  const mode = document.getElementById("teamCalDateMode")?.value || "due";
+  const filterProject = document.getElementById("teamCalFilterProject")?.value || "1";
+  const filterStatus = document.getElementById("teamCalFilterStatus")?.value || "";
+  const filterPriority = document.getElementById("teamCalFilterPriority")?.value || "";
+  const filterTag = document.getElementById("teamCalFilterTag")?.value || "";
+  
+  if (!teamCalendarEl || !isCurrentUserStaff()) return;
+  
+  // Don't fetch if no valid project selected
+  if (!filterProject) {
+    teamCalendarEl.innerHTML = `<div class="muted">No project selected.</div>`;
+    return;
+  }
+  
+  teamCalendarEl.innerHTML = `<div class="muted">Loading…</div>`;
+  
+  try {
+    // Fetch all tasks for the selected project (includes all team members' tasks)
+    const projectTasks = await apiTask(`/project/${filterProject}`, { method: "GET" });
+    log(`GET /task/project/${filterProject}`, projectTasks);
+    
+    // Apply filters
+    let filteredTasks = projectTasks || [];
+    
+    if (filterStatus) {
+      filteredTasks = filteredTasks.filter(t => t.status === filterStatus);
+    }
+    
+    if (filterPriority) {
+      filteredTasks = filteredTasks.filter(t => {
+        const priority = t.priority || 0;
+        if (filterPriority === "high") return priority >= 8;
+        if (filterPriority === "medium") return priority >= 5 && priority <= 7;
+        if (filterPriority === "low") return priority >= 1 && priority <= 4;
+        return true;
+      });
+    }
+    
+    if (filterTag) {
+      filteredTasks = filteredTasks.filter(t => {
+        const tag = t.tag?.toString() || "";
+        return tag === filterTag;
+      });
+    }
+    
+    // Render calendar with filtered tasks
+    renderCalendar(filteredTasks, { 
+      log, 
+      reload: () => renderTeamCalendar(),
+      targetCalendarId: "teamCalendar",
+      targetTitleId: "teamCalTitle",
+      dateModeSelector: "#teamCalDateMode"
+    });
+    
+  } catch (e) {
+    teamCalendarEl.innerHTML = `<div class="muted">Error loading team schedule.</div>`;
+    log("Team calendar error", String(e));
+  }
+}
+
+async function renderTimelineView() {
+  const timelineEl = document.getElementById("timeline");
+  if (!timelineEl || !isCurrentUserManagerOrDirector()) return;
+  
+  timelineEl.innerHTML = `<div class="muted">Loading…</div>`;
+  
+  try {
+    const filterProject = document.getElementById("timelineFilterProject")?.value || "";
+    const filterStatus = document.getElementById("timelineFilterStatus")?.value || "";
+    const filterPriority = document.getElementById("timelineFilterPriority")?.value || "";
+    
+    // Get all tasks (already loaded in LAST_TASKS for managers/directors)
+    let filteredTasks = LAST_TASKS || [];
+    
+    // Apply filters
+    if (filterProject) {
+      filteredTasks = filteredTasks.filter(t => {
+        const projectId = t.project_id?.toString() || "";
+        return projectId === filterProject;
+      });
+    }
+    
+    if (filterStatus) {
+      filteredTasks = filteredTasks.filter(t => t.status === filterStatus);
+    }
+    
+    if (filterPriority) {
+      filteredTasks = filteredTasks.filter(t => {
+        const priority = t.priority || 0;
+        if (filterPriority === "high") return priority >= 8;
+        if (filterPriority === "medium") return priority >= 5 && priority <= 7;
+        if (filterPriority === "low") return priority >= 1 && priority <= 4;
+        return true;
+      });
+    }
+    
+    // Render timeline with filtered tasks
+    renderTimeline(filteredTasks, { log, reload: () => autoReload() });
+    
+  } catch (e) {
+    timelineEl.innerHTML = `<div class="muted">Error loading timeline.</div>`;
+    log("Timeline error", String(e));
+  }
+}
+
 async function loadParents(){
   const ongoingEl = document.getElementById("ongoing");
   const completedEl = document.getElementById("completed");
@@ -127,16 +293,28 @@ async function loadParents(){
     // Get tasks for current user using API endpoint
     let userTasks = [];
     if (CURRENT_USER && CURRENT_USER.user_id) {
-      const data = await apiTask(`/user/${CURRENT_USER.user_id}`, { method: "GET" });
-      userTasks = Array.isArray(data) ? data : [];
-      setLastTasks(userTasks); // Store for filters
+      // For managers, load tasks from their managed projects
+      if (isCurrentUserManager() && !isCurrentUserDirector()) {
+        const data = await apiTask(`/manager/${CURRENT_USER.user_id}`, { method: "GET" });
+        userTasks = Array.isArray(data) ? data : [];
+        setLastTasks(userTasks);
+      } else if (isCurrentUserDirector()) {
+        // For directors, load tasks from their managed departments
+        const data = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
+        userTasks = Array.isArray(data) ? data : [];
+        setLastTasks(userTasks);
+      } else {
+        // For staff, load only their assigned tasks
+        const data = await apiTask(`/user/${CURRENT_USER.user_id}`, { method: "GET" });
+        userTasks = Array.isArray(data) ? data : [];
+        setLastTasks(userTasks);
+      }
     } else {
       // Fallback: load all tasks if no user selected (shouldn't happen normally)
       const data = await apiTask("/", { method: "GET" });
       userTasks = Array.isArray(data) ? data : [];
       setLastTasks(userTasks);
     }
-    
     // Always render both views (they're in tabs now)
     // Render completed tasks for current user
     completedEl.innerHTML = "";
@@ -148,6 +326,17 @@ async function loadParents(){
     
     // Apply calendar filters
     applyCalendarFilters();
+    
+    // Apply team calendar filters if staff user
+    if (isCurrentUserStaff()) {
+      updateTeamProjectFilter(userTasks);
+      renderTeamCalendar();
+    }
+    
+    // Apply timeline view if manager/director
+    if (isCurrentUserManagerOrDirector()) {
+      renderTimelineView();
+    }
     
     log("GET /task/user/", userTasks);
   }catch(e){
@@ -171,22 +360,42 @@ function initializeUserSelection() {
     }
   }
   updateUserSelectionUI();
+  
+  // Show/hide staff-only tab
+  const staffOnlyTab = document.getElementById("tabTeamSchedule");
+  if (staffOnlyTab && isCurrentUserStaff()) {
+    staffOnlyTab.style.display = "block";
+  }
+  
+  // Show/hide manager-only tab
+  const managerOnlyTab = document.getElementById("tabTimeline");
+  if (managerOnlyTab && isCurrentUserManagerOrDirector()) {
+    managerOnlyTab.style.display = "block";
+  }
 }
 
 function updateUserSelectionUI() {
   const congBtn = document.getElementById("userCong");
   const juliaBtn = document.getElementById("userJulia");
+  const managerBtn = document.getElementById("userManager");
+  const directorBtn = document.getElementById("userDirector");
   
   if (CURRENT_USER) {
     // Remove active class from all buttons
     congBtn?.classList.remove("active");
     juliaBtn?.classList.remove("active");
+    managerBtn?.classList.remove("active");
+    directorBtn?.classList.remove("active");
     
     // Add active class to current user button
     if (CURRENT_USER.user_id === 1) {
       congBtn?.classList.add("active");
     } else if (CURRENT_USER.user_id === 2) {
       juliaBtn?.classList.add("active");
+    } else if (CURRENT_USER.user_id === 3) {
+      managerBtn?.classList.add("active");
+    } else if (CURRENT_USER.user_id === 4) {
+      directorBtn?.classList.add("active");
     }
   }
 }
@@ -205,19 +414,29 @@ function switchUser(userId) {
 function switchTab(tabName) {
   const tabList = document.getElementById("tabList");
   const tabCalendar = document.getElementById("tabCalendar");
+  const tabTeamSchedule = document.getElementById("tabTeamSchedule");
+  const tabTimeline = document.getElementById("tabTimeline");
   const contentList = document.getElementById("tabContentList");
   const contentCalendar = document.getElementById("tabContentCalendar");
+  const contentTeamSchedule = document.getElementById("tabContentTeamSchedule");
+  const contentTimeline = document.getElementById("tabContentTimeline");
+  
+  // Remove active class from all tabs and content
+  [tabList, tabCalendar, tabTeamSchedule, tabTimeline].forEach(tab => tab?.classList.remove("active"));
+  [contentList, contentCalendar, contentTeamSchedule, contentTimeline].forEach(content => content?.classList.remove("active"));
   
   if (tabName === "list") {
     tabList?.classList.add("active");
-    tabCalendar?.classList.remove("active");
     contentList?.classList.add("active");
-    contentCalendar?.classList.remove("active");
   } else if (tabName === "calendar") {
-    tabList?.classList.remove("active");
     tabCalendar?.classList.add("active");
-    contentList?.classList.remove("active");
     contentCalendar?.classList.add("active");
+  } else if (tabName === "teamSchedule") {
+    tabTeamSchedule?.classList.add("active");
+    contentTeamSchedule?.classList.add("active");
+  } else if (tabName === "timeline") {
+    tabTimeline?.classList.add("active");
+    contentTimeline?.classList.add("active");
   }
 }
 
@@ -242,6 +461,8 @@ function syncCalendarFilter(filterName, value) {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("tabList")?.addEventListener("click", () => switchTab("list"));
   document.getElementById("tabCalendar")?.addEventListener("click", () => switchTab("calendar"));
+  document.getElementById("tabTeamSchedule")?.addEventListener("click", () => switchTab("teamSchedule"));
+  document.getElementById("tabTimeline")?.addEventListener("click", () => switchTab("timeline"));
 
   // Wire calendar controls
   document.getElementById("calDateMode")?.addEventListener("change", () => document.dispatchEvent(new Event("redraw-calendar")));
@@ -249,37 +470,69 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Wire filter dropdowns for list view - sync to calendar
   document.getElementById("filterStatus")?.addEventListener("change", (e) => {
+    syncListFilter("filterStatus", e.target.value);
     syncCalendarFilter("calFilterStatus", e.target.value);
   });
   document.getElementById("filterPriority")?.addEventListener("change", (e) => {
+    syncListFilter("filterPriority", e.target.value);
     syncCalendarFilter("calFilterPriority", e.target.value);
   });
   document.getElementById("filterProject")?.addEventListener("change", (e) => {
+    syncListFilter("filterProject", e.target.value);
     syncCalendarFilter("calFilterProject", e.target.value);
   });
   document.getElementById("filterTag")?.addEventListener("change", (e) => {
+    syncListFilter("filterTag", e.target.value);
     syncCalendarFilter("calFilterTag", e.target.value);
   });
 
   // Wire filter dropdowns for calendar view - sync to list
   document.getElementById("calFilterStatus")?.addEventListener("change", (e) => {
     syncListFilter("filterStatus", e.target.value);
+    syncCalendarFilter("calFilterStatus", e.target.value);
   });
   document.getElementById("calFilterPriority")?.addEventListener("change", (e) => {
     syncListFilter("filterPriority", e.target.value);
+    syncCalendarFilter("calFilterPriority", e.target.value);
   });
   document.getElementById("calFilterProject")?.addEventListener("change", (e) => {
     syncListFilter("filterProject", e.target.value);
+    syncCalendarFilter("calFilterProject", e.target.value);
   });
   document.getElementById("calFilterTag")?.addEventListener("change", (e) => {
     syncListFilter("filterTag", e.target.value);
+    syncCalendarFilter("calFilterTag", e.target.value);
   });
 
   // Wire user selection buttons
   const congBtn = document.getElementById("userCong");
   const juliaBtn = document.getElementById("userJulia");
+  const managerBtn = document.getElementById("userManager");
+  const directorBtn = document.getElementById("userDirector");
   congBtn?.addEventListener("click", () => switchUser(1));
   juliaBtn?.addEventListener("click", () => switchUser(2));
+  managerBtn?.addEventListener("click", () => switchUser(3));
+  directorBtn?.addEventListener("click", () => switchUser(4));
+
+  // Wire team calendar navigation
+  document.getElementById("teamCalPrev")?.addEventListener("click", () => {
+    setCalMonth(addMonths(CAL_MONTH, -1));
+    renderTeamCalendar();
+  });
+  document.getElementById("teamCalNext")?.addEventListener("click", () => {
+    setCalMonth(addMonths(CAL_MONTH, +1));
+    renderTeamCalendar();
+  });
+  document.getElementById("teamCalDateMode")?.addEventListener("change", () => renderTeamCalendar());
+  document.getElementById("teamCalFilterStatus")?.addEventListener("change", () => renderTeamCalendar());
+  document.getElementById("teamCalFilterPriority")?.addEventListener("change", () => renderTeamCalendar());
+  document.getElementById("teamCalFilterProject")?.addEventListener("change", () => renderTeamCalendar());
+  document.getElementById("teamCalFilterTag")?.addEventListener("change", () => renderTeamCalendar());
+
+  // Wire timeline filters
+  document.getElementById("timelineFilterProject")?.addEventListener("change", () => renderTimelineView());
+  document.getElementById("timelineFilterStatus")?.addEventListener("change", () => renderTimelineView());
+  document.getElementById("timelineFilterPriority")?.addEventListener("change", () => renderTimelineView());
 
   // Wire create dialog buttons
   const btnToggleCreate = document.getElementById("btnToggleCreate");
@@ -288,10 +541,10 @@ document.addEventListener("DOMContentLoaded", () => {
   btnToggleCreateFab?.addEventListener("click", () => document.getElementById("dlgCreate")?.showModal());
 
   // Initialize dialogs
-  bindCalendarNav();
-  bindCreateForm(log, () => autoReload());
-  bindEditDialog(log, () => autoReload());
+bindCalendarNav();
+bindCreateForm(log, () => autoReload());
+bindEditDialog(log, () => autoReload());
 
-  // First load
-  loadParents();
+// First load
+loadParents();
 });

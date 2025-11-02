@@ -1,6 +1,6 @@
 // js/ui/cards.js
 import { apiTask } from "../api.js";
-import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers, isCurrentUserStaff, CURRENT_USER, LAST_TASKS, parseYMD } from "../state.js";
+import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers, isCurrentUserStaff, isCurrentUserManager, isCurrentUserDirector, isCurrentUserManagerOrDirector, CURRENT_USER, LAST_TASKS, parseYMD } from "../state.js";
 import { field } from "./dom.js";
 
 /* ----------------------------- panel state ----------------------------- */
@@ -161,7 +161,7 @@ export function renderTaskCard(task, { log, reload }) {
 
   // Description
   if (task.description) {
-    const descBox = document.createElement("div");
+  const descBox = document.createElement("div");
     descBox.className = "task-description";
     descBox.textContent = task.description;
     details.appendChild(descBox);
@@ -900,6 +900,11 @@ export function openCalTaskPanel(task, { log, reload }) {
     
     const fields = [];
     
+    // Parent task info (for subtasks)
+    if (task.__isSub && task.__parentId && task.__parentTitle) {
+      fields.push(field("Parent Task", `#${task.__parentId} - ${escapeHtml(task.__parentTitle)}`));
+    }
+    
     if (task.start_date) {
       fields.push(field("Start Date", task.start_date));
     }
@@ -1080,9 +1085,8 @@ function renderCommentsSection(task, { log, reload }) {
       option.value = user.user_id || user.id;
       option.textContent = user.name || user.full_name || user.email;
       
-      // Auto-select current user for staff
-      if (isCurrentUserStaff() && CURRENT_USER && 
-          (user.user_id || user.id) === CURRENT_USER.user_id) {
+      // Auto-select current user for staff, managers, and directors
+      if (CURRENT_USER && (user.user_id || user.id) === CURRENT_USER.user_id) {
         option.selected = true;
         selectedUserId = option.value;
       }
@@ -1090,8 +1094,8 @@ function renderCommentsSection(task, { log, reload }) {
       userSelect.appendChild(option);
     });
     
-    // Hide the dropdown for staff users since they're auto-selected
-    if (isCurrentUserStaff()) {
+    // Hide the dropdown for staff, managers, and directors since they're auto-selected
+    if (isCurrentUserStaff() || isCurrentUserManagerOrDirector()) {
       userSelect.style.display = "none";
     }
   }

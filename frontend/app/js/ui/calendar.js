@@ -24,17 +24,18 @@ function flattenTasksWithSubs(tasks){
     const subs = getSubtasks(t);
     if (Array.isArray(subs)) {
       // Only include subtasks that are not completed
-      subs.filter(st => st.status !== "Completed").forEach(st => out.push({...st, __isSub:true, __parentId: t.id}));
+      subs.filter(st => st.status !== "Completed").forEach(st => out.push({...st, __isSub:true, __parentId: t.id, __parentTitle: t.title}));
     }
   });
   return out;
 }
 
-export function renderCalendar(tasks, { log, reload } = {}){
+export function renderCalendar(tasks, { log, reload, targetCalendarId = "calendar", targetTitleId = "calTitle", dateModeSelector = "#calDateMode" } = {}){
   const calendarPanel = document.getElementById("calendarPanel");
-  const calendarEl = document.getElementById("calendar");
-  const calTitle = document.getElementById("calTitle");
-  const mode = document.getElementById("calDateMode").value;
+  const calendarEl = document.getElementById(targetCalendarId);
+  const calTitle = document.getElementById(targetTitleId);
+  const modeEl = document.querySelector(dateModeSelector);
+  const mode = modeEl ? modeEl.value : "due";
 
   const year = CAL_MONTH.getFullYear();
   const month = CAL_MONTH.getMonth();
