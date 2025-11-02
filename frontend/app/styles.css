@@ -453,6 +453,11 @@
     background: var(--panel);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
+  .task-overdue {
+    background: #ffe5e5 !important;
+    border-color: #dc2626 !important;
+    font-weight: 500;
+  }
   
   /* Compact card header */
   .task-header {
@@ -709,6 +714,11 @@
   }
   .subtask-row:hover {
     background: #f9fafb;
+  }
+  .subtask-overdue {
+    background: #ffe5e5 !important;
+    border-color: #dc2626 !important;
+    font-weight: 500;
   }
   .subtask-header {
     display: flex;
@@ -983,6 +993,7 @@
   .cal-day { font-size:12px; color: var(--sub); display:flex; align-items:center; justify-content:space-between; }
   .cal-other-month .cal-day { opacity: 0.45; }
   .cal-task { margin-top:6px; font-size:12px; line-height:1.2; border:1px solid var(--border); border-radius:8px; padding:4px 6px; background:#eef3ff; cursor:pointer; }
+  .cal-task-overdue { background:#ffe5e5 !important; border-color:#dc2626 !important; font-weight:500; }
   
   /* Calendar navigation buttons */
   .cal-nav-btn {

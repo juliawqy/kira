@@ -269,6 +269,34 @@ def seed_database():
                 tag="audit",
                 project_id=3,
                 active=True
+            ),
+            
+            # Overdue tasks for staff members
+            Task(
+                id=20,
+                title="Urgent code fix required",
+                description="Critical bug needs immediate attention",
+                start_date=today - timedelta(days=5),
+                deadline=today - timedelta(days=2),
+                status=TaskStatus.IN_PROGRESS.value,
+                priority=9,
+                recurring=0,
+                tag="bugfix",
+                project_id=2,
+                active=True
+            ),
+            Task(
+                id=21,
+                title="Client feedback review",
+                description="Review and address client feedback",
+                start_date=today - timedelta(days=7),
+                deadline=today - timedelta(days=1),
+                status=TaskStatus.TO_DO.value,
+                priority=8,
+                recurring=0,
+                tag="documentation",
+                project_id=1,
+                active=True
             )
         ]
         
@@ -381,6 +409,10 @@ def seed_database():
             TaskAssignment(task_id=11, user_id=julia_id),  # Design new feature
             TaskAssignment(task_id=14, user_id=julia_id),  # User research interview
             TaskAssignment(task_id=15, user_id=julia_id),  # Accessibility audit
+            
+            # Overdue tasks
+            TaskAssignment(task_id=20, user_id=julia_id),  # Urgent code fix -> Julia
+            TaskAssignment(task_id=21, user_id=cong_id),  # Client feedback review -> Cong
         ]
         
         session.add_all(assignments)
