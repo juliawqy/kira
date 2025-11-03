@@ -312,3 +312,213 @@ class TestReportExport:
         assert "Total Tasks" in summary_values
         assert "Projected Tasks" in summary_values or "Completed Tasks" in summary_values
 
+    def test_generate_pdf_report_service_exception(self, setup_project_with_tasks, monkeypatch):
+        """Test PDF generation when report service raises a non-ValueError exception."""
+        project_id = setup_project_with_tasks["project_id"]
+        
+        # Mock report_service.generate_pdf_report to raise a generic exception
+        def mock_generate_pdf(*args, **kwargs):
+            raise RuntimeError("PDF generation failed")
+        
+        from backend.src.services import report as report_service
+        monkeypatch.setattr(report_service, "generate_pdf_report", mock_generate_pdf)
+        
+        with pytest.raises(RuntimeError, match="PDF generation failed"):
+            generate_pdf_report(project_id)
+
+    def test_generate_excel_report_service_exception(self, setup_project_with_tasks, monkeypatch):
+        """Test Excel generation when report service raises a non-ValueError exception."""
+        project_id = setup_project_with_tasks["project_id"]
+        
+        # Mock report_service.generate_excel_report to raise a generic exception
+        def mock_generate_excel(*args, **kwargs):
+            raise RuntimeError("Excel generation failed")
+        
+        from backend.src.services import report as report_service
+        monkeypatch.setattr(report_service, "generate_excel_report", mock_generate_excel)
+        
+        with pytest.raises(RuntimeError, match="Excel generation failed"):
+            generate_excel_report(project_id)
+
+
+class TestReportAPI:
+    """Test report API routes."""
+    
+    @pytest.fixture(scope="function")
+    def api_test_engine(self):
+        """Create a temporary database for API testing."""
+        import tempfile
+        import os
+        from sqlalchemy import create_engine
+        from backend.src.database.db_setup import Base
+        
+        db_fd, db_path = tempfile.mkstemp(suffix=".db")
+        os.close(db_fd)
+        
+        engine = create_engine(f"sqlite:///{db_path}", echo=False)
+        Base.metadata.create_all(bind=engine)
+        
+        yield engine
+        
+        engine.dispose()
+        if os.path.exists(db_path):
+            os.remove(db_path)
+
+    @pytest.fixture
+    def api_db_session(self, api_test_engine):
+        """Create a database session for API testing."""
+        from sqlalchemy.orm import sessionmaker
+        
+        connection = api_test_engine.connect()
+        transaction = connection.begin()
+        Session = sessionmaker(bind=connection)
+        session = Session()
+        
+        try:
+            yield session
+        finally:
+            session.close()
+            transaction.rollback()
+            connection.close()
+
+    @pytest.fixture
+    def api_client(self, api_test_engine):
+        """Create FastAPI TestClient for API route testing."""
+        from fastapi.testclient import TestClient
+        from backend.src.main import app
+        from sqlalchemy.orm import sessionmaker
+        from backend.src.services import task as task_service
+        from backend.src.services import project as project_service
+        from backend.src.services import task_assignment as assignment_service
+        
+        TestingSessionLocal = sessionmaker(
+            bind=api_test_engine,
+            autoflush=False,
+            autocommit=False,
+            expire_on_commit=False,
+            future=True,
+        )
+        
+        # Store originals
+        old_task_session = task_service.SessionLocal
+        old_project_session = project_service.SessionLocal
+        old_assignment_session = assignment_service.SessionLocal
+        
+        # Override with test session
+        task_service.SessionLocal = TestingSessionLocal
+        project_service.SessionLocal = TestingSessionLocal
+        assignment_service.SessionLocal = TestingSessionLocal
+        
+        try:
+            with TestClient(app) as client:
+                yield client
+        finally:
+            # Restore originals
+            task_service.SessionLocal = old_task_session
+            project_service.SessionLocal = old_project_session
+            assignment_service.SessionLocal = old_assignment_session
+
+    @pytest.fixture
+    def api_setup_project(self, api_test_engine):
+        """Create a project for API testing."""
+        from sqlalchemy.orm import sessionmaker
+        from backend.src.database.models.project import Project
+        from backend.src.database.models.user import User
+        from backend.src.enums.user_role import UserRole
+        
+        # Create a session directly on the engine (not via connection)
+        Session = sessionmaker(bind=api_test_engine)
+        session = Session()
+        
+        try:
+            user = User(
+                user_id=1,
+                name="Test Manager",
+                email="manager@test.com",
+                role=UserRole.MANAGER.value,
+                hashed_pw="hashed_pw",
+                admin=False,
+                department_id=None
+            )
+            session.add(user)
+            session.flush()
+            
+            project = Project(
+                project_id=1,
+                project_name="API Test Project",
+                project_manager=1,
+                active=True
+            )
+            session.add(project)
+            session.commit()
+            
+            return {"project_id": 1}
+        finally:
+            session.close()
+
+    def test_api_export_pdf_report_project_not_found(self, api_client):
+        """Test PDF export API with non-existent project returns 404."""
+        response = api_client.get("/kira/app/api/v1/report/project/9999/pdf")
+        assert response.status_code == 404
+        assert "Project 9999 not found" in response.json()["detail"]
+
+    def test_api_export_excel_report_project_not_found(self, api_client):
+        """Test Excel export API with non-existent project returns 404."""
+        response = api_client.get("/kira/app/api/v1/report/project/9999/excel")
+        assert response.status_code == 404
+        assert "Project 9999 not found" in response.json()["detail"]
+
+    def test_api_export_pdf_report_general_exception(self, api_client, api_setup_project, monkeypatch):
+        """Test PDF export API returns 500 when handler raises non-ValueError exception."""
+        project_id = api_setup_project["project_id"]
+        
+        # Mock generate_pdf_report to raise a generic exception
+        def mock_generate_pdf(*args, **kwargs):
+            raise RuntimeError("PDF generation service error")
+        
+        from backend.src.handlers import report_handler
+        monkeypatch.setattr(report_handler, "generate_pdf_report", mock_generate_pdf)
+        
+        response = api_client.get(f"/kira/app/api/v1/report/project/{project_id}/pdf")
+        assert response.status_code == 500
+        assert "Error generating PDF report" in response.json()["detail"]
+
+    def test_api_export_excel_report_general_exception(self, api_client, api_setup_project, monkeypatch):
+        """Test Excel export API returns 500 when handler raises non-ValueError exception."""
+        project_id = api_setup_project["project_id"]
+        
+        # Mock generate_excel_report to raise a generic exception
+        def mock_generate_excel(*args, **kwargs):
+            raise RuntimeError("Excel generation service error")
+        
+        from backend.src.handlers import report_handler
+        monkeypatch.setattr(report_handler, "generate_excel_report", mock_generate_excel)
+        
+        response = api_client.get(f"/kira/app/api/v1/report/project/{project_id}/excel")
+        assert response.status_code == 500
+        assert "Error generating Excel report" in response.json()["detail"]
+
+    def test_api_export_pdf_report_success(self, api_client, api_setup_project):
+        """Test successful PDF export via API."""
+        project_id = api_setup_project["project_id"]
+        
+        response = api_client.get(f"/kira/app/api/v1/report/project/{project_id}/pdf")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+        assert "attachment" in response.headers["content-disposition"]
+        assert f"project_{project_id}_schedule_report.pdf" in response.headers["content-disposition"]
+        assert len(response.content) > 0
+        assert response.content.startswith(b'%PDF')
+
+    def test_api_export_excel_report_success(self, api_client, api_setup_project):
+        """Test successful Excel export via API."""
+        project_id = api_setup_project["project_id"]
+        
+        response = api_client.get(f"/kira/app/api/v1/report/project/{project_id}/excel")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        assert "attachment" in response.headers["content-disposition"]
+        assert f"project_{project_id}_schedule_report.xlsx" in response.headers["content-disposition"]
+        assert len(response.content) > 0
+        assert response.content.startswith(b'PK')
+
