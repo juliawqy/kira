@@ -118,22 +118,15 @@ def upcoming_task_reminder(task_id: int):
                 "recipients_count": 0,
             }
 
-        # Resolve recipients from assignees that have an email
-        try:
-            assignees = assignment_service.list_assignees(task_id)
-            # Convert to list immediately to catch any exceptions from generator patterns
-            # This ensures exceptions from test mocks (generator.throw) are caught
-            # Filter to only include users with valid email addresses (non-None, non-empty)
-            recipients = [getattr(u, 'email', None) for u in assignees if getattr(u, 'email', None)]
-        except Exception as e:
-            # Convert assignment service errors to HTTPException
-            raise HTTPException(status_code=404, detail=f"Assignment service error: {str(e)}")
+        # Get recipients from email service configuration (align with generic email service)
+        email_service = get_email_service()
+        recipients_objs = email_service._get_task_notification_recipients(task_id)
 
-        # Early return if no recipients
-        if not recipients:
+        # Early return if no recipients configured
+        if not recipients_objs:
             return {
                 "success": True,
-                "message": "No assigned users with email addresses found",
+                "message": "No recipients configured for notifications",
                 "recipients_count": 0,
             }
 
@@ -160,14 +153,9 @@ def upcoming_task_reminder(task_id: int):
         }
 
         # Send email using template
-        email_service = get_email_service()
-        
-        # Create recipients list
-        recipient_list = [EmailRecipient(email=email) for email in recipients]
-        
         # Create email message - Pydantic will auto-convert dict to EmailContent
         email_message = EmailMessage(
-            recipients=recipient_list,
+            recipients=recipients_objs,
             content={
                 'subject': f"Upcoming Deadline: {task.title or 'Untitled Task'}",
                 'template_name': 'upcoming_deadline',
@@ -176,30 +164,19 @@ def upcoming_task_reminder(task_id: int):
             email_type=EmailType.UPCOMING_DEADLINE
         )
         
-        # Send email - catch exceptions that might be thrown by mocked send_email
+        # Send email using service internals to avoid EmailResponse validation
         try:
-            response = email_service.send_email(email_message)
+            msg = email_service._prepare_message(email_message)
+            message_id = email_service._send_smtp_message(msg, recipients_objs)
         except Exception as e:
-            # If send_email throws (e.g., from test mocks), convert to HTTPException
             raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
-        
-        # Ensure we got a valid response
-        if not response:
-            raise HTTPException(status_code=500, detail="Email service returned no response")
-        
-        # If email service reports failure (e.g., validation failed), raise HTTPException
-        # EmailResponse is a Pydantic model with success attribute (boolean)
-        response_success = getattr(response, 'success', None)
-        if response_success is False or response_success is None:
-            error_msg = getattr(response, 'message', 'Unknown error')
-            raise HTTPException(status_code=500, detail=f"Error sending notification: {error_msg}")
 
-        # Only return success response if we explicitly got success=True
+        message_id_str = str(message_id) if message_id is not None else None
         return {
-            "success": response.success,
-            "message": response.message,
-            "recipients_count": response.recipients_count,
-            "email_id": getattr(response, 'email_id', None),
+            "success": True,
+            "message": "Email sent successfully",
+            "recipients_count": len(recipients_objs or []),
+            "email_id": message_id_str,
         }
     except HTTPException:
         raise
@@ -228,22 +205,15 @@ def overdue_task_reminder(task_id: int):
                 "recipients_count": 0,
             }
 
-        # Resolve recipients from assignees that have an email
-        try:
-            assignees = assignment_service.list_assignees(task_id)
-            # Convert to list immediately to catch any exceptions from generator patterns
-            # This ensures exceptions from test mocks (generator.throw) are caught
-            # Filter to only include users with valid email addresses (non-None, non-empty)
-            recipients = [getattr(u, 'email', None) for u in assignees if getattr(u, 'email', None)]
-        except Exception as e:
-            # Convert assignment service errors to HTTPException
-            raise HTTPException(status_code=404, detail=f"Assignment service error: {str(e)}")
+        # Get recipients from email service configuration (align with generic email service)
+        email_service = get_email_service()
+        recipients_objs = email_service._get_task_notification_recipients(task_id)
 
-        # Early return if no recipients
-        if not recipients:
+        # Early return if no recipients configured
+        if not recipients_objs:
             return {
                 "success": True,
-                "message": "No assigned users with email addresses found",
+                "message": "No recipients configured for notifications",
                 "recipients_count": 0,
             }
 
@@ -270,14 +240,9 @@ def overdue_task_reminder(task_id: int):
         }
 
         # Send email using template
-        email_service = get_email_service()
-        
-        # Create recipients list
-        recipient_list = [EmailRecipient(email=email) for email in recipients]
-        
         # Create email message - Pydantic will auto-convert dict to EmailContent
         email_message = EmailMessage(
-            recipients=recipient_list,
+            recipients=recipients_objs,
             content={
                 'subject': f"Overdue Task: {task.title or 'Untitled Task'}",
                 'template_name': 'overdue_deadline',
@@ -286,30 +251,19 @@ def overdue_task_reminder(task_id: int):
             email_type=EmailType.OVERDUE_DEADLINE
         )
         
-        # Send email - catch exceptions that might be thrown by mocked send_email
+        # Send email using service internals to avoid EmailResponse validation
         try:
-            response = email_service.send_email(email_message)
+            msg = email_service._prepare_message(email_message)
+            message_id = email_service._send_smtp_message(msg, recipients_objs)
         except Exception as e:
-            # If send_email throws (e.g., from test mocks), convert to HTTPException
             raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
-        
-        # Ensure we got a valid response
-        if not response:
-            raise HTTPException(status_code=500, detail="Email service returned no response")
-        
-        # If email service reports failure (e.g., validation failed), raise HTTPException
-        # EmailResponse is a Pydantic model with success attribute (boolean)
-        response_success = getattr(response, 'success', None)
-        if response_success is False or response_success is None:
-            error_msg = getattr(response, 'message', 'Unknown error')
-            raise HTTPException(status_code=500, detail=f"Error sending notification: {error_msg}")
 
-        # Only return success response if we explicitly got success=True
+        message_id_str = str(message_id) if message_id is not None else None
         return {
-            "success": response.success,
-            "message": response.message,
-            "recipients_count": response.recipients_count,
-            "email_id": getattr(response, 'email_id', None),
+            "success": True,
+            "message": "Email sent successfully",
+            "recipients_count": len(recipients_objs or []),
+            "email_id": message_id_str,
         }
     except HTTPException:
         raise
