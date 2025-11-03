@@ -15,6 +15,19 @@ from backend.src.database.models.task_assignment import TaskAssignment
 from backend.src.enums.task_status import TaskStatus
 from backend.src.enums.user_role import UserRole
 from backend.src.handlers.report_handler import generate_pdf_report, generate_excel_report
+from tests.mock_data.report_data import (
+    MOCK_USER_MANAGER,
+    MOCK_USER_TEAM_MEMBER_1,
+    MOCK_USER_TEAM_MEMBER_2,
+    MOCK_PROJECT,
+    MOCK_TASK_TO_DO,
+    MOCK_TASK_TO_DO_2,
+    MOCK_TASK_IN_PROGRESS,
+    MOCK_TASK_COMPLETED,
+    MOCK_TASK_COMPLETED_2,
+    MOCK_TASK_BLOCKED,
+    MOCK_TASK_ASSIGNEES
+)
 
 
 @pytest.fixture(scope="function")
@@ -38,189 +51,92 @@ def test_engine():
         os.remove(db_path)
 
 
-@pytest.fixture
-def db_session(test_engine):
-    """Create a database session for testing."""
+@pytest.fixture(scope="function")
+def isolated_test_db(test_engine):
+    """Patch services to use the test database for each test."""
     from sqlalchemy.orm import sessionmaker
-    
-    connection = test_engine.connect()
-    transaction = connection.begin()
-    Session = sessionmaker(bind=connection)
-    session = Session()
-    
-    try:
-        yield session
-    finally:
-        session.close()
-        transaction.rollback()
-        connection.close()
-
-
-@pytest.fixture
-def setup_project_with_tasks(db_session):
-    """Create a project with multiple tasks in different statuses."""
-    # Override services to use test session
-    from backend.src.services import task as task_service
-    from backend.src.services import project as project_service
-    from backend.src.services import task_assignment as assignment_service
-    from sqlalchemy.orm import sessionmaker
+    from unittest.mock import patch
     
     TestingSessionLocal = sessionmaker(
-        bind=db_session.get_bind(),
+        bind=test_engine,
         autoflush=False,
         autocommit=False,
         expire_on_commit=False,
+        future=True,
     )
     
-    # Store original SessionLocal
-    original_task_session = task_service.SessionLocal
-    original_project_session = project_service.SessionLocal
-    original_assignment_session = assignment_service.SessionLocal
+    from backend.src.services import task as task_service
+    from backend.src.services import project as project_service
+    from backend.src.services import task_assignment as assignment_service
     
-    # Replace with test session
-    task_service.SessionLocal = TestingSessionLocal
-    project_service.SessionLocal = TestingSessionLocal
-    assignment_service.SessionLocal = TestingSessionLocal
+    with patch("backend.src.services.task.SessionLocal", TestingSessionLocal), \
+         patch("backend.src.services.project.SessionLocal", TestingSessionLocal), \
+         patch("backend.src.services.task_assignment.SessionLocal", TestingSessionLocal):
+        yield test_engine
+
+
+@pytest.fixture
+def setup_project_with_tasks(isolated_test_db):
+    """Create a project with multiple tasks in different statuses."""
+    from sqlalchemy.orm import sessionmaker
+    
+    Session = sessionmaker(bind=isolated_test_db, future=True)
+    session = Session()
     
     try:
-        # Create users
-        user1 = User(
-            user_id=1,
-            name="Project Manager",
-            email="manager@example.com",
-            role=UserRole.MANAGER.value,
-            hashed_pw="hashed_password1",
-            admin=False,
-            department_id=None
-        )
-        user2 = User(
-            user_id=2,
-            name="Team Member 1",
-            email="member1@example.com",
-            role=UserRole.STAFF.value,
-            hashed_pw="hashed_password2",
-            admin=False,
-            department_id=None
-        )
-        user3 = User(
-            user_id=3,
-            name="Team Member 2",
-            email="member2@example.com",
-            role=UserRole.STAFF.value,
-            hashed_pw="hashed_password3",
-            admin=False,
-            department_id=None
-        )
+        user1 = User(user_id=1, **MOCK_USER_MANAGER)
+        user2 = User(user_id=2, **MOCK_USER_TEAM_MEMBER_1)
+        user3 = User(user_id=3, **MOCK_USER_TEAM_MEMBER_2)
         
-        db_session.add_all([user1, user2, user3])
-        db_session.flush()
+        session.add_all([user1, user2, user3])
+        session.flush()
         
-        # Create project
-        project = Project(
-            project_id=1,
-            project_name="Test Project - Report Generation",
-            project_manager=1,
-            active=True
-        )
-        db_session.add(project)
-        db_session.flush()
+        project = Project(**MOCK_PROJECT)
+        session.add(project)
+        session.flush()
         
-        # Create tasks with different statuses
         tasks_data = [
-            {
-                "title": "Projected Task 1",
-                "description": "A task that hasn't started yet",
-                "status": TaskStatus.TO_DO.value,
-                "priority": 7,
-                "start_date": date(2024, 12, 1),
-                "deadline": date(2024, 12, 15),
-                "project_id": 1,
-                "active": True,
-                "tag": "feature"
-            },
-            {
-                "title": "Projected Task 2",
-                "description": "Another planned task",
-                "status": TaskStatus.TO_DO.value,
-                "priority": 5,
-                "start_date": date(2024, 12, 5),
-                "deadline": date(2024, 12, 20),
-                "project_id": 1,
-                "active": True,
-                "tag": "enhancement"
-            },
-            {
-                "title": "In-Progress Task",
-                "description": "Currently being worked on",
-                "status": TaskStatus.IN_PROGRESS.value,
-                "priority": 9,
-                "start_date": date(2024, 11, 20),
-                "deadline": date(2024, 12, 10),
-                "project_id": 1,
-                "active": True,
-                "tag": "bugfix"
-            },
-            {
-                "title": "Completed Task 1",
-                "description": "Finished successfully",
-                "status": TaskStatus.COMPLETED.value,
-                "priority": 6,
-                "start_date": date(2024, 11, 1),
-                "deadline": date(2024, 11, 15),
-                "project_id": 1,
-                "active": True,
-                "tag": "feature"
-            },
-            {
-                "title": "Completed Task 2",
-                "description": "Another completed task",
-                "status": TaskStatus.COMPLETED.value,
-                "priority": 4,
-                "start_date": date(2024, 11, 5),
-                "deadline": date(2024, 11, 20),
-                "project_id": 1,
-                "active": True,
-                "tag": "documentation"
-            },
-            {
-                "title": "Under Review Task",
-                "description": "Blocked and needs review",
-                "status": TaskStatus.BLOCKED.value,
-                "priority": 8,
-                "start_date": date(2024, 11, 15),
-                "deadline": date(2024, 12, 5),
-                "project_id": 1,
-                "active": True,
-                "tag": "blocked"
-            },
+            MOCK_TASK_TO_DO,
+            MOCK_TASK_TO_DO_2,
+            MOCK_TASK_IN_PROGRESS,
+            MOCK_TASK_COMPLETED,
+            MOCK_TASK_COMPLETED_2,
+            MOCK_TASK_BLOCKED
         ]
         
         tasks = []
         for task_data in tasks_data:
-            task = Task(**task_data)
-            db_session.add(task)
-            db_session.flush()
+            task_dict = {k: v for k, v in task_data.items() if k != "id"}
+            task = Task(**task_dict)
+            session.add(task)
+            session.flush()
             tasks.append(task)
+    
+        assignee_name_to_user_id = {
+            "Project Manager": 1,
+            "Team Member 1": 2,
+            "Team Member 2": 3
+        }
         
-        # Assign users to tasks
-        # Task 1 (Projected) -> user2
-        assignment1 = TaskAssignment(task_id=tasks[0].id, user_id=2)
-        # Task 3 (In-Progress) -> user2 and user3
-        assignment2 = TaskAssignment(task_id=tasks[2].id, user_id=2)
-        assignment3 = TaskAssignment(task_id=tasks[2].id, user_id=3)
-        # Task 4 (Completed) -> user1
-        assignment4 = TaskAssignment(task_id=tasks[3].id, user_id=1)
+        assignments = []
+        task_mock_ids = [1, 7, 2, 3, 8, 4]
         
-        db_session.add_all([assignment1, assignment2, assignment3, assignment4])
-        db_session.commit()
+        for task_idx, mock_task_id in enumerate(task_mock_ids):
+            if mock_task_id in MOCK_TASK_ASSIGNEES:
+                for assignee_name in MOCK_TASK_ASSIGNEES[mock_task_id]:
+                    if assignee_name in assignee_name_to_user_id:
+                        assignments.append(TaskAssignment(
+                            task_id=tasks[task_idx].id,
+                            user_id=assignee_name_to_user_id[assignee_name]
+                        ))
+        
+        session.add_all(assignments)
+        session.commit()
         
         yield {"project_id": 1, "project": project, "tasks": tasks, "users": [user1, user2, user3]}
         
     finally:
-        # Restore original SessionLocal
-        task_service.SessionLocal = original_task_session
-        project_service.SessionLocal = original_project_session
-        assignment_service.SessionLocal = original_assignment_session
+        session.close()
 
 
 class TestReportExport:
@@ -235,7 +151,6 @@ class TestReportExport:
         assert pdf_buffer is not None
         assert isinstance(pdf_buffer, BytesIO)
         
-        # Check PDF content
         pdf_buffer.seek(0)
         content = pdf_buffer.read()
         assert len(content) > 0
@@ -250,19 +165,17 @@ class TestReportExport:
         assert excel_buffer is not None
         assert isinstance(excel_buffer, BytesIO)
         
-        # Check Excel content
         excel_buffer.seek(0)
         content = excel_buffer.read()
         assert len(content) > 0
-        # Excel files start with PK (ZIP signature)
         assert content.startswith(b'PK')
     
-    def test_generate_pdf_report_project_not_found(self):
+    def test_generate_pdf_report_project_not_found(self, isolated_test_db):
         """Test PDF generation with non-existent project."""
         with pytest.raises(ValueError, match="Project 9999 not found"):
             generate_pdf_report(9999)
     
-    def test_generate_excel_report_project_not_found(self):
+    def test_generate_excel_report_project_not_found(self, isolated_test_db):
         """Test Excel generation with non-existent project."""
         with pytest.raises(ValueError, match="Project 9999 not found"):
             generate_excel_report(9999)
@@ -274,13 +187,8 @@ class TestReportExport:
         pdf_buffer = generate_pdf_report(project_id)
         pdf_buffer.seek(0)
         content = pdf_buffer.read()
-        
-        # Check that PDF was generated (has PDF header)
         assert content.startswith(b'%PDF')
-        
-        # PDF content is binary, so we can't easily search for text
-        # Instead, verify the PDF was generated successfully and has reasonable size
-        assert len(content) > 1000  # Should be at least 1KB for a valid report
+        assert len(content) > 1000
     
     def test_excel_report_has_summary_sheet(self, setup_project_with_tasks):
         """Verify Excel report has summary information in the single sheet."""
@@ -293,19 +201,15 @@ class TestReportExport:
         
         wb = load_workbook(excel_buffer)
         
-        # Check that the main sheet exists (now single sheet instead of separate Summary sheet)
         assert "Project Schedule Report" in wb.sheetnames
-        
-        # Check that the sheet has summary information
         ws = wb["Project Schedule Report"]
-        assert ws["A1"].value is not None  # Report title should be there
-        assert ws["A2"].value == "Project Name"  # Project name label
-        assert ws["B2"].value is not None  # Project name value
-        assert ws["A4"].value == "Summary"  # Summary section header
+        assert ws["A1"].value is not None
+        assert ws["A2"].value == "Project Name"
+        assert ws["B2"].value is not None
+        assert ws["A4"].value == "Summary"
         
-        # Check that summary metrics exist
         summary_values = []
-        for row in range(5, 11):  # Rows 5-10 should have summary data
+        for row in range(5, 11):
             if ws[f"A{row}"].value:
                 summary_values.append(ws[f"A{row}"].value)
         
@@ -316,8 +220,6 @@ class TestReportExport:
         """Test PDF generation when report service raises a non-ValueError exception."""
         project_id = setup_project_with_tasks["project_id"]
         
-        # Mock report_service.generate_pdf_report to raise a generic exception
-        # Using the new service signature: (project, tasks, task_assignees)
         def mock_generate_pdf(project, tasks, task_assignees):
             raise RuntimeError("PDF generation failed")
         
@@ -331,8 +233,6 @@ class TestReportExport:
         """Test Excel generation when report service raises a non-ValueError exception."""
         project_id = setup_project_with_tasks["project_id"]
         
-        # Mock report_service.generate_excel_report to raise a generic exception
-        # Using the new service signature: (project, tasks, task_assignees)
         def mock_generate_excel(project, tasks, task_assignees):
             raise RuntimeError("Excel generation failed")
         
@@ -401,12 +301,10 @@ class TestReportAPI:
             future=True,
         )
         
-        # Store originals
         old_task_session = task_service.SessionLocal
         old_project_session = project_service.SessionLocal
         old_assignment_session = assignment_service.SessionLocal
         
-        # Override with test session
         task_service.SessionLocal = TestingSessionLocal
         project_service.SessionLocal = TestingSessionLocal
         assignment_service.SessionLocal = TestingSessionLocal
@@ -415,46 +313,30 @@ class TestReportAPI:
             with TestClient(app) as client:
                 yield client
         finally:
-            # Restore originals
             task_service.SessionLocal = old_task_session
             project_service.SessionLocal = old_project_session
             assignment_service.SessionLocal = old_assignment_session
 
     @pytest.fixture
     def api_setup_project(self, api_test_engine):
-        """Create a project for API testing."""
+        """Create a project for API testing using mock data."""
         from sqlalchemy.orm import sessionmaker
         from backend.src.database.models.project import Project
         from backend.src.database.models.user import User
-        from backend.src.enums.user_role import UserRole
         
-        # Create a session directly on the engine (not via connection)
         Session = sessionmaker(bind=api_test_engine)
         session = Session()
         
         try:
-            user = User(
-                user_id=1,
-                name="Test Manager",
-                email="manager@test.com",
-                role=UserRole.MANAGER.value,
-                hashed_pw="hashed_pw",
-                admin=False,
-                department_id=None
-            )
+            user = User(user_id=1, **MOCK_USER_MANAGER)
             session.add(user)
             session.flush()
             
-            project = Project(
-                project_id=1,
-                project_name="API Test Project",
-                project_manager=1,
-                active=True
-            )
+            project = Project(**MOCK_PROJECT)
             session.add(project)
             session.commit()
             
-            return {"project_id": 1}
+            return {"project_id": MOCK_PROJECT["project_id"]}
         finally:
             session.close()
 
@@ -474,7 +356,6 @@ class TestReportAPI:
         """Test PDF export API returns 500 when handler raises non-ValueError exception."""
         project_id = api_setup_project["project_id"]
         
-        # Mock generate_pdf_report to raise a generic exception
         def mock_generate_pdf(*args, **kwargs):
             raise RuntimeError("PDF generation service error")
         
@@ -489,7 +370,6 @@ class TestReportAPI:
         """Test Excel export API returns 500 when handler raises non-ValueError exception."""
         project_id = api_setup_project["project_id"]
         
-        # Mock generate_excel_report to raise a generic exception
         def mock_generate_excel(*args, **kwargs):
             raise RuntimeError("Excel generation service error")
         

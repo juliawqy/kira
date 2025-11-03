@@ -7,7 +7,6 @@ from backend.src.enums.task_status import TaskStatus
 from backend.src.enums.user_role import UserRole
 
 
-# Mock User Data
 MOCK_USER_MANAGER = {
     "name": "Project Manager",
     "email": "manager@test.com",
@@ -35,22 +34,18 @@ MOCK_USER_TEAM_MEMBER_2 = {
     "department_id": None
 }
 
-# List of all mock users
 MOCK_USERS = [
     MOCK_USER_MANAGER,
     MOCK_USER_TEAM_MEMBER_1,
     MOCK_USER_TEAM_MEMBER_2
 ]
 
-# Mapping from assignee names to user mock data
 MOCK_USER_BY_NAME = {
     "Project Manager": MOCK_USER_MANAGER,
     "Team Member 1": MOCK_USER_TEAM_MEMBER_1,
     "Team Member 2": MOCK_USER_TEAM_MEMBER_2
 }
 
-
-# Mock Project Data
 MOCK_PROJECT = {
     "project_id": 1,
     "project_name": "Test Project Report",
@@ -69,8 +64,6 @@ INVALID_PROJECT_NO_NAME = {
     "project_manager": 1
 }
 
-
-# Mock Task Data (as nested JSON structures)
 MOCK_TASK_TO_DO = {
     "id": 1,
     "title": "Projected Task 1",
@@ -123,6 +116,32 @@ MOCK_TASK_BLOCKED = {
     "active": True
 }
 
+MOCK_TASK_TO_DO_2 = {
+    "id": 7,
+    "title": "Projected Task 2",
+    "description": "Another planned task",
+    "status": TaskStatus.TO_DO.value,
+    "priority": 5,
+    "start_date": date(2024, 12, 5),
+    "deadline": date(2024, 12, 20),
+    "tag": "enhancement",
+    "project_id": 1,
+    "active": True
+}
+
+MOCK_TASK_COMPLETED_2 = {
+    "id": 8,
+    "title": "Completed Task 2",
+    "description": "Another completed task",
+    "status": TaskStatus.COMPLETED.value,
+    "priority": 4,
+    "start_date": date(2024, 11, 5),
+    "deadline": date(2024, 11, 20),
+    "tag": "documentation",
+    "project_id": 1,
+    "active": True
+}
+
 MOCK_TASK_NO_DATES = {
     "id": 5,
     "title": "Task Without Dates",
@@ -137,7 +156,7 @@ MOCK_TASK_NO_DATES = {
 }
 
 MOCK_TASK_LONG_TITLE = {
-    "id": 6,
+    "id": 7,
     "title": "This is a very long task title that exceeds forty characters in length for testing truncation",
     "description": "Testing long title truncation",
     "status": TaskStatus.IN_PROGRESS.value,
@@ -149,8 +168,6 @@ MOCK_TASK_LONG_TITLE = {
     "active": True
 }
 
-
-# Lists of mock tasks (nested JSON structures)
 MOCK_TASKS_ALL_STATUSES = [
     MOCK_TASK_TO_DO,
     MOCK_TASK_IN_PROGRESS,
@@ -165,16 +182,15 @@ MOCK_TASKS_WITH_NULLS = [
     MOCK_TASK_TO_DO
 ]
 
-
-# Mock Task Assignees
-# Dictionary mapping task_id to list of assignee names
 MOCK_TASK_ASSIGNEES = {
-    1: ["Team Member 1"],  # Task 1 has one assignee
-    2: ["Team Member 1", "Team Member 2"],  # Task 2 has two assignees
-    3: ["Project Manager"],  # Task 3 has one assignee
-    4: [],  # Task 4 has no assignees (should show "Unassigned")
-    5: ["Single Assignee"],
-    6: ["Very Long Assignee Name That Might Need Truncation"]
+    1: ["Team Member 1"], 
+    2: ["Team Member 1", "Team Member 2"],  
+    3: ["Project Manager"],  
+    4: [],  
+    5: [],  
+    6: ["Single Assignee"],  
+    7: ["Team Member 1"],  
+    8: [],  
 }
 
 MOCK_TASK_ASSIGNEES_EMPTY = {}

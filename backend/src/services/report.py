@@ -77,17 +77,13 @@ def generate_pdf_report(
     if not project.get('project_name'):
         raise ValueError("Project name is required")
     
-    # Collect tasks
-    all_tasks = list(tasks)  # Copy the list
+    all_tasks = list(tasks)
     
     summary = _get_task_summary_data(all_tasks)
     
-    # Create PDF buffer
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
     story = []
-    
-    # Styles
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         'CustomTitle',
@@ -106,11 +102,9 @@ def generate_pdf_report(
         spaceBefore=20
     )
     
-    # Title
     story.append(Paragraph(f"Project Schedule Report: {project['project_name']}", title_style))
     story.append(Spacer(1, 0.2*inch))
     
-    # Summary section
     summary_data = [
         ["Metric", "Count"],
         ["Total Tasks", str(summary["total"])],
@@ -135,7 +129,6 @@ def generate_pdf_report(
     story.append(summary_table)
     story.append(Spacer(1, 0.3*inch))
     
-    # Task details by status
     status_groups = [
         ("Projected Tasks", summary["projected"], colors.HexColor('#4caf50')),
         ("In-Progress Tasks", summary["in_progress"], colors.HexColor('#ff9800')),
@@ -149,7 +142,6 @@ def generate_pdf_report(
             
         story.append(Paragraph(group_title, heading_style))
         
-        # Create task table
         task_data = [["ID", "Title", "Priority", "Start Date", "Deadline", "Assignees"]]
         
         for task in group_tasks:
@@ -179,14 +171,12 @@ def generate_pdf_report(
         story.append(task_table)
         story.append(Spacer(1, 0.2*inch))
     
-    # Footer
     story.append(Spacer(1, 0.2*inch))
     story.append(Paragraph(
         f"Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         styles['Normal']
     ))
     
-    # Build PDF
     doc.build(story)
     buffer.seek(0)
     return buffer
@@ -215,17 +205,14 @@ def generate_excel_report(
     if not project.get('project_name'):
         raise ValueError("Project name is required")
     
-    # Collect tasks
-    all_tasks = list(tasks)  # Copy the list
+
+    all_tasks = list(tasks)
     
     summary = _get_task_summary_data(all_tasks)
-    
-    # Create Excel workbook with a single sheet
     wb = Workbook()
     ws = wb.active
     ws.title = "Project Schedule Report"
-    
-    # Header style
+        # Header style
     header_fill = PatternFill(start_color="3949AB", end_color="3949AB", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF", size=12)
     border = Border(
@@ -235,7 +222,6 @@ def generate_excel_report(
         bottom=Side(style='thin')
     )
     
-    # Title and project info
     ws['A1'] = "Project Schedule Report"
     ws['A1'].font = Font(bold=True, size=16)
     ws.merge_cells('A1:H1')
@@ -247,7 +233,6 @@ def generate_excel_report(
     ws['B2'].font = Font(bold=True)
     ws.merge_cells('B2:H2')
     
-    # Summary section
     ws['A4'] = "Summary"
     ws['A4'].font = Font(bold=True, size=14)
     ws.merge_cells('A4:H4')
@@ -278,10 +263,9 @@ def generate_excel_report(
             ws[f'A{idx}'].fill = PatternFill(start_color="F5F5F5", end_color="F5F5F5", fill_type="solid")
             ws[f'B{idx}'].fill = PatternFill(start_color="F5F5F5", end_color="F5F5F5", fill_type="solid")
     
-    # Task data section - starting after summary
+
     current_row = 12
     
-    # Status groups with their colors
     status_groups = [
         ("PROJECTED TASKS", summary["projected"], "4CAF50"),
         ("IN-PROGRESS TASKS", summary["in_progress"], "FF9800"),
@@ -289,14 +273,12 @@ def generate_excel_report(
         ("UNDER REVIEW TASKS", summary["under_review"], "F44336"),
     ]
     
-    # Headers for task table
     headers = ["ID", "Title", "Description", "Priority", "Start Date", "Deadline", "Assignees", "Tag"]
     
     for status_title, task_list, color_hex in status_groups:
         if not task_list:
             continue
         
-        # Status section header
         status_cell = ws.cell(row=current_row, column=1, value=status_title)
         status_cell.font = Font(bold=True, size=13)
         status_cell.fill = PatternFill(start_color=color_hex, end_color=color_hex, fill_type="solid")
@@ -305,7 +287,6 @@ def generate_excel_report(
         status_cell.alignment = Alignment(horizontal='left', vertical='center')
         current_row += 1
         
-        # Column headers for this section
         for col_idx, header in enumerate(headers, start=1):
             cell = ws.cell(row=current_row, column=col_idx, value=header)
             cell.fill = PatternFill(start_color=color_hex, end_color=color_hex, fill_type="solid")
@@ -314,13 +295,12 @@ def generate_excel_report(
             cell.alignment = Alignment(horizontal='center', vertical='center')
         current_row += 1
         
-        # Task data
         for task in task_list:
             assignees = _get_assignees_string(task, task_assignees)
             row_data = [
                 task.id,
                 task.title or "N/A",
-                (task.description or "N/A")[:100],  # Limit description length
+                (task.description or "N/A")[:100],
                 task.priority,
                 _format_date(task.start_date),
                 _format_date(task.deadline),
@@ -336,52 +316,23 @@ def generate_excel_report(
                     cell.fill = PatternFill(start_color="F5F5F5", end_color="F5F5F5", fill_type="solid")
             
             current_row += 1
-        
-        # Add spacing between sections
+
         current_row += 1
     
-    # Auto-adjust column widths
-    # Handle merged cells by iterating through actual column indices
     from openpyxl.utils import get_column_letter
     
-    for col_idx in range(1, 9):  # Columns A through H (8 columns)
+    for col_idx in range(1, 9):
         max_length = 0
         column_letter = get_column_letter(col_idx)
         
-        # Get merged cell ranges for this column to skip non-primary merged cells
-        merged_coordinates = set()
-        if ws.merged_cells:
-            for merged_range in ws.merged_cells.ranges:
-                start_col = merged_range.min_col
-                end_col = merged_range.max_col
-                start_row = merged_range.min_row
-                end_row = merged_range.max_row
-                
-                # If this column is in the merged range
-                if start_col <= col_idx <= end_col:
-                    # Add all cells except the primary one (start_cell)
-                    for row in range(start_row, end_row + 1):
-                        coord = f"{get_column_letter(col_idx)}{row}"
-                        if coord != str(merged_range.start_cell):
-                            merged_coordinates.add(coord)
-        
         for row_idx in range(1, current_row + 1):
-            try:
-                cell_coord = f"{column_letter}{row_idx}"
-                # Skip merged cells that aren't the primary cell
-                if cell_coord in merged_coordinates:
-                    continue
-                    
-                cell = ws.cell(row=row_idx, column=col_idx)
-                if cell.value and len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except Exception:
-                pass
+            cell = ws.cell(row=row_idx, column=col_idx)
+            if cell.value and len(str(cell.value)) > max_length:
+                max_length = len(str(cell.value))
         
-        adjusted_width = min(max(max_length + 2, 10), 50)  # Min 10, max 50
+        adjusted_width = min(max(max_length + 2, 10), 50)
         ws.column_dimensions[column_letter].width = adjusted_width
     
-    # Save to buffer
     buffer = BytesIO()
     wb.save(buffer)
     buffer.seek(0)
