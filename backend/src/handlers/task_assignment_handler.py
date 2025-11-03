@@ -183,6 +183,7 @@ def list_tasks_by_manager(manager_id: int) -> dict:
     
     all_tasks = {}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     all_subteams = team_service.get_subteam_by_team_number(team.team_number)
 
     team_members = team_service.get_users_in_team(team.team_id)
@@ -202,6 +203,8 @@ def list_tasks_by_manager(manager_id: int) -> dict:
                 if task not in all_tasks[subteam.team_number]:
                     all_tasks[subteam.team_number].append(task)
 =======
+=======
+>>>>>>> Stashed changes
     
     # Process each team managed by this manager
     for team in teams:
@@ -226,6 +229,9 @@ def list_tasks_by_manager(manager_id: int) -> dict:
                 for task in user_tasks:
                     if task not in all_tasks[subteam["team_number"]]:
                         all_tasks[subteam["team_number"]].append(task)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
     return all_tasks
