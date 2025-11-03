@@ -182,6 +182,7 @@ def list_tasks_by_manager(manager_id: int) -> dict:
         return {}
     
     all_tasks = {}
+<<<<<<< Updated upstream
     all_subteams = team_service.get_subteam_by_team_number(team.team_number)
 
     team_members = team_service.get_users_in_team(team.team_id)
@@ -200,6 +201,32 @@ def list_tasks_by_manager(manager_id: int) -> dict:
             for task in user_tasks:
                 if task not in all_tasks[subteam.team_number]:
                     all_tasks[subteam.team_number].append(task)
+=======
+    
+    # Process each team managed by this manager
+    for team in teams:
+        # Get subteams under this team
+        all_subteams = team_service.get_subteam_by_team_number(team["team_number"])
+
+        # Get members of this team
+        team_members = team_service.get_users_in_team(team["team_id"])
+        all_tasks[team["team_number"]] = []
+        for member in team_members:
+            user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
+            for task in user_tasks:
+                if task not in all_tasks[team["team_number"]]:
+                    all_tasks[team["team_number"]].append(task)
+
+        # Process subteams
+        for subteam in all_subteams:
+            subteam_members = team_service.get_users_in_team(subteam["team_id"])
+            all_tasks[subteam["team_number"]] = []
+            for member in subteam_members:
+                user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
+                for task in user_tasks:
+                    if task not in all_tasks[subteam["team_number"]]:
+                        all_tasks[subteam["team_number"]].append(task)
+>>>>>>> Stashed changes
 
     return all_tasks
 
@@ -223,21 +250,21 @@ def list_tasks_by_director(director_id: int) -> dict:
 
     all_tasks = {}
     for team in teams:
-        all_tasks[team.team_number] = []
-        team_members = team_service.get_users_in_team(team.team_id)
+        all_tasks[team["team_number"]] = []
+        team_members = team_service.get_users_in_team(team["team_id"])
         for member in team_members:
             user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
             for task in user_tasks:
-                if task not in all_tasks[team.team_number]:
-                    all_tasks[team.team_number].append(task)
-        subteams = team_service.get_subteam_by_team_number(team.team_number)
+                if task not in all_tasks[team["team_number"]]:
+                    all_tasks[team["team_number"]].append(task)
+        subteams = team_service.get_subteam_by_team_number(team["team_number"])
         for subteam in subteams:
-            all_tasks[subteam.team_number] = []
-            subteam_members = team_service.get_users_in_team(subteam.team_id)
+            all_tasks[subteam["team_number"]] = []
+            subteam_members = team_service.get_users_in_team(subteam["team_id"])
             for member in subteam_members:
                 user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
                 for task in user_tasks:
-                    if task not in all_tasks[subteam.team_number]:
-                        all_tasks[subteam.team_number].append(task)
+                    if task not in all_tasks[subteam["team_number"]]:
+                        all_tasks[subteam["team_number"]].append(task)
 
     return all_tasks
