@@ -6,6 +6,8 @@ from typing import Iterable, List, Optional, Set
 from backend.src.services import task_assignment as assignment_service
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
+from backend.src.services import team as team_service
+from backend.src.services import department as department_service
 from backend.src.services.notification import get_notification_service
 from backend.src.schemas.user import UserRead
 from backend.src.enums.notification import NotificationType
@@ -164,3 +166,80 @@ def list_user_tasks(user_id: int) -> list[int]:
         raise ValueError("User not found")
 
     return assignment_service.list_tasks_for_user(user_id)
+
+def list_tasks_by_manager(manager_id: int) -> list:
+    """Get all tasks assigned to users managed by a specific manager."""
+    manager = user_service.get_user(manager_id)
+    if not manager:
+        raise ValueError("Manager not found.")
+
+    if not manager.role == 'manager':
+        raise ValueError("User is not a manager.")
+    
+    team = team_service.get_team_by_manager(manager_id)
+    if not team:
+        return []
+    
+    all_tasks = []
+    all_subteams = team_service.get_subteam_by_team_number(team.team_number)
+
+    team_members = team_service.get_users_in_team(team.team_id)
+    for member in team_members:
+        user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
+        all_tasks.extend(user_tasks)
+    
+    for subteam in all_subteams:
+        subteam_members = team_service.get_users_in_team(subteam.team_id)
+        for member in subteam_members:
+            user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
+            all_tasks.extend(user_tasks)
+
+    unique_task_ids = list(set(all_tasks))
+    tasks_with_details = []
+    for task_id in unique_task_ids:
+        task = task_service.get_task_with_subtasks(task_id)
+        if task:
+            tasks_with_details.append(task)
+
+    return tasks_with_details
+
+def list_tasks_by_director(director_id: int) -> list:
+    """Get all tasks assigned to users managed by teams under a specific director."""
+    director = user_service.get_user(director_id)
+    if not director:
+        raise ValueError("Director not found.")
+
+    if not director.role == 'director':
+        raise ValueError("User is not a director.")
+    
+    department = department_service.get_department_by_director(director_id)
+    if not department:
+        return []
+
+    teams = team_service.get_teams_by_department(department["department_id"])
+    if not teams:
+        return []
+    
+
+    
+    all_tasks = []
+    for team in teams:
+        team_members = team_service.get_users_in_team(team.team_id)
+        for member in team_members:
+            user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
+            all_tasks.extend(user_tasks)
+        subteams = team_service.get_subteam_by_team_number(team.team_number)
+        for subteam in subteams:
+            subteam_members = team_service.get_users_in_team(subteam.team_id)
+            for member in subteam_members:
+                user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
+                all_tasks.extend(user_tasks)
+
+    unique_task_ids = list(set(all_tasks))
+    tasks_with_details = []
+    for task_id in unique_task_ids:
+        task = task_service.get_task_with_subtasks(task_id)
+        if task:
+            tasks_with_details.append(task)
+
+    return tasks_with_details
