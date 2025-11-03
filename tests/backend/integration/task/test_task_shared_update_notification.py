@@ -7,6 +7,7 @@ from backend.src.database.models.user import User
 from backend.src.database.models.project import Project
 from tests.mock_data.task.integration_data import (
     TASK_CREATE_PAYLOAD,
+    TASK_UPDATE_PARTIAL_TITLE,
     VALID_PROJECT,
     VALID_USER_ADMIN,
     VALID_USER_EMPLOYEE,
@@ -59,7 +60,7 @@ def test_update_task_notifies_assignees_and_shared_recipients(test_engine, clean
 
     updated = task_handler.update_task(
         task.id,
-        title=task.title,
+        title=TASK_UPDATE_PARTIAL_TITLE["title"],
         shared_recipient_emails=[VALID_USER_ADMIN["email"]],
         user_email=VALID_USER_ADMIN["email"],
     )

@@ -140,7 +140,7 @@ class EmailService:
             # return message_id
 
             # comment following line when actual email sending is enabled
-            return 1
+            return 1 # pragma: no cover
 
             
         finally:
