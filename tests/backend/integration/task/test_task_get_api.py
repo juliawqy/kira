@@ -577,25 +577,24 @@ def test_list_tasks_invalid_project(client, task_base_path):
     assert response.status_code == 400
 
 # INT-002/014
-def test_list_tasks_by_manager_success(client, task_base_path):
+def test_list_tasks_by_project_by_manager_success(client, task_base_path):
     """Test getting all tasks for projects managed by a manager."""
-    # Create tasks in different projects
+
     for payload in (TASK_CREATE_PAYLOAD, TASK_2_PAYLOAD, TASK_3_PAYLOAD, TASK_4_PAYLOAD):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    # Get tasks for manager (user_id=1 manages both project 1 and 2)
-    response = client.get(f"{task_base_path}/manager/1")
+    response = client.get(f"{task_base_path}/manager/project/{VALID_USER_MANAGER['user_id']}")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    # Should get all 4 tasks since manager manages both projects
+
     assert len(data) == 4
 
 # INT-002/015
-def test_list_tasks_by_manager_no_projects(client, task_base_path):
+def test_list_tasks_by_project_by_manager_no_projects(client, task_base_path):
     """Test getting tasks for a manager with no projects."""
-    response = client.get(f"{task_base_path}/manager/{VALID_USER_MANAGER['user_id']}")
+    response = client.get(f"{task_base_path}/manager/project/{VALID_USER_MANAGER['user_id']}")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -604,33 +603,28 @@ def test_list_tasks_by_manager_no_projects(client, task_base_path):
 # INT-002/016
 def test_list_tasks_by_director_success(client, task_base_path, test_db_session):
     """Test getting all tasks for users in director's department."""
-    # Get existing users from create_test_project fixture
+
     existing_admin = test_db_session.query(User).filter(User.user_id == VALID_USER_ADMIN['user_id']).first()
     existing_manager = test_db_session.query(User).filter(User.user_id == VALID_USER_MANAGER['user_id']).first()
     
-    # Create director first (without department_id)
     director_data = VALID_USER_DIRECTOR.copy()
     director_data['department_id'] = None
     director = User(**director_data)
     test_db_session.add(director)
     test_db_session.flush()
     
-    # Create department with director as manager
     dept = Department(department_id=1, department_name="Engineering", manager_id=director.user_id)
     test_db_session.add(dept)
     test_db_session.flush()
-    
-    # Update director with department_id
+
     director.department_id = 1
     test_db_session.add(director)
-    
-    # Update existing users with department_id
+
     existing_admin.department_id = 1
     existing_manager.department_id = 1
     test_db_session.add_all([existing_admin, existing_manager])
     test_db_session.flush()
     
-    # Create team in department
     team = Team(team_id=1, team_name="Alpha Team", manager_id=VALID_USER_ADMIN['user_id'], department_id=1, team_number="010100")
     test_db_session.add(team)
     test_db_session.flush()

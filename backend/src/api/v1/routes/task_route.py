@@ -78,21 +78,21 @@ def list_project_tasks_by_user(project_id: int, user_id: int):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/manager/{manager_id}", response_model=List[TaskWithSubTasks], name="list_tasks_by_manager")
+@router.get("/manager/{manager_id}", response_model=dict, name="list_tasks_by_manager")
 def list_tasks_by_manager(manager_id: int):
+    """Get all tasks assigned to users managed by a specific manager."""
+    try:
+        all_tasks = assignment_handler.list_tasks_by_manager(manager_id)
+        return all_tasks
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/manager/project/{manager_id}", response_model=List[TaskWithSubTasks], name="list_tasks_by_project_by_manager")
+def list_tasks_by_project_by_manager(manager_id: int):
     """Get all tasks in projects managed by a specific manager."""
     try:
-        # Get all projects managed by this user
-        projects = project_handler.get_projects_by_manager(manager_id)
-        if not projects:
-            return []
-        
-        # Get all tasks from these projects
-        all_tasks = []
-        for project in projects:
-            tasks = task_handler.list_tasks_by_project(project["project_id"])
-            all_tasks.extend(tasks)
-        
+        all_tasks = task_handler.list_project_tasks_by_manager(manager_id)
         return all_tasks
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -102,31 +102,7 @@ def list_tasks_by_manager(manager_id: int):
 def list_tasks_by_director(director_id: int):
     """Get all tasks for users in the department managed by a specific director."""
     try:
-        # Get the director's department_id
-        director = user_service.get_user(director_id)
-        if not director or not director.department_id:
-            return []
-        
-        dept_id = director.department_id
-        
-        # Get all users in this department (directly assigned)
-        direct_users = department_handler.view_users_in_department(dept_id)
-        all_user_ids = {user["user_id"] for user in direct_users}
-        
-        # Get all teams in this department
-        teams = department_handler.view_teams_in_department(dept_id)
-        
-        # Get all users in these teams
-        for team in teams:
-            team_users = department_handler.get_users_in_team(team["team_id"])
-            all_user_ids.update(user["user_id"] for user in team_users)
-        
-        # Get all tasks assigned to these users
-        all_tasks = []
-        for user_id in all_user_ids:
-            tasks = assignment_handler.list_user_tasks(user_id)
-            all_tasks.extend(tasks)
-        
+        all_tasks = assignment_handler.list_tasks_by_director(director_id)
         return all_tasks
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

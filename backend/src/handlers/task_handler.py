@@ -360,3 +360,11 @@ def list_project_tasks_by_user(project_id: int, user_id: int):
         raise ValueError(f"User {user_id} not found")
 
     return task_service.list_project_tasks_by_user(project_id, user_id)
+
+def list_project_tasks_by_manager(project_manager_id: int):
+    projects = project_service.get_projects_by_manager(project_manager_id)
+    all_tasks = []
+    for project in projects:
+        tasks = task_service.list_tasks_by_project(project.id, active_only=True)
+        all_tasks.extend(tasks)
+    return all_tasks
