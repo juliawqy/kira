@@ -167,7 +167,8 @@ def list_user_tasks(user_id: int) -> list[int]:
 
     return assignment_service.list_tasks_for_user(user_id)
 
-def list_tasks_by_manager(manager_id: int) -> list:
+
+def list_tasks_by_manager(manager_id: int) -> dict:
     """Get all tasks assigned to users managed by a specific manager."""
     manager = user_service.get_user(manager_id)
     if not manager:
@@ -178,32 +179,32 @@ def list_tasks_by_manager(manager_id: int) -> list:
     
     team = team_service.get_team_by_manager(manager_id)
     if not team:
-        return []
+        return {}
     
-    all_tasks = []
+    all_tasks = {}
     all_subteams = team_service.get_subteam_by_team_number(team.team_number)
 
     team_members = team_service.get_users_in_team(team.team_id)
+    all_tasks[team.team_number] = []
     for member in team_members:
         user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
-        all_tasks.extend(user_tasks)
-    
+        for task in user_tasks:
+            if task not in all_tasks[team.team_number]:
+                all_tasks[team.team_number].append(task)
+
     for subteam in all_subteams:
         subteam_members = team_service.get_users_in_team(subteam.team_id)
+        all_tasks[subteam.team_number] = []
         for member in subteam_members:
             user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
-            all_tasks.extend(user_tasks)
+            for task in user_tasks:
+                if task not in all_tasks[subteam.team_number]:
+                    all_tasks[subteam.team_number].append(task)
 
-    unique_task_ids = list(set(all_tasks))
-    tasks_with_details = []
-    for task_id in unique_task_ids:
-        task = task_service.get_task_with_subtasks(task_id)
-        if task:
-            tasks_with_details.append(task)
+    return all_tasks
 
-    return tasks_with_details
 
-def list_tasks_by_director(director_id: int) -> list:
+def list_tasks_by_director(director_id: int) -> dict:
     """Get all tasks assigned to users managed by teams under a specific director."""
     director = user_service.get_user(director_id)
     if not director:
@@ -214,32 +215,29 @@ def list_tasks_by_director(director_id: int) -> list:
     
     department = department_service.get_department_by_director(director_id)
     if not department:
-        return []
+        return {}
 
     teams = team_service.get_teams_by_department(department["department_id"])
     if not teams:
-        return []
-    
+        return {}
 
-    
-    all_tasks = []
+    all_tasks = {}
     for team in teams:
+        all_tasks[team.team_number] = []
         team_members = team_service.get_users_in_team(team.team_id)
         for member in team_members:
             user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
-            all_tasks.extend(user_tasks)
+            for task in user_tasks:
+                if task not in all_tasks[team.team_number]:
+                    all_tasks[team.team_number].append(task)
         subteams = team_service.get_subteam_by_team_number(team.team_number)
         for subteam in subteams:
+            all_tasks[subteam.team_number] = []
             subteam_members = team_service.get_users_in_team(subteam.team_id)
             for member in subteam_members:
                 user_tasks = assignment_service.list_tasks_for_user(member["user_id"])
-                all_tasks.extend(user_tasks)
+                for task in user_tasks:
+                    if task not in all_tasks[subteam.team_number]:
+                        all_tasks[subteam.team_number].append(task)
 
-    unique_task_ids = list(set(all_tasks))
-    tasks_with_details = []
-    for task_id in unique_task_ids:
-        task = task_service.get_task_with_subtasks(task_id)
-        if task:
-            tasks_with_details.append(task)
-
-    return tasks_with_details
+    return all_tasks

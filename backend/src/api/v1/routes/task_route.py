@@ -78,7 +78,7 @@ def list_project_tasks_by_user(project_id: int, user_id: int):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/manager/{manager_id}", response_model=List[TaskWithSubTasks], name="list_tasks_by_manager")
+@router.get("/manager/{manager_id}", response_model=dict, name="list_tasks_by_manager")
 def list_tasks_by_manager(manager_id: int):
     """Get all tasks assigned to users managed by a specific manager."""
     try:
