@@ -1,4 +1,5 @@
 import logging
+import threading
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
 from backend.src.services import comment as comment_service
@@ -40,25 +41,34 @@ def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails:
     commenter_email = getattr(user, "email", None) or "system@kira.local"
     commenter_name = getattr(user, "name", None) or commenter_email
 
-    svc = get_notification_service()
-    resp = svc.notify_activity(
-        user_email=commenter_email,
-        task_id=task_id,
-        task_title=task_title,
-        type_of_alert=NotificationType.COMMENT_CREATE.value,
-        comment_user=commenter_name,
-        to_recipients=sorted(recipients) if recipients else None,
-    )
-    logger.info(
-        "Comment notification dispatched",
-        extra={
-            "task_id": task_id,
-            "type": NotificationType.COMMENT_CREATE.value,
-            "success": getattr(resp, "success", None),
-            "resp_message": getattr(resp, "message", None),
-            "recipients_count": getattr(resp, "recipients_count", None),
-        },
-    )
+    def _send_notify():
+        try:
+            svc = get_notification_service()
+            resp = svc.notify_activity(
+                user_email=commenter_email,
+                task_id=task_id,
+                task_title=task_title,
+                type_of_alert=NotificationType.COMMENT_CREATE.value,
+                comment_user=commenter_name,
+                to_recipients=sorted(recipients) if recipients else None,
+            )
+            try:
+                logger.info(
+                    "Comment notification dispatched",
+                    extra={
+                        "task_id": task_id,
+                        "type": NotificationType.COMMENT_CREATE.value,
+                        "success": getattr(resp, "success", None),
+                        "resp_message": getattr(resp, "message", None),
+                        "recipients_count": getattr(resp, "recipients_count", None),
+                    },
+                )
+            except Exception:
+                pass
+        except Exception:
+            logger.exception("Comment notification failed")
+
+    threading.Thread(target=_send_notify, daemon=True).start()
 
     return comment
 
