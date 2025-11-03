@@ -27,36 +27,23 @@ export function renderTimeline(tasks, { log, reload } = {}) {
     return;
   }
   
-  // Filter out completed tasks for timeline (as per requirements)
-  const activeTasks = tasks.filter(t => t.status !== "Completed");
+  // Show all tasks including completed
+  const allTasks = tasks;
   
-  if (activeTasks.length === 0) {
-    timelineEl.innerHTML = `<div class="muted">No active tasks to display.</div>`;
+  if (allTasks.length === 0) {
+    timelineEl.innerHTML = `<div class="muted">No tasks to display.</div>`;
     return;
   }
   
   // Group tasks by project
   const tasksByProject = {};
-  activeTasks.forEach(task => {
+  allTasks.forEach(task => {
     const projectId = task.project_id || "unassigned";
     if (!tasksByProject[projectId]) {
       tasksByProject[projectId] = [];
     }
     tasksByProject[projectId].push(task);
   });
-  
-  // Create timeline header
-  const timelineHeader = document.createElement("div");
-  timelineHeader.className = "timeline-header";
-  timelineHeader.innerHTML = `
-    <div class="timeline-header-left">
-      <h3 style="margin: 0;">Projects</h3>
-    </div>
-    <div class="timeline-header-right">
-      <span>Progress</span>
-    </div>
-  `;
-  timelineEl.appendChild(timelineHeader);
   
   // Render each project section
   Object.entries(tasksByProject).forEach(([projectId, projectTasks]) => {
@@ -72,16 +59,9 @@ function renderProjectSection(projectId, tasks, { log, reload }) {
   const section = document.createElement("div");
   section.className = "timeline-project-section";
   
-  // Calculate progress (completed vs total)
+  // Calculate progress based on parent tasks only (completed/all)
   const totalTasks = tasks.length;
-  const completedSubtasks = tasks.reduce((count, task) => {
-    const subs = getSubtasks(task);
-    return count + subs.filter(st => st.status === "Completed").length;
-  }, 0);
-  const totalSubtasks = tasks.reduce((count, task) => {
-    const subs = getSubtasks(task);
-    return count + subs.length;
-  }, 0);
+  const completedTasks = tasks.filter(t => t.status === "Completed").length;
   
   // Overdue tasks count
   const overdueTasks = tasks.filter(t => isTaskOverdue(t));
@@ -94,16 +74,12 @@ function renderProjectSection(projectId, tasks, { log, reload }) {
   projectInfo.className = "timeline-project-info";
   
   const projectTitle = document.createElement("h4");
-  projectTitle.textContent = `Project ${projectId === "unassigned" ? "Unassigned" : `#${projectId}`}`;
-  projectInfo.appendChild(projectTitle);
-  
-  const projectMeta = document.createElement("div");
-  projectMeta.className = "timeline-project-meta";
-  projectMeta.innerHTML = `
-    <span>${totalTasks} ${totalTasks === 1 ? "task" : "tasks"}</span>
+  projectTitle.innerHTML = `
+    <span>Project ${projectId === "unassigned" ? "Unassigned" : `#${projectId}`}</span>
+    <span class="timeline-project-meta">${totalTasks} ${totalTasks === 1 ? "task" : "tasks"}</span>
     ${overdueTasks.length > 0 ? `<span class="timeline-overdue-badge">${overdueTasks.length} overdue</span>` : ""}
   `;
-  projectInfo.appendChild(projectMeta);
+  projectInfo.appendChild(projectTitle);
   
   projectHeader.appendChild(projectInfo);
   
@@ -111,13 +87,13 @@ function renderProjectSection(projectId, tasks, { log, reload }) {
   const progressContainer = document.createElement("div");
   progressContainer.className = "timeline-progress-container";
   
-  if (totalSubtasks > 0) {
+  if (totalTasks > 0) {
     const progressBar = document.createElement("div");
     progressBar.className = "timeline-progress-bar";
     
     const progressFill = document.createElement("div");
     progressFill.className = "timeline-progress-fill";
-    const progressPercent = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
+    const progressPercent = (completedTasks / totalTasks) * 100;
     progressFill.style.width = `${progressPercent}%`;
     
     progressBar.appendChild(progressFill);
@@ -125,13 +101,13 @@ function renderProjectSection(projectId, tasks, { log, reload }) {
     
     const progressText = document.createElement("span");
     progressText.className = "timeline-progress-text";
-    progressText.textContent = `${completedSubtasks}/${totalSubtasks}`;
+    progressText.textContent = `${completedTasks}/${totalTasks}`;
     progressContainer.appendChild(progressText);
   } else {
-    const noSubtasksText = document.createElement("span");
-    noSubtasksText.className = "muted";
-    noSubtasksText.textContent = "No subtasks";
-    progressContainer.appendChild(noSubtasksText);
+    const noProgressText = document.createElement("span");
+    noProgressText.className = "muted";
+    noProgressText.textContent = "No tasks";
+    progressContainer.appendChild(noProgressText);
   }
   
   projectHeader.appendChild(progressContainer);
@@ -179,10 +155,37 @@ function renderTimelineTaskCard(task, { log, reload }) {
   const taskBadges = document.createElement("div");
   taskBadges.className = "timeline-task-badges";
   
+  // Subtasks progress (inline if subtasks exist) - moved to front
+  const subs = getSubtasks(task);
+  if (subs && subs.length > 0) {
+    const completedSubs = subs.filter(st => st.status === "Completed").length;
+    const taskProgressContainer = document.createElement("div");
+    taskProgressContainer.className = "timeline-task-inline-progress";
+    
+    const taskProgressBar = document.createElement("div");
+    taskProgressBar.className = "timeline-task-inline-progress-bar";
+    
+    const taskProgressFill = document.createElement("div");
+    taskProgressFill.className = "timeline-task-inline-progress-fill";
+    const progressPercent = (completedSubs / subs.length) * 100;
+    taskProgressFill.style.width = `${progressPercent}%`;
+    
+    taskProgressBar.appendChild(taskProgressFill);
+    taskProgressContainer.appendChild(taskProgressBar);
+    
+    const taskProgressText = document.createElement("span");
+    taskProgressText.className = "timeline-task-inline-progress-text";
+    taskProgressText.textContent = `${completedSubs}/${subs.length}`;
+    taskProgressContainer.appendChild(taskProgressText);
+    
+    taskBadges.appendChild(taskProgressContainer);
+  }
+  
   // Status badge
   if (task.status) {
     const statusBadge = document.createElement("span");
-    statusBadge.className = "task-badge status";
+    const statusClass = `task-badge status ${task.status.toLowerCase().replace(' ', '-')}`;
+    statusBadge.className = statusClass;
     statusBadge.textContent = task.status;
     taskBadges.appendChild(statusBadge);
   }
@@ -199,45 +202,42 @@ function renderTimelineTaskCard(task, { log, reload }) {
   taskHeader.appendChild(taskBadges);
   card.appendChild(taskHeader);
   
+  // Task description (if available)
+  if (task.description) {
+    const taskDescription = document.createElement("div");
+    taskDescription.className = "timeline-task-description";
+    taskDescription.textContent = task.description;
+    card.appendChild(taskDescription);
+  }
+  
   // Task meta (assignees, dates)
   const taskMeta = document.createElement("div");
   taskMeta.className = "timeline-task-meta";
   
-  // Assignees
+  // Assignees with better formatting
   const assignees = getAssignees(task);
   if (assignees && assignees.length > 0) {
     const assigneesEl = document.createElement("div");
     assigneesEl.className = "timeline-task-assignees";
     const assigneeNames = assignees.map(a => a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`).join(", ");
-    assigneesEl.textContent = `Assigned to: ${assigneeNames}`;
+    assigneesEl.innerHTML = `<span class="timeline-meta-label">Assigned:</span> <span>${escapeHtml(assigneeNames)}</span>`;
     taskMeta.appendChild(assigneesEl);
   }
   
-  // Dates
+  // Dates with better formatting
   const datesEl = document.createElement("div");
   datesEl.className = "timeline-task-dates";
   const dateParts = [];
   if (task.start_date) {
-    dateParts.push(`Start: ${task.start_date}`);
+    dateParts.push(`<span class="timeline-meta-label">Start:</span> <span>${task.start_date}</span>`);
   }
   if (task.deadline) {
-    dateParts.push(`Due: ${task.deadline}`);
+    dateParts.push(`<span class="timeline-meta-label">Due:</span> <span>${task.deadline}</span>`);
   }
-  datesEl.textContent = dateParts.join(" | ");
+  datesEl.innerHTML = dateParts.join(" | ");
   taskMeta.appendChild(datesEl);
   
   card.appendChild(taskMeta);
-  
-  // Subtasks
-  const subs = getSubtasks(task);
-  if (subs && subs.length > 0) {
-    const subtasksSection = document.createElement("div");
-    subtasksSection.className = "timeline-subtasks";
-    subtasksSection.innerHTML = `
-      <div class="timeline-subtasks-label">Subtasks (${subs.length})</div>
-    `;
-    card.appendChild(subtasksSection);
-  }
   
   // Click handler to open detail panel
   card.addEventListener("click", () => {
