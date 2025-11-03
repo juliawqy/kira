@@ -25,6 +25,11 @@ def init_database():
     print("=" * 60)
     
     try:
+        # Step 0: Drop all tables (for clean reset)
+        print("\n🗑️  Step 0: Dropping all existing tables...")
+        Base.metadata.drop_all(engine)
+        print("✅ All tables dropped successfully!")
+        
         # Step 1: Create tables
         print("\n📋 Step 1: Creating database tables...")
         Base.metadata.create_all(engine)
@@ -47,6 +52,8 @@ def init_database():
         
     except Exception as e:
         print(f"\n❌ Error during initialization: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":

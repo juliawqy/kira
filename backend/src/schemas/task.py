@@ -36,6 +36,13 @@ class TaskWithSubTasks(TaskRead):
 class SubtaskIds(BaseModel):
     subtask_ids: List[int] = []  # allow empty list -> idempotent no-op
 
+class TeamTasksResponse(BaseModel):
+    """Response model for team-grouped tasks."""
+    model_config = ConfigDict(from_attributes=True)
+    
+    # This will be a dict[str, List[TaskWithSubTasks]]
+    # Pydantic will automatically serialize this structure
+
 
 # ---------- Write models ----------
 

@@ -6,6 +6,7 @@ import { bindCreateForm } from "./ui/createForm.js";
 import { bindEditDialog } from "./ui/editDialog.js";
 import { renderTimeline } from "./ui/timeline.js";
 import { renderGantt } from "./ui/gantt.js";
+import { renderTeamManagement } from "./ui/team-management.js";
 
 function log(label, payload) {
   const logEl = document.getElementById("log");
@@ -328,6 +329,29 @@ async function renderGanttView() {
   }
 }
 
+async function renderTeamManagementView() {
+  const teamMgmtEl = document.getElementById("teamManagement");
+  if (!teamMgmtEl || !isCurrentUserManagerOrDirector()) return;
+  
+  teamMgmtEl.innerHTML = `<div class="muted">Loading…</div>`;
+  
+  try {
+    // Fetch team tasks for the manager (returns dict grouped by team)
+    const data = await apiTask(`/manager/${CURRENT_USER.user_id}`, { method: "GET" });
+    log("GET team-management tasks", data);
+    
+    // Pass the dict directly to renderTeamManagement
+    const container = renderTeamManagement(data, { log, reload: () => renderTeamManagementView() });
+    
+    teamMgmtEl.innerHTML = "";
+    teamMgmtEl.appendChild(container);
+    
+  } catch (e) {
+    teamMgmtEl.innerHTML = `<div class="muted">Error loading team management.</div>`;
+    log("Team management error", String(e));
+  }
+}
+
 async function loadParents(){
   const ongoingEl = document.getElementById("ongoing");
   const completedEl = document.getElementById("completed");
@@ -346,9 +370,17 @@ async function loadParents(){
         userTasks = Array.isArray(data) ? data : [];
         setLastTasks(userTasks);
       } else if (isCurrentUserDirector()) {
-        // For directors, load tasks from their managed departments
+        // For directors, load tasks from their managed departments (returns dict grouped by team)
         const data = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
-        userTasks = Array.isArray(data) ? data : [];
+        // Flatten the dict into an array of all tasks
+        userTasks = [];
+        if (data && typeof data === 'object') {
+          Object.values(data).forEach(teamTaskList => {
+            if (Array.isArray(teamTaskList)) {
+              userTasks.push(...teamTaskList);
+            }
+          });
+        }
         setLastTasks(userTasks);
       } else {
         // For staff, load only their assigned tasks
