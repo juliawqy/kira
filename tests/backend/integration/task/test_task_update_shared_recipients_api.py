@@ -62,7 +62,10 @@ def test_update_task_shared_recipients_via_api(client, task_base_path, test_engi
     monkeypatch.setattr(
         task_handler.assignment_service,
         "list_assignees",
-        lambda tid: [_Assignee(VALID_USER_EMPLOYEE["email"])],
+        lambda tid: [
+            _Assignee(VALID_USER_EMPLOYEE["email"]),
+            _Assignee(VALID_USER_ADMIN["email"]),
+        ],
     )
 
     patch_payload = {

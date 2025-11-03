@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails: list[str] = None):
-    """Add a comment to a task with recipient emails from frontend."""
+    """Add a comment to a task and notify recipients."""
+
     task = task_service.get_task_with_subtasks(task_id)
     if not task:
         raise ValueError(f"Task {task_id} not found")
@@ -26,10 +27,7 @@ def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails:
     if recipient_emails:
         for email in recipient_emails:
             recipient_user = user_service.get_user(email)
-            if not recipient_user:
-                logger.warning(f"Recipient email {email} not found in system")
-                continue
-            if getattr(recipient_user, "email", None):
+            if recipient_user and getattr(recipient_user, "email", None):
                 recipients.add(recipient_user.email)
 
     assignees = assignment_service.list_assignees(task_id)
@@ -42,31 +40,25 @@ def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails:
     commenter_name = getattr(user, "name", None) or commenter_email
 
     def _send_notify():
-        try:
-            svc = get_notification_service()
-            resp = svc.notify_activity(
-                user_email=commenter_email,
-                task_id=task_id,
-                task_title=task_title,
-                type_of_alert=NotificationType.COMMENT_CREATE.value,
-                comment_user=commenter_name,
-                to_recipients=sorted(recipients) if recipients else None,
-            )
-            try:
-                logger.info(
-                    "Comment notification dispatched",
-                    extra={
-                        "task_id": task_id,
-                        "type": NotificationType.COMMENT_CREATE.value,
-                        "success": getattr(resp, "success", None),
-                        "resp_message": getattr(resp, "message", None),
-                        "recipients_count": getattr(resp, "recipients_count", None),
-                    },
-                )
-            except Exception:
-                pass
-        except Exception:
-            logger.exception("Comment notification failed")
+        svc = get_notification_service()
+        resp = svc.notify_activity(
+            user_email=commenter_email,
+            task_id=task_id,
+            task_title=task_title,
+            type_of_alert=NotificationType.COMMENT_CREATE.value,
+            comment_user=commenter_name,
+            to_recipients=sorted(recipients) if recipients else None,
+        )
+        logger.info(
+            "Comment notification dispatched",
+            extra={
+                "task_id": task_id,
+                "type": NotificationType.COMMENT_CREATE.value,
+                "success": getattr(resp, "success", None),
+                "resp_message": getattr(resp, "message", None),
+                "recipients_count": getattr(resp, "recipients_count", None),
+            },
+        )
 
     threading.Thread(target=_send_notify, daemon=True).start()
 
@@ -124,14 +116,11 @@ def notify_comment_mentions(task_id: int, user_id: int, recipient_emails: list[s
     if not user:
         raise ValueError(f"User {user_id} not found")
 
-    valid_recipients: set[str] = set()
-    for email in recipient_emails or []:
-        recipient_user = user_service.get_user(email)
-        if not recipient_user:
-            logger.warning(f"Recipient email {email} not found in system")
-            continue
-        if getattr(recipient_user, "email", None):
-            valid_recipients.add(recipient_user.email)
+    valid_recipients: set[str] = {
+        u.email
+        for u in (user_service.get_user(email) for email in (recipient_emails or []))
+        if u and getattr(u, "email", None)
+    }
 
     if not valid_recipients:
         return None

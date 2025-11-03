@@ -161,13 +161,6 @@ def update_task(
     if updated_fields:
         assignees = assignment_service.list_assignees(task_id)
         recipient_set = {u.email for u in assignees if getattr(u, 'email', None)}
-
-        extra_emails = kwargs.get("shared_recipient_emails") or []
-        for email in extra_emails:
-            u = user_service.get_user(email)
-            if u and getattr(u, "email", None):
-                recipient_set.add(u.email)
-
         recipients = sorted(recipient_set) if recipient_set else None
 
         resp = get_notification_service().notify_activity(
@@ -205,7 +198,6 @@ def update_task(
                 "email_id": getattr(resp, "email_id", None),
             },
         )
-    print("pass notif")
     return updated
 
 def get_task(task_id: int):

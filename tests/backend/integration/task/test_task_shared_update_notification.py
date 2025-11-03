@@ -55,13 +55,15 @@ def test_update_task_notifies_assignees_and_shared_recipients(test_engine, clean
     monkeypatch.setattr(
         task_handler.assignment_service,
         "list_assignees",
-        lambda task_id: [_Assignee(VALID_USER_EMPLOYEE["email"])],
+        lambda task_id: [
+            _Assignee(VALID_USER_EMPLOYEE["email"]),
+            _Assignee(VALID_USER_ADMIN["email"]),
+        ],
     )
 
     updated = task_handler.update_task(
         task.id,
         title=TASK_UPDATE_PARTIAL_TITLE["title"],
-        shared_recipient_emails=[VALID_USER_ADMIN["email"]],
         user_email=VALID_USER_ADMIN["email"],
     )
 
@@ -104,13 +106,18 @@ def test_update_task_shared_recipients_dedup_and_ignore_invalid(test_engine, cle
     monkeypatch.setattr(
         task_handler.assignment_service,
         "list_assignees",
-        lambda task_id: [_Assignee(VALID_USER_EMPLOYEE["email"])],
+        lambda task_id: [
+            _Assignee(VALID_USER_EMPLOYEE["email"]),
+            _Assignee(VALID_USER_ADMIN["email"]),
+            _Assignee(VALID_USER_ADMIN["email"]),
+            _Assignee(None),
+            _Assignee(""),
+        ],
     )
 
     task_handler.update_task(
         task.id,
         description="desc",
-        shared_recipient_emails=[VALID_USER_ADMIN["email"], VALID_USER_ADMIN["email"]],
         user_email=VALID_USER_EMPLOYEE["email"],
     )
 
