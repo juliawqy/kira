@@ -173,7 +173,7 @@ def upcoming_task_reminder(task_id: int):
 
         # Expect stubbed email service to return 1; otherwise, treat as failure
         if message_id != 1:
-            raise HTTPException(status_code=500, detail=f"Error sending email")
+            raise HTTPException(status_code=500, detail=f"Error sending notification")
         return {
             "success": True,
             "message": "Email sent successfully",
@@ -262,7 +262,7 @@ def overdue_task_reminder(task_id: int):
 
         # Expect stubbed email service to return 1; otherwise, treat as failure
         if message_id != 1:
-            raise HTTPException(status_code=500, detail=f"Error sending email")
+            raise HTTPException(status_code=500, detail=f"Error sending notification")
         return {
             "success": True,
             "message": "Email sent successfully",
