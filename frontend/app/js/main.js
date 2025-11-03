@@ -6,6 +6,7 @@ import { bindCreateForm } from "./ui/createForm.js";
 import { bindEditDialog } from "./ui/editDialog.js";
 import { renderTimeline } from "./ui/timeline.js";
 import { renderGantt } from "./ui/gantt.js";
+import { renderTeamManagement } from "./ui/team-management.js";
 
 function log(label, payload) {
   const logEl = document.getElementById("log");
@@ -328,6 +329,41 @@ async function renderGanttView() {
   }
 }
 
+async function renderTeamManagementView() {
+  const teamMgmtEl = document.getElementById("teamManagement");
+  if (!teamMgmtEl || !isCurrentUserManagerOrDirector()) return;
+  
+  teamMgmtEl.innerHTML = `<div class="muted">Loading…</div>`;
+  
+  try {
+    // Fetch team tasks based on user role
+    let data;
+    if (isCurrentUserManager() && !isCurrentUserDirector()) {
+      // Manager: get tasks from teams they manage
+      data = await apiTask(`/manager/${CURRENT_USER.user_id}`, { method: "GET" });
+      log("GET manager team-management tasks", data);
+    } else if (isCurrentUserDirector()) {
+      // Director: get tasks from departments they manage
+      data = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
+      log("GET director team-management tasks", data);
+    } else {
+      log("User is neither manager nor director");
+      teamMgmtEl.innerHTML = `<div class="muted">Access denied.</div>`;
+      return;
+    }
+    
+    // Pass the dict directly to renderTeamManagement (now async)
+    const container = await renderTeamManagement(data, { log, reload: () => renderTeamManagementView() });
+    
+    teamMgmtEl.innerHTML = "";
+    teamMgmtEl.appendChild(container);
+    
+  } catch (e) {
+    teamMgmtEl.innerHTML = `<div class="muted">Error loading team management.</div>`;
+    log("Team management error", String(e));
+  }
+}
+
 async function loadParents(){
   const ongoingEl = document.getElementById("ongoing");
   const completedEl = document.getElementById("completed");
@@ -346,9 +382,17 @@ async function loadParents(){
         userTasks = Array.isArray(data) ? data : [];
         setLastTasks(userTasks);
       } else if (isCurrentUserDirector()) {
-        // For directors, load tasks from their managed departments
+        // For directors, load tasks from their managed departments (returns dict grouped by team)
         const data = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
-        userTasks = Array.isArray(data) ? data : [];
+        // Flatten the dict into an array of all tasks
+        userTasks = [];
+        if (data && typeof data === 'object') {
+          Object.values(data).forEach(teamTaskList => {
+            if (Array.isArray(teamTaskList)) {
+              userTasks.push(...teamTaskList);
+            }
+          });
+        }
         setLastTasks(userTasks);
       } else {
         // For staff, load only their assigned tasks
@@ -420,6 +464,10 @@ function initializeUserSelection() {
   if (managerOnlyTab && isCurrentUserManagerOrDirector()) {
     managerOnlyTab.style.display = "block";
   }
+  const managerOnlyTabTeamMgmt = document.getElementById("tabTeamManagement");
+  if (managerOnlyTabTeamMgmt && isCurrentUserManagerOrDirector()) {
+    managerOnlyTabTeamMgmt.style.display = "block";
+  }
 }
 
 function updateUserSelectionUI() {
@@ -457,6 +505,10 @@ function updateUserSelectionUI() {
     if (managerOnlyTab) {
       managerOnlyTab.style.display = isCurrentUserManagerOrDirector() ? "block" : "none";
     }
+    const managerOnlyTabTeamMgmt = document.getElementById("tabTeamManagement");
+    if (managerOnlyTabTeamMgmt) {
+      managerOnlyTabTeamMgmt.style.display = isCurrentUserManagerOrDirector() ? "block" : "none";
+    }
     
     // Auto-switch to List view if current tab is not accessible
     const activeTab = document.querySelector(".tab-btn.active");
@@ -465,6 +517,8 @@ function updateUserSelectionUI() {
       if (tabName === "teamSchedule" && !isCurrentUserStaff()) {
         switchTab("list");
       } else if (tabName === "timeline" && !isCurrentUserManagerOrDirector()) {
+        switchTab("list");
+      } else if (tabName === "teamManagement" && !isCurrentUserManagerOrDirector()) {
         switchTab("list");
       }
     }
@@ -487,14 +541,16 @@ function switchTab(tabName) {
   const tabCalendar = document.getElementById("tabCalendar");
   const tabTeamSchedule = document.getElementById("tabTeamSchedule");
   const tabTimeline = document.getElementById("tabTimeline");
+  const tabTeamManagement = document.getElementById("tabTeamManagement");
   const contentList = document.getElementById("tabContentList");
   const contentCalendar = document.getElementById("tabContentCalendar");
   const contentTeamSchedule = document.getElementById("tabContentTeamSchedule");
   const contentTimeline = document.getElementById("tabContentTimeline");
+  const contentTeamManagement = document.getElementById("tabContentTeamManagement");
   
   // Remove active class from all tabs and content
-  [tabList, tabCalendar, tabTeamSchedule, tabTimeline].forEach(tab => tab?.classList.remove("active"));
-  [contentList, contentCalendar, contentTeamSchedule, contentTimeline].forEach(content => content?.classList.remove("active"));
+  [tabList, tabCalendar, tabTeamSchedule, tabTimeline, tabTeamManagement].forEach(tab => tab?.classList.remove("active"));
+  [contentList, contentCalendar, contentTeamSchedule, contentTimeline, contentTeamManagement].forEach(content => content?.classList.remove("active"));
   
   if (tabName === "list") {
     tabList?.classList.add("active");
@@ -510,6 +566,10 @@ function switchTab(tabName) {
     contentTimeline?.classList.add("active");
     // Render timeline view when switching to timeline tab
     renderTimelineView();
+  } else if (tabName === "teamManagement") {
+    tabTeamManagement?.classList.add("active");
+    contentTeamManagement?.classList.add("active");
+    renderTeamManagementView();
   }
 }
 
@@ -558,6 +618,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("tabCalendar")?.addEventListener("click", () => switchTab("calendar"));
   document.getElementById("tabTeamSchedule")?.addEventListener("click", () => switchTab("teamSchedule"));
   document.getElementById("tabTimeline")?.addEventListener("click", () => switchTab("timeline"));
+  document.getElementById("tabTeamManagement")?.addEventListener("click", () => switchTab("teamManagement"));
 
   // Wire timeline sub-tabs
   document.getElementById("timelineTabList")?.addEventListener("click", () => switchTimelineSubTab("list"));

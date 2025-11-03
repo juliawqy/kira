@@ -354,6 +354,6 @@ def list_project_tasks_by_manager(project_manager_id: int):
     projects = project_service.get_projects_by_manager(project_manager_id)
     all_tasks = []
     for project in projects:
-        tasks = task_service.list_tasks_by_project(project.id, active_only=True)
+        tasks = task_service.list_tasks_by_project(project["project_id"], active_only=True)
         all_tasks.extend(tasks)
     return all_tasks
