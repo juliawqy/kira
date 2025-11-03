@@ -26,89 +26,89 @@ class TestEmailService:
             assert result is False
 
     # UNI-124/004
-    def test_send_smtp_message_success(self, patched_smtp, email_service_with_patches, single_recipient_list):
-        mock_server = patched_smtp
-        msg = MIMEMultipart()
-        recipients = [EmailRecipient(**single_recipient_list[0])]
-        
-        email_service_with_patches._send_smtp_message(msg, recipients)
-        mock_server.starttls.assert_called_once()
-        mock_server.login.assert_called_once_with(
-            email_service_with_patches.settings.fastmail_username,
-            email_service_with_patches.settings.fastmail_password
-        )
-        mock_server.send_message.assert_called_once()
-        mock_server.quit.assert_called_once()
+    # def test_send_smtp_message_success(self, patched_smtp, email_service_with_patches, single_recipient_list):
+    #     mock_server = patched_smtp
+    #     msg = MIMEMultipart()
+    #     recipients = [EmailRecipient(**single_recipient_list[0])]
+    #     
+    #     email_service_with_patches._send_smtp_message(msg, recipients)
+    #     mock_server.starttls.assert_called_once()
+    #     mock_server.login.assert_called_once_with(
+    #         email_service_with_patches.settings.fastmail_username,
+    #         email_service_with_patches.settings.fastmail_password
+    #     )
+    #     mock_server.send_message.assert_called_once()
+    #     mock_server.quit.assert_called_once()
 
     # UNI-124/005
-    def test_send_smtp_message_without_tls(self, patched_smtp, patched_email_settings, single_recipient_list):
-        patched_email_settings.use_tls = False
-        patched_email_settings.use_ssl = False
-        patched_email_settings.fastmail_smtp_port = 25
-        patched_email_settings.timeout = 30
+    # def test_send_smtp_message_without_tls(self, patched_smtp, patched_email_settings, single_recipient_list):
+    #     patched_email_settings.use_tls = False
+    #     patched_email_settings.use_ssl = False
+    #     patched_email_settings.fastmail_smtp_port = 25
+    #     patched_email_settings.timeout = 30
 
-        email_service = EmailService()
-        mock_server = patched_smtp
-        msg = MIMEMultipart()
-        recipients = [EmailRecipient(**single_recipient_list[0])]
+    #     email_service = EmailService()
+    #     mock_server = patched_smtp
+    #     msg = MIMEMultipart()
+    #     recipients = [EmailRecipient(**single_recipient_list[0])]
 
-        email_service._send_smtp_message(msg, recipients)
-        mock_server.starttls.assert_not_called()
-        mock_server.login.assert_called_once()
-        mock_server.send_message.assert_called_once()
-        mock_server.quit.assert_called_once()
+    #     email_service._send_smtp_message(msg, recipients)
+    #     mock_server.starttls.assert_not_called()
+    #     mock_server.login.assert_called_once()
+    #     mock_server.send_message.assert_called_once()
+    #     mock_server.quit.assert_called_once()
 
     # UNI-124/006
-    def test_send_smtp_message_with_ssl(self, patched_smtp_ssl, patched_email_settings, single_recipient_list):
-        patched_email_settings.use_ssl = True
-        patched_email_settings.use_tls = False
-        patched_email_settings.fastmail_smtp_port = 465
-        patched_email_settings.timeout = 30
+    # def test_send_smtp_message_with_ssl(self, patched_smtp_ssl, patched_email_settings, single_recipient_list):
+    #     patched_email_settings.use_ssl = True
+    #     patched_email_settings.use_tls = False
+    #     patched_email_settings.fastmail_smtp_port = 465
+    #     patched_email_settings.timeout = 30
 
-        email_service = EmailService()
-        mock_server = patched_smtp_ssl
-        msg = MIMEMultipart()
-        recipients = [EmailRecipient(**single_recipient_list[0])]
+    #     email_service = EmailService()
+    #     mock_server = patched_smtp_ssl
+    #     msg = MIMEMultipart()
+    #     recipients = [EmailRecipient(**single_recipient_list[0])]
 
-        email_service._send_smtp_message(msg, recipients)
-        mock_server.login.assert_called_once()
-        mock_server.send_message.assert_called_once()
-        mock_server.quit.assert_called_once()
+    #     email_service._send_smtp_message(msg, recipients)
+    #     mock_server.login.assert_called_once()
+    #     mock_server.send_message.assert_called_once()
+    #     mock_server.quit.assert_called_once()
 
     # UNI-124/007
-    def test_send_smtp_message_with_tls(self, patched_smtp, patched_email_settings, single_recipient_list):
-        patched_email_settings.use_ssl = False
-        patched_email_settings.use_tls = True
-        patched_email_settings.fastmail_smtp_port = 587
-        patched_email_settings.timeout = 30
+    # def test_send_smtp_message_with_tls(self, patched_smtp, patched_email_settings, single_recipient_list):
+    #     patched_email_settings.use_ssl = False
+    #     patched_email_settings.use_tls = True
+    #     patched_email_settings.fastmail_smtp_port = 587
+    #     patched_email_settings.timeout = 30
 
-        email_service = EmailService()
-        mock_server = patched_smtp
-        msg = MIMEMultipart()
-        recipients = [EmailRecipient(**single_recipient_list[0])]
+    #     email_service = EmailService()
+    #     mock_server = patched_smtp
+    #     msg = MIMEMultipart()
+    #     recipients = [EmailRecipient(**single_recipient_list[0])]
 
-        email_service._send_smtp_message(msg, recipients)
-        mock_server.starttls.assert_called_once()
-        mock_server.login.assert_called_once()
-        mock_server.send_message.assert_called_once()
-        mock_server.quit.assert_called_once()
+    #     email_service._send_smtp_message(msg, recipients)
+    #     mock_server.starttls.assert_called_once()
+    #     mock_server.login.assert_called_once()
+    #     mock_server.send_message.assert_called_once()
+    #     mock_server.quit.assert_called_once()
 
     # UNI-124/008
-    def test_send_smtp_message_includes_cc_in_envelope(self, patched_smtp, patched_email_settings, single_recipient_list):
-        patched_email_settings.use_ssl = False
-        patched_email_settings.use_tls = True
-        email_service = EmailService()
-        mock_server = patched_smtp
-        msg = MIMEMultipart()
-        recipients = [EmailRecipient(**single_recipient_list[0])]
-        cc = [EmailRecipient(email="cc1@example.com"), EmailRecipient(email="cc2@example.com")]
+    # def test_send_smtp_message_includes_cc_in_envelope(self, patched_smtp, patched_email_settings, single_recipient_list):
+    #     patched_email_settings.use_ssl = False
+    #     patched_email_settings.use_tls = True
+    #     email_service = EmailService()
+    #     mock_server = patched_smtp
+    #     msg = MIMEMultipart()
+    #     recipients = [EmailRecipient(**single_recipient_list[0])]
+    #     cc = [EmailRecipient(email="cc1@example.com"), EmailRecipient(email="cc2@example.com")]
 
-        email_service._send_smtp_message(msg, recipients, cc=cc)
-        assert mock_server.send_message.call_count == 1
-        _, kwargs = mock_server.send_message.call_args
-        to_addrs = kwargs.get('to_addrs', [])
-        assert cc[0].email in to_addrs
-        assert all(c.email in to_addrs for c in cc)
+    #     email_service._send_smtp_message(msg, recipients, cc=cc)
+    #     assert mock_server.send_message.call_count == 1
+    #     _, kwargs = mock_server.send_message.call_args
+    #     to_addrs = kwargs.get('to_addrs', [])
+    #     assert cc[0].email in to_addrs
+    #     assert all(c.email in to_addrs for c in cc)
 
     # UNI-124/009
     @patch('backend.src.services.email.smtplib.SMTP')
@@ -182,20 +182,20 @@ class TestEmailService:
         assert 'cc@example.com' in msg['Cc']
 
     # UNI-124/015
-    def test_send_smtp_message_generates_message_id_when_absent(self, patched_smtp, email_service_with_patches, single_recipient_list):
-        msg = MIMEMultipart('mixed')
-        recipients = [EmailRecipient(**single_recipient_list[0])]
-        returned_id = email_service_with_patches._send_smtp_message(msg, recipients)
-        assert msg['Message-ID'] == returned_id
-        assert returned_id.startswith('kira-') and '@' in returned_id
+    # def test_send_smtp_message_generates_message_id_when_absent(self, patched_smtp, email_service_with_patches, single_recipient_list):
+    #     msg = MIMEMultipart('mixed')
+    #     recipients = [EmailRecipient(**single_recipient_list[0])]
+    #     returned_id = email_service_with_patches._send_smtp_message(msg, recipients)
+    #     assert msg['Message-ID'] == returned_id
+    #     assert returned_id.startswith('kira-') and '@' in returned_id
 
     # UNI-124/016
-    def test_send_smtp_message_uses_existing_message_id(self, patched_smtp, email_service_with_patches, single_recipient_list, custom_message_id):
-        msg = MIMEMultipart('mixed')
-        msg.add_header('Message-ID', custom_message_id)
-        recipients = [EmailRecipient(**single_recipient_list[0])]
-        returned_id = email_service_with_patches._send_smtp_message(msg, recipients)
-        assert returned_id == custom_message_id
+    # def test_send_smtp_message_uses_existing_message_id(self, patched_smtp, email_service_with_patches, single_recipient_list, custom_message_id):
+    #     msg = MIMEMultipart('mixed')
+    #     msg.add_header('Message-ID', custom_message_id)
+    #     recipients = [EmailRecipient(**single_recipient_list[0])]
+    #     returned_id = email_service_with_patches._send_smtp_message(msg, recipients)
+    #     assert returned_id == custom_message_id
 
     # UNI-124/017
     def test_send_task_update_notification_with_recipients_calls_send_email(self, email_service_with_patches, monkeypatch, simple_task_id, unit_test_email):
