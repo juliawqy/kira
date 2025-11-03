@@ -19,8 +19,6 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-from backend.src.services import task as task_service
-from backend.src.services import project as project_service
 from backend.src.database.models.task import Task
 from backend.src.enums.task_status import TaskStatus
 
@@ -51,41 +49,35 @@ def _get_task_summary_data(tasks: List[Task]) -> Dict[str, Any]:
     }
 
 
-def _get_assignees_string(task: Task) -> str:
-    """Get comma-separated list of assignee names/emails."""
-    # Always use assignment service to avoid session detachment issues
-    try:
-        from backend.src.services import task_assignment as assignment_service
-        assignees = assignment_service.list_assignees(task.id)
-        if assignees:
-            assignee_names = []
-            for assignee in assignees:
-                # assignee is UserRead schema with name and email
-                name = assignee.name if hasattr(assignee, 'name') and assignee.name else (assignee.email if hasattr(assignee, 'email') else 'Unknown')
-                assignee_names.append(name)
-            return ", ".join(assignee_names) if assignee_names else "Unassigned"
-    except Exception as e:
-        # Log error if needed, but return default
-        pass
-    
-    return "Unassigned"
+def _get_assignees_string(task: Task, task_assignees: Dict[int, List[str]]) -> str:
+    """Get comma-separated list of assignee names for a task."""
+    assignee_names = task_assignees.get(task.id, [])
+    return ", ".join(assignee_names) if assignee_names else "Unassigned"
 
 
-def generate_pdf_report(project_id: int) -> BytesIO:
+def generate_pdf_report(
+    project: Dict[str, Any],
+    tasks: List[Task],
+    task_assignees: Dict[int, List[str]]
+) -> BytesIO:
     """
     Generate a PDF report for a project showing task schedule.
-    Returns BytesIO buffer with PDF content.
+    
+    Args:
+        project: Dictionary containing project information with at least 'project_name' key
+        tasks: List of Task objects to include in the report
+        task_assignees: Dictionary mapping task_id to list of assignee names
+    
+    Returns:
+        BytesIO buffer with PDF content.
     """
-    # Get project and tasks
-    project = project_service.get_project_by_id(project_id)
     if not project:
-        raise ValueError(f"Project {project_id} not found")
+        raise ValueError("Project data is required")
     
-    # Get all parent tasks (subtasks are handled separately if needed)
-    # For now, we'll focus on parent tasks to avoid session detachment issues
-    tasks = task_service.list_tasks_by_project(project_id, active_only=True)
+    if not project.get('project_name'):
+        raise ValueError("Project name is required")
     
-    # Collect subtasks safely while still in session context
+    # Collect tasks
     all_tasks = list(tasks)  # Copy the list
     
     summary = _get_task_summary_data(all_tasks)
@@ -161,7 +153,7 @@ def generate_pdf_report(project_id: int) -> BytesIO:
         task_data = [["ID", "Title", "Priority", "Start Date", "Deadline", "Assignees"]]
         
         for task in group_tasks:
-            assignees = _get_assignees_string(task)
+            assignees = _get_assignees_string(task, task_assignees)
             task_data.append([
                 str(task.id),
                 task.title[:40] + "..." if task.title and len(task.title) > 40 else (task.title or "N/A"),
@@ -200,22 +192,30 @@ def generate_pdf_report(project_id: int) -> BytesIO:
     return buffer
 
 
-def generate_excel_report(project_id: int) -> BytesIO:
+def generate_excel_report(
+    project: Dict[str, Any],
+    tasks: List[Task],
+    task_assignees: Dict[int, List[str]]
+) -> BytesIO:
     """
     Generate an Excel report for a project showing task schedule.
     All data is in a single sheet with tasks grouped by status.
-    Returns BytesIO buffer with Excel content.
+    
+    Args:
+        project: Dictionary containing project information with at least 'project_name' key
+        tasks: List of Task objects to include in the report
+        task_assignees: Dictionary mapping task_id to list of assignee names
+    
+    Returns:
+        BytesIO buffer with Excel content.
     """
-    # Get project and tasks
-    project = project_service.get_project_by_id(project_id)
     if not project:
-        raise ValueError(f"Project {project_id} not found")
+        raise ValueError("Project data is required")
     
-    # Get all parent tasks (subtasks are handled separately if needed)
-    # For now, we'll focus on parent tasks to avoid session detachment issues
-    tasks = task_service.list_tasks_by_project(project_id, active_only=True)
+    if not project.get('project_name'):
+        raise ValueError("Project name is required")
     
-    # Collect subtasks safely while still in session context
+    # Collect tasks
     all_tasks = list(tasks)  # Copy the list
     
     summary = _get_task_summary_data(all_tasks)
@@ -316,7 +316,7 @@ def generate_excel_report(project_id: int) -> BytesIO:
         
         # Task data
         for task in task_list:
-            assignees = _get_assignees_string(task)
+            assignees = _get_assignees_string(task, task_assignees)
             row_data = [
                 task.id,
                 task.title or "N/A",

@@ -317,7 +317,8 @@ class TestReportExport:
         project_id = setup_project_with_tasks["project_id"]
         
         # Mock report_service.generate_pdf_report to raise a generic exception
-        def mock_generate_pdf(*args, **kwargs):
+        # Using the new service signature: (project, tasks, task_assignees)
+        def mock_generate_pdf(project, tasks, task_assignees):
             raise RuntimeError("PDF generation failed")
         
         from backend.src.services import report as report_service
@@ -331,7 +332,8 @@ class TestReportExport:
         project_id = setup_project_with_tasks["project_id"]
         
         # Mock report_service.generate_excel_report to raise a generic exception
-        def mock_generate_excel(*args, **kwargs):
+        # Using the new service signature: (project, tasks, task_assignees)
+        def mock_generate_excel(project, tasks, task_assignees):
             raise RuntimeError("Excel generation failed")
         
         from backend.src.services import report as report_service
