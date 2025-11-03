@@ -342,7 +342,7 @@ async function loadParents(){
     if (CURRENT_USER && CURRENT_USER.user_id) {
       // For managers, load tasks from their managed projects
       if (isCurrentUserManager() && !isCurrentUserDirector()) {
-        const data = await apiTask(`/manager/${CURRENT_USER.user_id}`, { method: "GET" });
+        const data = await apiTask(`/manager/project/${CURRENT_USER.user_id}`, { method: "GET" });
         userTasks = Array.isArray(data) ? data : [];
         setLastTasks(userTasks);
       } else if (isCurrentUserDirector()) {

@@ -40,3 +40,18 @@ def get_department_by_id(department_id: int) -> Optional[dict]:
             "department_name": dept.department_name,
             "manager_id": dept.manager_id,
         }
+    
+def get_department_by_director(director_id: int) -> Optional[dict]:
+    with SessionLocal() as db:
+        dept = (
+            db.query(Department)
+              .filter(Department.manager_id == director_id)
+              .first()
+        )
+        if not dept:
+            return None
+        return {
+            "department_id": dept.department_id,
+            "department_name": dept.department_name,
+            "manager_id": dept.manager_id,
+        }
