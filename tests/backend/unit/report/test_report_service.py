@@ -19,7 +19,18 @@ from tests.mock_data.report_data import (
     MOCK_TASK_ASSIGNEES_EMPTY,
     MOCK_TASK_ASSIGNEES_ALL_UNASSIGNED,
     MOCK_TASK_LONG_TITLE,
-    MOCK_TASK_NO_DATES
+    MOCK_TASK_NO_DATES,
+    EXPECTED_REPORT_SHEET_NAME,
+    EXPECTED_REPORT_CELL_A1_PREFIX,
+    EXPECTED_REPORT_CELL_A2,
+    EXPECTED_REPORT_CELL_A4,
+    EXPECTED_REPORT_CELL_A5,
+    EXPECTED_REPORT_CELL_B5,
+    EXPECTED_REPORT_METRIC_TOTAL_TASKS,
+    EXPECTED_REPORT_METRIC_PROJECTED_TASKS,
+    EXPECTED_REPORT_METRIC_IN_PROGRESS_TASKS,
+    EXPECTED_REPORT_METRIC_COMPLETED_TASKS,
+    EXPECTED_REPORT_METRIC_UNDER_REVIEW_TASKS
 )
 
 pytestmark = pytest.mark.unit
@@ -143,19 +154,19 @@ class TestGenerateExcelReport:
         excel_buffer.seek(0)
         wb = load_workbook(excel_buffer)
 
-        assert "Project Schedule Report" in wb.sheetnames
+        assert EXPECTED_REPORT_SHEET_NAME in wb.sheetnames
 
-        ws = wb["Project Schedule Report"]
+        ws = wb[EXPECTED_REPORT_SHEET_NAME]
 
         assert ws["A1"].value is not None
-        assert "Project Schedule Report" in str(ws["A1"].value)
+        assert EXPECTED_REPORT_CELL_A1_PREFIX in str(ws["A1"].value)
 
-        assert ws["A2"].value == "Project Name"
+        assert ws["A2"].value == EXPECTED_REPORT_CELL_A2
         assert ws["B2"].value == MOCK_PROJECT["project_name"]
 
-        assert ws["A4"].value == "Summary"
-        assert ws["A5"].value == "Metric"
-        assert ws["B5"].value == "Count"
+        assert ws["A4"].value == EXPECTED_REPORT_CELL_A4
+        assert ws["A5"].value == EXPECTED_REPORT_CELL_A5
+        assert ws["B5"].value == EXPECTED_REPORT_CELL_B5
 
     def test_generate_excel_report_all_unassigned(self):
         excel_buffer = report_service.generate_excel_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES_ALL_UNASSIGNED)
@@ -190,7 +201,7 @@ class TestGenerateExcelReport:
         excel_buffer = report_service.generate_excel_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
         excel_buffer.seek(0)
         wb = load_workbook(excel_buffer)
-        ws = wb["Project Schedule Report"]
+        ws = wb[EXPECTED_REPORT_SHEET_NAME]
 
         summary_dict = {}
         for row in range(6, 12):
@@ -198,18 +209,18 @@ class TestGenerateExcelReport:
             count = ws[f"B{row}"].value
             if metric and count is not None:
                 summary_dict[metric] = count
-        assert summary_dict.get("Total Tasks") == len(MOCK_TASKS_ALL_STATUSES)
-        assert summary_dict.get("Projected Tasks") == 1
-        assert summary_dict.get("In-Progress Tasks") == 1
-        assert summary_dict.get("Completed Tasks") == 1 
-        assert summary_dict.get("Under Review Tasks") == 1
+        assert summary_dict.get(EXPECTED_REPORT_METRIC_TOTAL_TASKS) == len(MOCK_TASKS_ALL_STATUSES)
+        assert summary_dict.get(EXPECTED_REPORT_METRIC_PROJECTED_TASKS) == 1
+        assert summary_dict.get(EXPECTED_REPORT_METRIC_IN_PROGRESS_TASKS) == 1
+        assert summary_dict.get(EXPECTED_REPORT_METRIC_COMPLETED_TASKS) == 1 
+        assert summary_dict.get(EXPECTED_REPORT_METRIC_UNDER_REVIEW_TASKS) == 1
 
     def test_generate_excel_report_column_width(self):
         from openpyxl import load_workbook
         excel_buffer = report_service.generate_excel_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
         excel_buffer.seek(0)
         wb = load_workbook(excel_buffer)
-        ws = wb["Project Schedule Report"]
+        ws = wb[EXPECTED_REPORT_SHEET_NAME]
         for col_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
             col_width = ws.column_dimensions[col_letter].width
             assert col_width >= 10, f"Column {col_letter} should have minimum width"
