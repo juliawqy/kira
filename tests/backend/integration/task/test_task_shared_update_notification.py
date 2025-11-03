@@ -65,7 +65,7 @@ def test_update_task_notifies_assignees_and_shared_recipients(test_engine, clean
         user_email=VALID_USER_ADMIN["email"],
     )
 
-    assert updated.title == task.title
+    assert updated.title == TASK_UPDATE_PARTIAL_TITLE["title"]
     call = mock_notif.last_kwargs
     assert call["task_id"] == task.id
     assert call["type_of_alert"] == "task_update"
