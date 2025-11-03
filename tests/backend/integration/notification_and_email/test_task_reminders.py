@@ -151,7 +151,7 @@ def task_factory_with_kwargs(db_session):
 class TestUpcomingTaskReminderIntegration:
     """Integration tests for upcoming_task_reminder endpoint."""
     
-    # INT-29-001 
+    # INT-29/001 
     def test_upcoming_reminder_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, recipients_mixed):
         """Test comprehensive success scenario including mixed email availability."""
         from datetime import date
@@ -173,7 +173,7 @@ class TestUpcomingTaskReminderIntegration:
         server.send_message.assert_not_called()
         server.quit.assert_called_once()
     
-    # INT-29-002 
+    # INT-29/002 
     @pytest.mark.parametrize("fixture_name", ["recipients_empty", "recipients_none_configured"])
     def test_upcoming_reminder_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, request, fixture_name):
         """Test early return when no assignees have email addresses."""
@@ -194,7 +194,7 @@ class TestUpcomingTaskReminderIntegration:
         server.login.assert_not_called()
         server.send_message.assert_not_called()
     
-    # INT-29-003 
+    # INT-29/003 
     @pytest.mark.parametrize("scenario_key", [
         "no_deadline",
     ])
@@ -223,7 +223,7 @@ class TestUpcomingTaskReminderIntegration:
 class TestOverdueTaskReminderIntegration:
     """Integration tests for overdue_task_reminder endpoint."""
     
-    # INT-107-001 
+    # INT-107/001 
     def test_overdue_reminder_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, recipients_mixed):
         """Test comprehensive success scenario including mixed email availability."""
         from datetime import date
@@ -245,7 +245,7 @@ class TestOverdueTaskReminderIntegration:
         server.send_message.assert_not_called()
         server.quit.assert_called_once()
     
-    # INT-107-002 
+    # INT-107/002 
     @pytest.mark.parametrize("fixture_name", ["recipients_empty", "recipients_none_configured"])
     def test_overdue_reminder_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, request, fixture_name):
         """Test early return when no assignees have email addresses."""
@@ -265,7 +265,7 @@ class TestOverdueTaskReminderIntegration:
         server.login.assert_not_called()
         server.send_message.assert_not_called()
     
-    # INT-107-003 
+    # INT-107/003 
     @pytest.mark.parametrize("scenario_key", [
         "no_deadline",
     ])
@@ -312,7 +312,7 @@ class TestTaskReminderAPI:
         
         with TestClient(app) as client:
             yield client
-    # INT-29-004
+    # INT-29/004
     def test_upcoming_reminder_api_success(self, api_client, db_session, patched_email_settings_tls, patched_smtp_tls, 
                                            task_factory_with_kwargs, recipients_two):
         """Test upcoming reminder API endpoint returns 200 on success."""
@@ -328,7 +328,7 @@ class TestTaskReminderAPI:
         assert data["success"] is True
         assert data["recipients_count"] == len(recipients_two)
 
-    # INT-107-004
+    # INT-107/004
     def test_overdue_reminder_api_success(self, api_client, db_session, patched_email_settings_tls, patched_smtp_tls, 
                                          task_factory_with_kwargs, recipients_two):
         """Test overdue reminder API endpoint returns 200 on success."""
@@ -345,7 +345,7 @@ class TestTaskReminderAPI:
         assert data["success"] is True
         assert data["recipients_count"] == len(recipients_two)
     
-    # INT-29-005
+    # INT-29/005
     def test_upcoming_reminder_project_service_exception_silently_handled(self, db_session, patched_email_settings_tls, 
                                                                           patched_smtp_tls, task_factory_with_kwargs, 
                                                                           recipients_mixed, monkeypatch):
@@ -362,7 +362,7 @@ class TestTaskReminderAPI:
         result = upcoming_task_reminder(task.id)
         assert result["success"] is True
     
-    # INT-107-005
+    # INT-107/005
     def test_overdue_reminder_project_service_exception_silently_handled(self, db_session, patched_email_settings_tls, 
                                                                          patched_smtp_tls, task_factory_with_kwargs, 
                                                                          recipients_mixed, monkeypatch):
