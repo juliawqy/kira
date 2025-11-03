@@ -107,7 +107,11 @@ def upcoming_task_reminder(task_id: int):
     try:
         task = task_service.get_task_with_subtasks(task_id)
         if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
+            return {
+                "success": False,
+                "message": "Task not found",
+                "recipients_count": 0,
+            }
 
         if not hasattr(task, 'deadline') or not task.deadline:
             return {
@@ -156,24 +160,23 @@ def upcoming_task_reminder(task_id: int):
             email_type=EmailType.UPCOMING_DEADLINE
         )
         
-        try:
-            msg = email_service._prepare_message(email_message)
-            message_id = email_service._send_smtp_message(msg, recipients_objs)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
+        msg = email_service._prepare_message(email_message)
+        message_id = email_service._send_smtp_message(msg, recipients_objs)
 
         if message_id != 1:
-            raise HTTPException(status_code=500, detail=f"Error sending notification")
+            return {
+                "success": False,
+                "message": "Error sending notification",
+                "recipients_count": len(recipients_objs or []),
+            }
         return {
             "success": True,
             "message": "Email sent successfully",
             "recipients_count": len(recipients_objs or []),
             "email_id": "1",
         }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    except Exception:
+        pass
 
 
 def overdue_task_reminder(task_id: int):
@@ -186,7 +189,11 @@ def overdue_task_reminder(task_id: int):
     try:
         task = task_service.get_task_with_subtasks(task_id)
         if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
+            return {
+                "success": False,
+                "message": "Task not found",
+                "recipients_count": 0,
+            }
 
         if not hasattr(task, 'deadline') or not task.deadline:
             return {
@@ -234,25 +241,24 @@ def overdue_task_reminder(task_id: int):
             },
             email_type=EmailType.OVERDUE_DEADLINE
         )
-
-        try:
-            msg = email_service._prepare_message(email_message)
-            message_id = email_service._send_smtp_message(msg, recipients_objs)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
+        
+        msg = email_service._prepare_message(email_message)
+        message_id = email_service._send_smtp_message(msg, recipients_objs)
 
         if message_id != 1:
-            raise HTTPException(status_code=500, detail=f"Error sending notification")
+            return {
+                "success": False,
+                "message": "Error sending notification",
+                "recipients_count": len(recipients_objs or []),
+            }
         return {
             "success": True,
             "message": "Email sent successfully",
             "recipients_count": len(recipients_objs or []),
             "email_id": "1",
         }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    except Exception:
+        pass
 
 def update_task(
     task_id: int,

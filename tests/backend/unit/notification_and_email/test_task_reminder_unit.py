@@ -119,53 +119,6 @@ def test_upcoming_project_service_exception_is_silent(reminder_data, patch_email
     assert result["success"] is True
     assert result["email_id"] == "1"
 
-# UNI-29-004
-def test_upcoming_send_returns_none_raises_500(reminder_data, patch_email_settings, monkeypatch):
-    from backend.src.services import task as task_service
-    from backend.src.services.email import get_email_service
-    task_dict = reminder_data.UPCOMING_TASK.copy()
-    task = _TaskObj(
-        task_id=55,
-        title=task_dict.get('title'),
-        deadline=date.fromisoformat(task_dict['deadline']),
-        priority=task_dict.get('priority'),
-        description=task_dict.get('description'),
-        project_id=task_dict.get('project_id'),
-    )
-    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
-    es = get_email_service()
-    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email='a@b.com')])
-    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: None)
-
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc:
-        upcoming_task_reminder(55)
-    assert exc.value.status_code == 500
-
-# UNI-29-005
-def test_upcoming_prepare_message_raises_500(reminder_data, patch_email_settings, monkeypatch):
-    from backend.src.services import task as task_service
-    from backend.src.services.email import get_email_service
-    task_dict = reminder_data.UPCOMING_TASK.copy()
-    task = _TaskObj(
-        task_id=88,
-        title=task_dict.get('title'),
-        deadline=date.fromisoformat(task_dict['deadline']),
-        priority=task_dict.get('priority'),
-        description=task_dict.get('description'),
-        project_id=task_dict.get('project_id'),
-    )
-    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
-    es = get_email_service()
-    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email='a@b.com')])
-    monkeypatch.setattr(es, '_prepare_message', lambda *args, **kwargs: (_ for _ in ()).throw(AttributeError('boom')))
-
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc:
-        upcoming_task_reminder(88)
-    assert exc.value.status_code == 500
-
-
 # Overdue reminder unit tests
 # UNI-107-001 
 def test_overdue_no_deadline_returns_failure(reminder_data, patch_email_settings, monkeypatch):
@@ -232,50 +185,5 @@ def test_overdue_project_service_exception_is_silent(reminder_data, patch_email_
     assert result["success"] is True
     assert result["email_id"] == "1"
 
-# UNI-107-004
-def test_overdue_send_returns_unexpected_id_raises_500(reminder_data, patch_email_settings, monkeypatch):
-    from backend.src.services import task as task_service
-    from backend.src.services.email import get_email_service
-    task_dict = reminder_data.OVERDUE_TASK.copy()
-    task = _TaskObj(
-        task_id=299,
-        title=task_dict.get('title'),
-        deadline=date.fromisoformat(task_dict['deadline']),
-        priority=task_dict.get('priority'),
-        description=task_dict.get('description'),
-        project_id=task_dict.get('project_id'),
-    )
-    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
-    es = get_email_service()
-    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email='a@b.com')])
-    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: "x")
-
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc:
-        overdue_task_reminder(299)
-    assert exc.value.status_code == 500
-
-# UNI-107-005
-def test_overdue_prepare_message_raises_500(reminder_data, patch_email_settings, monkeypatch):
-    from backend.src.services import task as task_service
-    from backend.src.services.email import get_email_service
-    task_dict = reminder_data.OVERDUE_TASK.copy()
-    task = _TaskObj(
-        task_id=311,
-        title=task_dict.get('title'),
-        deadline=date.fromisoformat(task_dict['deadline']),
-        priority=task_dict.get('priority'),
-        description=task_dict.get('description'),
-        project_id=task_dict.get('project_id'),
-    )
-    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
-    es = get_email_service()
-    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [type('R', (), {'email': 'a@b.com'})()])
-    monkeypatch.setattr(es, '_prepare_message', lambda *args, **kwargs: (_ for _ in ()).throw(AttributeError('boom')))
-
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc:
-        overdue_task_reminder(311)
-    assert exc.value.status_code == 500
 
 

@@ -224,12 +224,9 @@ def notify_upcoming_task(task_id: int):
     """
     try:
         return task_handler.upcoming_task_reminder(task_id)
-    except HTTPException as e:
-        raise e
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
+
 
 @router.post("/{task_id}/notify-overdue", name="notify_overdue_task")
 def notify_overdue_task(task_id: int):
@@ -244,12 +241,9 @@ def notify_overdue_task(task_id: int):
     """
     try:
         return task_handler.overdue_task_reminder(task_id)
-    except HTTPException as e:
-        raise e
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
+
 
 # ------------------ Comments ------------------
 
