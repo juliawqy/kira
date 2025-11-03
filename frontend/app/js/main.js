@@ -1,5 +1,5 @@
 import { apiTask, apiUser } from "./api.js";
-import { USERS, setUsers, LAST_TASKS, setLastTasks, CURRENT_USER, setCurrentUser, getTasksForCurrentUser, isCurrentUserStaff, isCurrentUserManager, isCurrentUserDirector, isCurrentUserManagerOrDirector, CAL_MONTH, setCalMonth, addMonths } from "./state.js";
+import { USERS, setUsers, LAST_TASKS, setLastTasks, CURRENT_USER, setCurrentUser, getTasksForCurrentUser, isCurrentUserStaff, isCurrentUserManager, isCurrentUserDirector, isCurrentUserManagerOrDirector, CAL_MONTH, setCalMonth, addMonths, showToast } from "./state.js";
 import { renderTaskCard } from "./ui/cards.js";
 import { renderCalendar, bindCalendarNav } from "./ui/calendar.js";
 import { bindCreateForm } from "./ui/createForm.js";
@@ -391,7 +391,7 @@ async function loadParents(){
     ongoingEl.innerHTML = "";
     completedEl.innerHTML = "";
     log("GET /task/ error", String(e));
-    alert("Failed to load tasks: " + e.message);
+    showToast("Failed to load tasks", "error");
   }
 }
 

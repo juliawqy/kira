@@ -1,4 +1,5 @@
 import { apiTask } from "../api.js";
+import { showToast } from "../state.js";
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 const isValidYmd = (s) => !!(s && YMD.test(s));
@@ -130,10 +131,11 @@ export function bindEditDialog(log, reload) {
       const res = await apiTask(`/${editingTaskId}`, { method: "PATCH", body: JSON.stringify(payload) });
       log(`PATCH /task/${editingTaskId}`, res);
       dlgEdit.close();
+      showToast("Task updated successfully!", "success");
       reload();
     } catch (e) {
       log("PATCH error", String(e));
-      alert(e.message);
+      showToast(e.message || "Failed to update task", "error");
     }
   });
 }

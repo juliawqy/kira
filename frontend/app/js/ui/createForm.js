@@ -1,5 +1,5 @@
 import { apiTask } from "../api.js";
-import { CURRENT_USER } from "../state.js";
+import { CURRENT_USER, showToast } from "../state.js";
 
 // simple Y-M-D validation
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
@@ -121,7 +121,7 @@ export function bindCreateForm(log, reload) {
     if (!ok) return;
 
     if (!CURRENT_USER) {
-      alert("No current user set. Please select a user.");
+      showToast("No current user set. Please select a user.", "warning");
       return;
     }
 
@@ -160,10 +160,11 @@ export function bindCreateForm(log, reload) {
         dlgCreate.close();
       }
 
+      showToast("Task created successfully!", "success");
       reload();
     } catch (e) {
       log("Create error", String(e));
-      alert(e.message);
+      showToast(e.message || "Failed to create task", "error");
     }
   });
 }

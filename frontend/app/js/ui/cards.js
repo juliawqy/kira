@@ -1,6 +1,6 @@
 // js/ui/cards.js
 import { apiTask } from "../api.js";
-import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers, isCurrentUserStaff, isCurrentUserManager, isCurrentUserDirector, isCurrentUserManagerOrDirector, CURRENT_USER, LAST_TASKS, parseYMD } from "../state.js";
+import { USERS, getSubtasks, getAssignees, getPriorityDisplay, escapeHtml, getUsers, isCurrentUserStaff, isCurrentUserManager, isCurrentUserDirector, isCurrentUserManagerOrDirector, CURRENT_USER, LAST_TASKS, parseYMD, showToast } from "../state.js";
 import { field } from "./dom.js";
 
 /* ----------------------------- panel state ----------------------------- */
@@ -59,6 +59,7 @@ async function setStatus(id, action, log, reload, callback) {
   try {
     const res = await apiTask(`/${id}/status/${encodeURIComponent(newStatus)}`, { method: "POST" });
     slog(`POST /task/${id}/status/${newStatus}`, res);
+    showToast(`Status updated to ${newStatus}`, "success");
     if (callback) {
       callback(newStatus);
     } else {
@@ -66,7 +67,7 @@ async function setStatus(id, action, log, reload, callback) {
     }
   } catch (e) {
     slog("Status error", String(e));
-    alert(e.message);
+    showToast(e.message || "Failed to update status", "error");
   }
 }
 
@@ -75,6 +76,7 @@ async function deleteTask(id, log, reload, callback) {
   try {
     const res = await apiTask(`/${id}/delete`, { method: "POST" });
     slog(`POST /task/${id}/delete`, res);
+    showToast("Task deleted successfully", "success");
     if (callback) {
       callback();
     } else {
@@ -82,7 +84,7 @@ async function deleteTask(id, log, reload, callback) {
     }
   } catch (e) {
     slog("Delete error", String(e));
-    alert(e.message);
+    showToast(e.message || "Failed to delete task", "error");
   }
 }
 
@@ -384,7 +386,8 @@ function renderAssigneeControls(task, { log, reload }) {
       // Reload just the assignees
       const updatedAssignees = await loadAssigneesForTask(task.id, slog);
       renderAssignees(updatedAssignees || []);
-    } catch (e) { slog("Assign error", String(e)); alert(e.message); }
+      showToast("User assigned successfully", "success");
+    } catch (e) { slog("Assign error", String(e)); showToast(e.message || "Failed to assign user", "error"); }
   }));
 
   // Add cancel button
@@ -447,7 +450,8 @@ function renderAssigneeControls(task, { log, reload }) {
           // Reload just the assignees
           const updatedAssignees = await loadAssigneesForTask(task.id, slog);
           renderAssignees(updatedAssignees || []);
-        } catch (err) { slog("Unassign error", String(err)); alert(err.message); }
+          showToast("User unassigned successfully", "success");
+        } catch (err) { slog("Unassign error", String(err)); showToast(err.message || "Failed to unassign user", "error"); }
       });
 
       chip.appendChild(remove);
@@ -689,7 +693,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
         // Always reload after status changes
         reload();
       }); 
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message || "Failed to update status", "error"); }
   }));
   actionRow.appendChild(btn("Block", "btn warn", async () => {
     try { 
@@ -699,7 +703,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
         // Always reload after status changes
         reload();
       }); 
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message || "Failed to update status", "error"); }
   }));
   actionRow.appendChild(btn("Complete", "btn success", async () => {
     try { 
@@ -709,7 +713,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
         // Always reload after completion
         reload();
       }); 
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message || "Failed to update status", "error"); }
   }));
   actionRow.appendChild(btn("Delete", "btn danger", async () => {
     try { 
@@ -719,7 +723,7 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
         // Reload to ensure parent task subtask count is updated
         reload();
       }); 
-    } catch (e) { slog("Subtask delete error", String(e)); alert(e.message); }
+    } catch (e) { slog("Subtask delete error", String(e)); showToast(e.message || "Failed to delete task", "error"); }
   }));
   actionRow.appendChild(btn("Edit", "btn primary", () => {
     document.dispatchEvent(new CustomEvent("open-edit", { detail: st }));
@@ -730,9 +734,10 @@ function renderSubtaskRow(parentId, st, { log, reload }) {
       slog(`DELETE /task/${parentId}/subtasks/${st.id}`, "204");
       row.remove(); // Remove subtask from view
       closeSubtaskPanel();
+      showToast("Subtask detached successfully", "success");
       // Reload to ensure parent task subtask count is updated
       reload();
-    } catch (e) { slog("Detach error", String(e)); alert(e.message); }
+    } catch (e) { slog("Detach error", String(e)); showToast(e.message || "Failed to detach subtask", "error"); }
   }));
 
   // Always show actions (including for completed subtasks)
@@ -1139,7 +1144,7 @@ function renderCommentsSection(task, { log, reload }) {
     const userId = parseInt(userSelect.value);
     
     if (!commentText || !userId) {
-      alert("Please enter a comment and select a user");
+      showToast("Please enter a comment and select a user", "warning");
       return;
     }
     
@@ -1147,9 +1152,10 @@ function renderCommentsSection(task, { log, reload }) {
       await addCommentToTask(task.id, userId, commentText, slog);
       textarea.value = "";
       await loadComments();
+      showToast("Comment added successfully", "success");
       // Don't reload - just refresh comments locally to keep task expanded
     } catch (error) {
-      alert("Failed to add comment: " + error.message);
+      showToast("Failed to add comment", "error");
     }
   });
   
@@ -1350,7 +1356,7 @@ async function editComment(comment, commentCard) {
   saveBtn.addEventListener('click', async () => {
     const newText = textarea.value.trim();
     if (!newText) {
-      alert('Comment cannot be empty');
+      showToast('Comment cannot be empty', "warning");
       return;
     }
     
@@ -1364,8 +1370,9 @@ async function editComment(comment, commentCard) {
       commentCard.removeChild(editForm);
       // Show actions again
       actionsEl.style.display = 'flex';
+      showToast("Comment updated successfully", "success");
     } catch (error) {
-      alert('Failed to update comment: ' + error.message);
+      showToast('Failed to update comment', "error");
     }
   });
   
@@ -1399,7 +1406,7 @@ async function editComment(comment, commentCard) {
 
 async function deleteComment(commentId) {
   if (!CURRENT_USER) {
-    alert('No current user set');
+    showToast('No current user set', "warning");
     return;
   }
   
@@ -1424,9 +1431,10 @@ async function deleteComment(commentId) {
       if (taskId) {
         await loadCommentsForTask(taskId, console.log);
       }
+      showToast("Comment deleted successfully", "success");
     }
   } catch (error) {
-    alert('Failed to delete comment: ' + error.message);
+    showToast('Failed to delete comment', "error");
   }
 }
 
