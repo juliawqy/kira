@@ -18,7 +18,7 @@ _integration_data = importlib.util.module_from_spec(_spec)
 assert _spec and _spec.loader, f"Failed to load integration mock data: {_integrations_mock_path}"
 _spec.loader.exec_module(_integration_data)
 
-# Load updated reminder mock data (recipient-based)
+
 _reminder_mock_path = Path(__file__).parents[3] / 'mock_data' / 'notification_email' / 'task_reminder_data.py'
 _reminder_spec = importlib.util.spec_from_file_location('reminder_mock_data', str(_reminder_mock_path))
 _reminder_data = importlib.util.module_from_spec(_reminder_spec)
@@ -31,7 +31,6 @@ def patched_email_settings_tls(monkeypatch):
     """Patch email settings to use test TLS configuration."""
     settings = EmailSettings(**_integration_data.EMAIL_SETTINGS_TLS)
 
-    # Set environment variables
     monkeypatch.setenv("FASTMAIL_SMTP_HOST", settings.fastmail_smtp_host)
     monkeypatch.setenv("FASTMAIL_SMTP_PORT", str(settings.fastmail_smtp_port))
     monkeypatch.setenv("FASTMAIL_USERNAME", settings.fastmail_username)
@@ -44,7 +43,6 @@ def patched_email_settings_tls(monkeypatch):
     monkeypatch.setenv("USE_SSL", "False")
     monkeypatch.setenv("TIMEOUT", str(settings.timeout))
 
-    # Recreate email service and bind
     import backend.src.services.email as email_service_module
     new_service = EmailService()
     new_service.settings = settings
@@ -123,7 +121,6 @@ def task_factory_with_kwargs(db_session):
         import importlib.util
         from pathlib import Path
         
-        # Load the mock module to get DEFAULT_TASK_DATA (same logic as conftest)
         mock_dir = Path(__file__).parents[3] / 'mock_data' / 'notification_email'
         file_path = mock_dir / 'integration_notification_email_data.py'
         spec = importlib.util.spec_from_file_location(f"mock_{file_path.stem}", str(file_path))
@@ -135,10 +132,8 @@ def task_factory_with_kwargs(db_session):
             default_data = {}
         
         default_data.setdefault("status", TaskStatus.TO_DO.value)
-        # Merge kwargs into default_data (kwargs override defaults)
         default_data.update(kwargs)
         
-        # Create user and project
         user = User(**VALID_USER)
         db_session.add(user)
         db_session.flush()
@@ -146,7 +141,6 @@ def task_factory_with_kwargs(db_session):
         db_session.add(project)
         db_session.flush()
         
-        # Create task with merged data
         task = Task(**default_data)
         db_session.add(task)
         db_session.commit()
@@ -158,59 +152,50 @@ def task_factory_with_kwargs(db_session):
 class TestUpcomingTaskReminderIntegration:
     """Integration tests for upcoming_task_reminder endpoint."""
     
-    # INT-REM-001 - Comprehensive success test with mixed email availability  
+    # INT-29-001 
     def test_upcoming_reminder_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, recipients_mixed):
         """Test comprehensive success scenario including mixed email availability."""
         from datetime import date
         
-        # Create task using mock data
         scenario = _reminder_data.RECIPIENTS_SUCCESS_TWO
         task_data = _reminder_data.UPCOMING_TASK.copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task = task_factory_with_kwargs(**task_data)
         
-        # Call the function
         result = upcoming_task_reminder(task.id)
         
-        # Verify response
         assert result["success"] is True
         assert result["recipients_count"] == len(recipients_mixed)
         assert "email_id" in result
         
-        # Verify SMTP was called
         server = patched_smtp_tls
         server.starttls.assert_called_once()
         server.login.assert_not_called()
         server.send_message.assert_not_called()
         server.quit.assert_called_once()
     
-    # INT-REM-002 - No recipients scenario
+    # INT-29-002 
     @pytest.mark.parametrize("fixture_name", ["recipients_empty", "recipients_none_configured"])
     def test_upcoming_reminder_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, request, fixture_name):
         """Test early return when no assignees have email addresses."""
-        # Select fixture to yield no recipients
-        request.getfixturevalue(fixture_name)
 
+        request.getfixturevalue(fixture_name)
         task_data = _reminder_data.UPCOMING_TASK.copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task = task_factory_with_kwargs(**task_data)
         
-        # Setup mock based on scenario
-        # Call the function
         result = upcoming_task_reminder(task.id)
-        
-        # Verify early return response
+
         assert result["success"] is True
         assert result["message"] == "No recipients configured for notifications"
         assert result["recipients_count"] == 0
-        
-        # Verify SMTP was not called
+
         server = patched_smtp_tls
         server.starttls.assert_not_called()
         server.login.assert_not_called()
         server.send_message.assert_not_called()
     
-    # INT-REM-003 - Error scenarios
+    # INT-29-003 
     @pytest.mark.parametrize("scenario_key", [
         "task_not_found",
         "no_deadline",
@@ -222,11 +207,9 @@ class TestUpcomingTaskReminderIntegration:
         import backend.src.services.task as task_service      
         from backend.src.services.email import get_email_service
         from fastapi import HTTPException
-        
-        # Get scenario from mock data
+
         scenario = _reminder_data.ALL_ERROR_SCENARIOS[scenario_key]
-        
-        # Create task (for scenarios that need it)
+
         task = None
         if scenario_key != "task_not_found":
             task_data = scenario.get("task_data", _reminder_data.UPCOMING_TASK).copy()
@@ -236,22 +219,18 @@ class TestUpcomingTaskReminderIntegration:
             task_id = task.id
         else:
             task_id = scenario["task_id"]
-        
-        # Setup mocks based on scenario
+
         if scenario_key == "task_not_found":
             monkeypatch.setattr(task_service, "get_task_with_subtasks",
                               lambda task_id: scenario["mock_task_service_return"])
         elif scenario_key == "no_deadline":
-            # Ensure there is at least one recipient so the deadline path is executed
             email_service = get_email_service()
             monkeypatch.setattr(email_service, "_get_task_notification_recipients", lambda task_id: [EmailRecipient(email="a@b.com")])
         elif scenario_key == "send_failure":
             email_service = get_email_service()
             monkeypatch.setattr(email_service, "_get_task_notification_recipients", lambda task_id: [EmailRecipient(email="a@b.com")])
-            # Force _send_smtp_message to return unexpected id
             monkeypatch.setattr(email_service, "_send_smtp_message", lambda *args, **kwargs: "unexpected")
         
-        # Execute test based on expected behavior
         if "expected_response" in scenario:
             result = upcoming_task_reminder(task_id)
             assert result["success"] == scenario["expected_response"]["success"]
@@ -268,33 +247,29 @@ class TestUpcomingTaskReminderIntegration:
 class TestOverdueTaskReminderIntegration:
     """Integration tests for overdue_task_reminder endpoint."""
     
-    # INT-REM-004 - Comprehensive success test with multiple assignees
+    # INT-107-001 - Comprehensive success test with multiple assignees
     def test_overdue_reminder_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, recipients_mixed):
         """Test comprehensive success scenario including mixed email availability."""
         from datetime import date
         
-        # Create task using mock data
         task_data = _reminder_data.OVERDUE_TASK.copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task_data["title"] = "Overdue Task"
         task = task_factory_with_kwargs(**task_data)
         
-        # Call the function
         result = overdue_task_reminder(task.id)
-        
-        # Verify response
+
         assert result["success"] is True
         assert result["recipients_count"] == len(recipients_mixed)
         assert "email_id" in result
-        
-        # Verify SMTP was called
+
         server = patched_smtp_tls
         server.starttls.assert_called_once()
         server.login.assert_not_called()
         server.send_message.assert_not_called()
         server.quit.assert_called_once()
     
-    # INT-REM-005 - No recipients scenario
+    # INT-107-002 - No recipients scenario
     @pytest.mark.parametrize("fixture_name", ["recipients_empty", "recipients_none_configured"])
     def test_overdue_reminder_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, request, fixture_name):
         """Test early return when no assignees have email addresses."""
@@ -302,22 +277,19 @@ class TestOverdueTaskReminderIntegration:
         task_data = _reminder_data.OVERDUE_TASK.copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task = task_factory_with_kwargs(**task_data)
-        
-        # Call the function
+
         result = overdue_task_reminder(task.id)
-        
-        # Verify early return response
+
         assert result["success"] is True
         assert result["message"] == "No recipients configured for notifications"
         assert result["recipients_count"] == 0
-        
-        # Verify SMTP was not called
+
         server = patched_smtp_tls
         server.starttls.assert_not_called()
         server.login.assert_not_called()
         server.send_message.assert_not_called()
     
-    # INT-REM-006 - Error scenarios
+    # INT-107-003 - Error scenarios
     @pytest.mark.parametrize("scenario_key", [
         "task_not_found",
         "no_deadline",
@@ -329,11 +301,9 @@ class TestOverdueTaskReminderIntegration:
         import backend.src.services.task as task_service      
         from backend.src.services.email import get_email_service
         from fastapi import HTTPException
-        
-        # Get scenario from mock data
+
         scenario = _reminder_data.ALL_ERROR_SCENARIOS[scenario_key]
-        
-        # Create task (for scenarios that need it)
+
         task = None
         if scenario_key != "task_not_found":
             task_data = scenario.get("task_data", _reminder_data.OVERDUE_TASK).copy()
@@ -343,8 +313,7 @@ class TestOverdueTaskReminderIntegration:
             task_id = task.id
         else:
             task_id = scenario["task_id"]
-        
-        # Setup mocks based on scenario
+
         if scenario_key == "task_not_found":
             monkeypatch.setattr(task_service, "get_task_with_subtasks",
                               lambda task_id: scenario["mock_task_service_return"])
@@ -355,8 +324,7 @@ class TestOverdueTaskReminderIntegration:
             email_service = get_email_service()
             monkeypatch.setattr(email_service, "_get_task_notification_recipients", lambda task_id: [EmailRecipient(email="a@b.com")])
             monkeypatch.setattr(email_service, "_send_smtp_message", lambda *args, **kwargs: None)
-        
-        # Execute test based on expected behavior
+
         if "expected_response" in scenario:
             result = overdue_task_reminder(task_id)
             assert result["success"] == scenario["expected_response"]["success"]
@@ -388,7 +356,6 @@ class TestTaskReminderAPI:
             expire_on_commit=False,
         )
         task_service.SessionLocal = TestingSessionLocal
-        # no assignment service dependency in reminders now
         
         with TestClient(app) as client:
             yield client
@@ -412,8 +379,7 @@ class TestTaskReminderAPI:
                                                                patched_smtp_tls, monkeypatch):
         """Test that ValueError from handler is converted to 404 by route."""
         import backend.src.handlers.task_handler as task_handler
-        
-        # Mock handler to raise ValueError
+
         def mock_upcoming_reminder(task_id):
             raise ValueError("Task not found")
         
@@ -428,8 +394,7 @@ class TestTaskReminderAPI:
                                                                        monkeypatch):
         """Test that generic Exception from handler is converted to 500 by route."""
         import backend.src.handlers.task_handler as task_handler
-        
-        # Mock handler to raise generic Exception
+
         def mock_upcoming_reminder(task_id):
             raise Exception("Database connection failed")
         
@@ -445,8 +410,7 @@ class TestTaskReminderAPI:
         """Test that HTTPException from handler is properly re-raised by route."""
         import backend.src.handlers.task_handler as task_handler
         from fastapi import HTTPException
-        
-        # Mock handler to raise HTTPException
+
         def mock_upcoming_reminder(task_id):
             raise HTTPException(status_code=404, detail="Task not found")
         
@@ -476,8 +440,7 @@ class TestTaskReminderAPI:
                                                               patched_smtp_tls, monkeypatch):
         """Test that ValueError from handler is converted to 404 by route."""
         import backend.src.handlers.task_handler as task_handler
-        
-        # Mock handler to raise ValueError
+
         def mock_overdue_reminder(task_id):
             raise ValueError("Task not found")
         
@@ -492,8 +455,7 @@ class TestTaskReminderAPI:
                                                                      monkeypatch):
         """Test that generic Exception from handler is converted to 500 by route."""
         import backend.src.handlers.task_handler as task_handler
-        
-        # Mock handler to raise generic Exception
+
         def mock_overdue_reminder(task_id):
             raise Exception("Database connection failed")
         
@@ -509,8 +471,7 @@ class TestTaskReminderAPI:
         """Test that HTTPException from handler is properly re-raised by route."""
         import backend.src.handlers.task_handler as task_handler
         from fastapi import HTTPException
-        
-        # Mock handler to raise HTTPException
+
         def mock_overdue_reminder(task_id):
             raise HTTPException(status_code=404, detail="Task not found")
         
@@ -520,7 +481,7 @@ class TestTaskReminderAPI:
         assert response.status_code == 404
         assert response.json()["detail"] == "Task not found"
     
-    # INT-REM-007 - Handler edge cases
+    # INT-29-004 - Handler edge cases
     def test_upcoming_reminder_project_service_exception_silently_handled(self, db_session, patched_email_settings_tls, 
                                                                           patched_smtp_tls, task_factory_with_kwargs, 
                                                                           recipients_mixed, monkeypatch):
@@ -531,11 +492,9 @@ class TestTaskReminderAPI:
         task_data = _reminder_data.UPCOMING_TASK.copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task = task_factory_with_kwargs(**task_data)
-        
-        # Mock project service to raise exception
+
         monkeypatch.setattr(project_service, "get_project_by_id", lambda project_id: (_ for _ in ()).throw(Exception("Project service error")))
-        
-        # Should still succeed despite project service error
+
         result = upcoming_task_reminder(task.id)
         assert result["success"] is True
     
@@ -549,8 +508,7 @@ class TestTaskReminderAPI:
         task_data = _reminder_data.UPCOMING_TASK.copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task = task_factory_with_kwargs(**task_data)
-        
-        # Mock email service to return None from _send_smtp_message
+
         email_service = get_email_service()
         monkeypatch.setattr(email_service, "_send_smtp_message", lambda *args, **kwargs: None)
         
@@ -570,8 +528,7 @@ class TestTaskReminderAPI:
         task_data = _reminder_data.UPCOMING_TASK.copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task = task_factory_with_kwargs(**task_data)
-        
-        # Mock email service to return unexpected id
+
         email_service = get_email_service()
         monkeypatch.setattr(email_service, "_send_smtp_message", lambda *args, **kwargs: "unexpected")
         
@@ -591,8 +548,7 @@ class TestTaskReminderAPI:
         task_data = _reminder_data.UPCOMING_TASK.copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task = task_factory_with_kwargs(**task_data)
-        
-        # Mock prepare_message to raise an unexpected exception
+
         from backend.src.services.email import get_email_service
         email_service = get_email_service()
         monkeypatch.setattr(email_service, "_prepare_message", lambda *args, **kwargs: (_ for _ in ()).throw(AttributeError("Unexpected error creating email")))
@@ -614,11 +570,9 @@ class TestTaskReminderAPI:
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task_data["title"] = "Overdue Task"
         task = task_factory_with_kwargs(**task_data)
-        
-        # Mock project service to raise exception
+
         monkeypatch.setattr(project_service, "get_project_by_id", lambda project_id: (_ for _ in ()).throw(Exception("Project service error")))
-        
-        # Should still succeed despite project service error
+
         result = overdue_task_reminder(task.id)
         assert result["success"] is True
     
@@ -633,8 +587,7 @@ class TestTaskReminderAPI:
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task_data["title"] = "Overdue Task"
         task = task_factory_with_kwargs(**task_data)
-        
-        # Mock email service to return None from _send_smtp_message
+
         email_service = get_email_service()
         monkeypatch.setattr(email_service, "_send_smtp_message", lambda *args, **kwargs: None)
         
@@ -655,8 +608,7 @@ class TestTaskReminderAPI:
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task_data["title"] = "Overdue Task"
         task = task_factory_with_kwargs(**task_data)
-        
-        # Mock email service to return unexpected id
+
         email_service = get_email_service()
         monkeypatch.setattr(email_service, "_send_smtp_message", lambda *args, **kwargs: "unexpected")
         
@@ -677,8 +629,7 @@ class TestTaskReminderAPI:
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task_data["title"] = "Overdue Task"
         task = task_factory_with_kwargs(**task_data)
-        
-        # Mock prepare_message to raise an unexpected exception
+
         from backend.src.services.email import get_email_service
         email_service = get_email_service()
         monkeypatch.setattr(email_service, "_prepare_message", lambda *args, **kwargs: (_ for _ in ()).throw(AttributeError("Unexpected error creating email")))

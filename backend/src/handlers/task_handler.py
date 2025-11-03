@@ -105,12 +105,10 @@ def upcoming_task_reminder(task_id: int):
     Returns a dict with keys: success, message, recipients_count, email_id (optional).
     """
     try:
-        # Verify task exists
         task = task_service.get_task_with_subtasks(task_id)
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
 
-        # Check if task has a deadline
         if not hasattr(task, 'deadline') or not task.deadline:
             return {
                 "success": False,
@@ -118,11 +116,9 @@ def upcoming_task_reminder(task_id: int):
                 "recipients_count": 0,
             }
 
-        # Get recipients from email service configuration (align with generic email service)
         email_service = get_email_service()
         recipients_objs = email_service._get_task_notification_recipients(task_id)
 
-        # Early return if no recipients configured
         if not recipients_objs:
             return {
                 "success": True,
@@ -130,7 +126,6 @@ def upcoming_task_reminder(task_id: int):
                 "recipients_count": 0,
             }
 
-        # Get project name if available
         project_name = None
         if task.project_id:
             try:
@@ -140,7 +135,6 @@ def upcoming_task_reminder(task_id: int):
             except Exception:
                 pass
 
-        # Prepare template data - assume 1 day until deadline
         template_data = {
             'task_id': task.id,
             'task_title': task.title or "Untitled Task",
@@ -152,8 +146,6 @@ def upcoming_task_reminder(task_id: int):
             'task_url': f"http://localhost:8000/tasks/{task.id}"
         }
 
-        # Send email using template
-        # Create email message - Pydantic will auto-convert dict to EmailContent
         email_message = EmailMessage(
             recipients=recipients_objs,
             content={
@@ -164,14 +156,12 @@ def upcoming_task_reminder(task_id: int):
             email_type=EmailType.UPCOMING_DEADLINE
         )
         
-        # Send email using service internals to avoid EmailResponse validation
         try:
             msg = email_service._prepare_message(email_message)
             message_id = email_service._send_smtp_message(msg, recipients_objs)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
 
-        # Expect stubbed email service to return 1; otherwise, treat as failure
         if message_id != 1:
             raise HTTPException(status_code=500, detail=f"Error sending notification")
         return {
@@ -194,12 +184,10 @@ def overdue_task_reminder(task_id: int):
     Returns a dict with keys: success, message, recipients_count, email_id (optional).
     """
     try:
-        # Verify task exists
         task = task_service.get_task_with_subtasks(task_id)
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
 
-        # Check if task has a deadline
         if not hasattr(task, 'deadline') or not task.deadline:
             return {
                 "success": False,
@@ -207,11 +195,9 @@ def overdue_task_reminder(task_id: int):
                 "recipients_count": 0,
             }
 
-        # Get recipients from email service configuration (align with generic email service)
         email_service = get_email_service()
         recipients_objs = email_service._get_task_notification_recipients(task_id)
 
-        # Early return if no recipients configured
         if not recipients_objs:
             return {
                 "success": True,
@@ -219,7 +205,6 @@ def overdue_task_reminder(task_id: int):
                 "recipients_count": 0,
             }
 
-        # Get project name if available
         project_name = None
         if task.project_id:
             try:
@@ -229,7 +214,6 @@ def overdue_task_reminder(task_id: int):
             except Exception:
                 pass
 
-        # Prepare template data - assume 1 day overdue
         template_data = {
             'task_id': task.id,
             'task_title': task.title or "Untitled Task",
@@ -241,8 +225,6 @@ def overdue_task_reminder(task_id: int):
             'task_url': f"http://localhost:8000/tasks/{task.id}"
         }
 
-        # Send email using template
-        # Create email message - Pydantic will auto-convert dict to EmailContent
         email_message = EmailMessage(
             recipients=recipients_objs,
             content={
@@ -252,15 +234,13 @@ def overdue_task_reminder(task_id: int):
             },
             email_type=EmailType.OVERDUE_DEADLINE
         )
-        
-        # Send email using service internals to avoid EmailResponse validation
+
         try:
             msg = email_service._prepare_message(email_message)
             message_id = email_service._send_smtp_message(msg, recipients_objs)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
 
-        # Expect stubbed email service to return 1; otherwise, treat as failure
         if message_id != 1:
             raise HTTPException(status_code=500, detail=f"Error sending notification")
         return {
