@@ -43,7 +43,7 @@ def patch_email_settings(monkeypatch):
     monkeypatch.setenv("USE_SSL", "False")
     monkeypatch.setenv("TIMEOUT", "5")
 
-# UNI-29/001 
+# UNI-029/001 
 def test_upcoming_no_deadline_returns_failure(reminder_data, patch_email_settings, monkeypatch):
     from backend.src.services import task as task_service
     task_dict = reminder_data.TASK_WITHOUT_DEADLINE.copy()
@@ -64,7 +64,7 @@ def test_upcoming_no_deadline_returns_failure(reminder_data, patch_email_setting
     assert result["message"] == "Task does not have a deadline"
     assert result["recipients_count"] == 0
 
-# UNI-29/002
+# UNI-029/002
 def test_upcoming_no_recipients_configured_early_return(reminder_data, patch_email_settings, monkeypatch):
     
     from backend.src.services import task as task_service
@@ -90,7 +90,7 @@ def test_upcoming_no_recipients_configured_early_return(reminder_data, patch_ema
     assert result["message"] == "No recipients configured for notifications"
     assert result["recipients_count"] == 0
 
-# UNI-29/003
+# UNI-029/003
 def test_upcoming_project_service_exception_is_silent(reminder_data, patch_email_settings, monkeypatch):
     
     from backend.src.services import task as task_service
