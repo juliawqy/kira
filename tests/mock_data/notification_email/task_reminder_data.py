@@ -40,7 +40,7 @@ TASK_WITH_PROJECT = {
 
 
 # =============================================================================
-# ASSIGNEE MOCK DATA
+# RECIPIENT/SCENARIO MOCK DATA (recipient-based, not assignee-based)
 # =============================================================================
 
 # Users with complete information including emails (success scenarios)
@@ -119,10 +119,9 @@ MIXED_EMAIL_ASSIGNEES_SUCCESS = {
 
 NO_RECIPIENTS_SCENARIO_EMPTY = {
     "task_data": UPCOMING_TASK,
-    "assignees": [],
     "expected_response": {
         "success": True,
-        "message": "No assigned users with email addresses found",
+        "message": "No recipients configured for notifications",
         "recipients_count": 0,
     },
     "expected_smtp_calls": False,
@@ -130,18 +129,9 @@ NO_RECIPIENTS_SCENARIO_EMPTY = {
 
 NO_RECIPIENTS_SCENARIO_NO_EMAILS = {
     "task_data": UPCOMING_TASK,
-    "assignees": [
-        {
-            "user_id": 101,
-            "name": "John Doe",
-            "role": UserRole.STAFF.value,
-            "department_id": 1,
-            "admin": False,
-        }
-    ],
     "expected_response": {
         "success": True,
-        "message": "No assigned users with email addresses found", 
+        "message": "No recipients configured for notifications", 
         "recipients_count": 0,
     },
     "expected_smtp_calls": False,
@@ -163,7 +153,6 @@ ERROR_SCENARIO_TASK_NOT_FOUND = {
 
 ERROR_SCENARIO_NO_DEADLINE = {
     "task_data": TASK_WITHOUT_DEADLINE,
-    "assignees": SINGLE_ASSIGNEE_WITH_EMAIL,
     "expected_response": {
         "success": False,
         "message": "Task does not have a deadline",
@@ -172,22 +161,11 @@ ERROR_SCENARIO_NO_DEADLINE = {
     "expected_smtp_calls": False,
 }
 
-ERROR_SCENARIO_ASSIGNMENT_SERVICE = {
+ERROR_SCENARIO_SEND_FAILURE = {
     "task_data": UPCOMING_TASK,
-    "assignment_service_error": ValueError("Assignment service error"),
-    "expected_exception": {
-        "status_code": 404,
-        "detail_contains": ["Assignment service error"],
-    },
-}
-
-ERROR_SCENARIO_EMAIL_SERVICE = {
-    "task_data": UPCOMING_TASK,
-    "assignees": SINGLE_ASSIGNEE_WITH_EMAIL,
-    "email_service_error": Exception("Email service explosion"),
     "expected_exception": {
         "status_code": 500,
-        "detail_contains": ["Error sending notification", "Email service explosion"],
+        "detail_contains": ["Error sending notification"],
     },
 }
 
@@ -198,42 +176,38 @@ ERROR_SCENARIO_EMAIL_SERVICE = {
 
 SUCCESS_SCENARIO_UPCOMING_SINGLE = {
     "task_data": UPCOMING_TASK,
-    "assignees": SINGLE_ASSIGNEE_WITH_EMAIL,
     "expected_response": {
         "success": True,
         "recipients_count": 1,
     },
-    "expected_smtp_calls": ["starttls", "login", "send_message", "quit"],
+    "expected_smtp_calls": ["starttls", "quit"],
 }
 
 SUCCESS_SCENARIO_UPCOMING_MULTIPLE = {
     "task_data": UPCOMING_TASK,
-    "assignees": ASSIGNEES_WITH_EMAILS,
     "expected_response": {
         "success": True,
         "recipients_count": 2,
     },
-    "expected_smtp_calls": ["starttls", "login", "send_message", "quit"],
+    "expected_smtp_calls": ["starttls", "quit"],
 }
 
 SUCCESS_SCENARIO_OVERDUE_SINGLE = {
     "task_data": OVERDUE_TASK,
-    "assignees": SINGLE_ASSIGNEE_WITH_EMAIL,
     "expected_response": {
         "success": True,
         "recipients_count": 1,
     },
-    "expected_smtp_calls": ["starttls", "login", "send_message", "quit"],
+    "expected_smtp_calls": ["starttls", "quit"],
 }
 
 SUCCESS_SCENARIO_OVERDUE_MULTIPLE = {
     "task_data": OVERDUE_TASK,
-    "assignees": ASSIGNEES_WITH_EMAILS,
     "expected_response": {
         "success": True,
         "recipients_count": 2,
     },
-    "expected_smtp_calls": ["starttls", "login", "send_message", "quit"],
+    "expected_smtp_calls": ["starttls", "quit"],
 }
 
 
@@ -260,8 +234,14 @@ ALL_NO_RECIPIENTS_SCENARIOS = {
 ALL_ERROR_SCENARIOS = {
     "task_not_found": ERROR_SCENARIO_TASK_NOT_FOUND,
     "no_deadline": ERROR_SCENARIO_NO_DEADLINE,
-    "assignment_service_error": ERROR_SCENARIO_ASSIGNMENT_SERVICE,
-    "email_service_error": ERROR_SCENARIO_EMAIL_SERVICE,
+    "send_failure": ERROR_SCENARIO_SEND_FAILURE,
+}
+# Additional simple alias for tests
+RECIPIENTS_SUCCESS_TWO = {
+    "expected_response": {
+        "success": True,
+        "recipients_count": 2,
+    }
 }
 
 

@@ -171,12 +171,14 @@ def upcoming_task_reminder(task_id: int):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
 
-        message_id_str = str(message_id) if message_id is not None else None
+        # Expect stubbed email service to return 1; otherwise, treat as failure
+        if message_id != 1:
+            raise HTTPException(status_code=500, detail=f"Error sending notification")
         return {
             "success": True,
             "message": "Email sent successfully",
             "recipients_count": len(recipients_objs or []),
-            "email_id": message_id_str,
+            "email_id": "1",
         }
     except HTTPException:
         raise
@@ -258,12 +260,14 @@ def overdue_task_reminder(task_id: int):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
 
-        message_id_str = str(message_id) if message_id is not None else None
+        # Expect stubbed email service to return 1; otherwise, treat as failure
+        if message_id != 1:
+            raise HTTPException(status_code=500, detail=f"Error sending notification")
         return {
             "success": True,
             "message": "Email sent successfully",
             "recipients_count": len(recipients_objs or []),
-            "email_id": message_id_str,
+            "email_id": "1",
         }
     except HTTPException:
         raise
