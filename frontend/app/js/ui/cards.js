@@ -1136,6 +1136,34 @@ function renderCommentsSection(task, { log, reload }) {
     }
   }
   
+  const mentionSelect = document.createElement("select");
+  mentionSelect.className = "comment-mention-select";
+  mentionSelect.id = `comment-mentions-${task.id}`;
+  mentionSelect.multiple = true;
+  mentionSelect.setAttribute("size", "3");
+  
+  // Add label for mentions dropdown
+  const mentionLabel = document.createElement("label");
+  mentionLabel.textContent = "Tag users (optional):";
+  mentionLabel.className = "comment-mention-label";
+  mentionLabel.setAttribute("for", mentionSelect.id);
+  
+  // Populate mentions dropdown with all users except the commenter
+  // Reuse the users list already fetched above
+  if (users && users.length > 0) {
+    users.forEach(user => {
+      // Skip current user (commenter)
+      if (CURRENT_USER && (user.user_id || user.id) === CURRENT_USER.user_id) {
+        return;
+      }
+      
+      const option = document.createElement("option");
+      option.value = user.email;
+      option.textContent = user.name || user.full_name || user.email;
+      mentionSelect.appendChild(option);
+    });
+  }
+  
   const submitBtn = document.createElement("button");
   submitBtn.textContent = "Add Comment";
   submitBtn.className = "btn primary comment-submit";
@@ -1148,9 +1176,13 @@ function renderCommentsSection(task, { log, reload }) {
       return;
     }
     
+    // Get selected mention emails
+    const mentionedEmails = Array.from(mentionSelect.selectedOptions).map(opt => opt.value);
+    
     try {
-      await addCommentToTask(task.id, userId, commentText, slog);
+      await addCommentToTask(task.id, userId, commentText, mentionedEmails, slog);
       textarea.value = "";
+      mentionSelect.selectedIndex = -1; // Clear selections
       await loadComments();
       showToast("Comment added successfully", "success");
       // Don't reload - just refresh comments locally to keep task expanded
@@ -1160,6 +1192,8 @@ function renderCommentsSection(task, { log, reload }) {
   });
   
   addCommentForm.appendChild(textarea);
+  addCommentForm.appendChild(mentionLabel);
+  addCommentForm.appendChild(mentionSelect);
   addCommentForm.appendChild(userSelect);
   addCommentForm.appendChild(submitBtn);
   commentsWrap.appendChild(addCommentForm);
@@ -1294,12 +1328,13 @@ function renderCommentCard(comment) {
   return card;
 }
 
-async function addCommentToTask(taskId, userId, commentText, log) {
+async function addCommentToTask(taskId, userId, commentText, mentionedEmails = [], log) {
   const slog = asLog(log);
   
   const payload = {
     user_id: userId,
-    comment: commentText
+    comment: commentText,
+    recipient_emails: mentionedEmails.length > 0 ? mentionedEmails : null
   };
   
   try {

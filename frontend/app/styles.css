@@ -221,6 +221,34 @@
     font-size: 13px;
   }
   
+  .comment-mention-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+  
+  .comment-mention-select {
+    width: 100%;
+    font-size: 13px;
+    max-height: 100px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px;
+  }
+  
+  .comment-mention-select option {
+    padding: 4px;
+  }
+  
+  .comment-mention-select option:checked {
+    background: var(--accent) linear-gradient(0deg, var(--accent) 0%, var(--accent) 100%);
+    color: white;
+  }
+  
   .comment-submit {
     font-size: 14px;
     padding: 8px 16px;

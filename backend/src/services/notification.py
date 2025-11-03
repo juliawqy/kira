@@ -10,6 +10,14 @@ from ..enums.notification import NotificationType
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+# Add console handler if not already present
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.propagate = False
 
 
 class NotificationService:
@@ -106,6 +114,11 @@ class NotificationService:
                     f"Activity notification FAILED for task {task_id}, type={type_of_alert}, error={resp.message}"
                 )
                 logger.error(f"Failed to send activity notification '{type_of_alert}': {resp.message}")
+                logger.error(f"DEBUG - Response object: {repr(resp)}")
+                logger.error(f"DEBUG - Response type: {type(resp)}")
+                logger.error(f"DEBUG - Response attributes: {dir(resp)}")
+                logger.error(f"DEBUG - email_id value: {repr(getattr(resp, 'email_id', None))}")
+                logger.error(f"DEBUG - email_id type: {type(getattr(resp, 'email_id', None))}")
 
             return resp
 
