@@ -48,7 +48,7 @@ def test_upcoming_no_deadline_returns_failure(reminder_data, patch_email_setting
     from backend.src.services import task as task_service
     task_dict = reminder_data.TASK_WITHOUT_DEADLINE.copy()
     task = _TaskObj(
-        task_id=123,
+        task_id=task_dict["id"],
         title=task_dict.get('title'),
         deadline=None,
         priority=task_dict.get('priority'),
@@ -57,7 +57,7 @@ def test_upcoming_no_deadline_returns_failure(reminder_data, patch_email_setting
     )
     monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
 
-    result = upcoming_task_reminder(123)
+    result = upcoming_task_reminder(task_dict["id"])
 
     
     assert result["success"] is False
@@ -71,7 +71,7 @@ def test_upcoming_no_recipients_configured_early_return(reminder_data, patch_ema
     from backend.src.services.email import get_email_service
     task_dict = reminder_data.UPCOMING_TASK.copy()
     task = _TaskObj(
-        task_id=42,
+        task_id=task_dict["id"],
         title=task_dict.get('title'),
         deadline=date.fromisoformat(task_dict['deadline']),
         priority=task_dict.get('priority'),
@@ -83,7 +83,7 @@ def test_upcoming_no_recipients_configured_early_return(reminder_data, patch_ema
     monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [])
 
     
-    result = upcoming_task_reminder(42)
+    result = upcoming_task_reminder(task_dict["id"])
 
     
     assert result["success"] is True
@@ -98,12 +98,12 @@ def test_upcoming_project_service_exception_is_silent(reminder_data, patch_email
     from backend.src.services.email import get_email_service
     task_dict = reminder_data.UPCOMING_TASK.copy()
     task = _TaskObj(
-        task_id=77,
+        task_id=task_dict["id"],
         title=task_dict.get('title'),
         deadline=date.fromisoformat(task_dict['deadline']),
         priority=task_dict.get('priority'),
         description=task_dict.get('description'),
-        project_id=1,
+        project_id=task_dict.get('project_id'),
     )
     monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
     es = get_email_service()
@@ -113,7 +113,7 @@ def test_upcoming_project_service_exception_is_silent(reminder_data, patch_email
     monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: 1)
 
     
-    result = upcoming_task_reminder(77)
+    result = upcoming_task_reminder(task_dict["id"])
 
     
     assert result["success"] is True
@@ -125,7 +125,7 @@ def test_overdue_no_deadline_returns_failure(reminder_data, patch_email_settings
     from backend.src.services import task as task_service
     task_dict = reminder_data.TASK_WITHOUT_DEADLINE.copy()
     task = _TaskObj(
-        task_id=223,
+        task_id=task_dict["id"],
         title=task_dict.get('title'),
         deadline=None,
         priority=task_dict.get('priority'),
@@ -134,7 +134,7 @@ def test_overdue_no_deadline_returns_failure(reminder_data, patch_email_settings
     )
     monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
 
-    result = overdue_task_reminder(223)
+    result = overdue_task_reminder(task_dict["id"])
     assert result["success"] is False
     assert result["message"] == "Task does not have a deadline"
     assert result["recipients_count"] == 0
@@ -145,7 +145,7 @@ def test_overdue_no_recipients_configured_early_return(reminder_data, patch_emai
     from backend.src.services.email import get_email_service
     task_dict = reminder_data.OVERDUE_TASK.copy()
     task = _TaskObj(
-        task_id=242,
+        task_id=task_dict["id"],
         title=task_dict.get('title'),
         deadline=date.fromisoformat(task_dict['deadline']),
         priority=task_dict.get('priority'),
@@ -156,7 +156,7 @@ def test_overdue_no_recipients_configured_early_return(reminder_data, patch_emai
     es = get_email_service()
     monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [])
 
-    result = overdue_task_reminder(242)
+    result = overdue_task_reminder(task_dict["id"])
     assert result["success"] is True
     assert result["message"] == "No recipients configured for notifications"
     assert result["recipients_count"] == 0
@@ -168,12 +168,12 @@ def test_overdue_project_service_exception_is_silent(reminder_data, patch_email_
     from backend.src.services.email import get_email_service
     task_dict = reminder_data.OVERDUE_TASK.copy()
     task = _TaskObj(
-        task_id=277,
+        task_id=task_dict["id"],
         title=task_dict.get('title'),
         deadline=date.fromisoformat(task_dict['deadline']),
         priority=task_dict.get('priority'),
         description=task_dict.get('description'),
-        project_id=1,
+        project_id=task_dict.get('project_id'),
     )
     monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
     es = get_email_service()
@@ -181,7 +181,7 @@ def test_overdue_project_service_exception_is_silent(reminder_data, patch_email_
     monkeypatch.setattr(project_service, 'get_project_by_id', lambda _pid: (_ for _ in ()).throw(Exception("proj service down")))
     monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: 1)
 
-    result = overdue_task_reminder(277)
+    result = overdue_task_reminder(task_dict["id"])
     assert result["success"] is True
     assert result["email_id"] == "1"
 

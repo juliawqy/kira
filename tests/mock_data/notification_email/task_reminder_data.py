@@ -8,22 +8,25 @@ from backend.src.enums.user_role import UserRole
 # =============================================================================
 
 UPCOMING_TASK = {
+    "id": 1,
     "title": "Upcoming Deadline Task",
     "description": "Test task for upcoming deadline reminder",
     "priority": 5,
     "project_id": 1,
-    "deadline": "2025-12-25",  # Will be parsed as date
+    "deadline": "2025-12-25",  
 }
 
 OVERDUE_TASK = {
+    "id": 2,
     "title": "Overdue Task",
     "description": "Test task for overdue reminder",
     "priority": 8,
     "project_id": 1,
-    "deadline": "2024-01-01",  # Past date
+    "deadline": "2024-01-01",  
 }
 
 TASK_WITHOUT_DEADLINE = {
+    "id": 3,
     "title": "Task Without Deadline",
     "description": "Test task without deadline",
     "priority": 3,
@@ -31,6 +34,7 @@ TASK_WITHOUT_DEADLINE = {
 }
 
 TASK_WITH_PROJECT = {
+    "id": 4,
     "title": "Task with Project",
     "description": "Test task with project info",
     "priority": 7,
@@ -236,7 +240,7 @@ ALL_ERROR_SCENARIOS = {
     "no_deadline": ERROR_SCENARIO_NO_DEADLINE,
     "send_failure": ERROR_SCENARIO_SEND_FAILURE,
 }
-# Additional simple alias for tests
+
 RECIPIENTS_SUCCESS_TWO = {
     "expected_response": {
         "success": True,
