@@ -8,6 +8,7 @@ E2E_TASK_WORKFLOW = {
         "priority": 5,
         "status": TaskStatus.TO_DO.value,
         "project_id": 1,
+        "creator_id": 1
     },
     "update": {
         "title": "Updated Task Title",
@@ -28,7 +29,7 @@ E2E_SELECTORS = {
         "task_info": ".task-info",
         "update_button": ".update-btn",
         "delete_button": ".delete-btn",
-        "parent_delete_button": ".parent-delete-btn",  # new
+        "parent_delete_button": ".parent-delete-btn",
         "save_button": ".save-btn",
         "attach_button": ".attach-btn",
         "detach_buttons": ".detach-btn",

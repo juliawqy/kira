@@ -53,7 +53,9 @@ class TaskCreate(BaseModel):
     tag: Optional[str] = None
     project_id: int
     active: bool = True
-    parent_id: Optional[int] = None      
+    parent_id: Optional[int] = None   
+
+    creator_id: int   
 
 class TaskUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)

@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails: list[str] = None):
+    """Add a comment to a task with recipient emails from frontend."""
     task = task_service.get_task_with_subtasks(task_id)
     if not task:
         raise ValueError(f"Task {task_id} not found")
@@ -62,6 +63,7 @@ def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails:
     return comment
 
 def list_comments(task_id: int):
+
     task = task_service.get_task_with_subtasks(task_id)
     if not task:
         raise ValueError(f"Task {task_id} not found")
@@ -69,12 +71,14 @@ def list_comments(task_id: int):
     return comment_service.list_comments(task_id)
 
 def get_comment(comment_id: int):
+
     comment = comment_service.get_comment(comment_id)
     if not comment:
         raise ValueError(f"Comment {comment_id} not found")
     return comment
 
 def update_comment(comment_id: int, updated_text: str, requesting_user_id: int):
+    """Update a comment - only the author can update their comment."""
     
     existing_comment = comment_service.get_comment(comment_id)
     if not existing_comment:
@@ -86,6 +90,7 @@ def update_comment(comment_id: int, updated_text: str, requesting_user_id: int):
     return comment_service.update_comment(comment_id, updated_text)
 
 def delete_comment(comment_id: int, requesting_user_id: int):
+    """Delete a comment - only the author can delete their comment."""
     
     existing_comment = comment_service.get_comment(comment_id)
     if not existing_comment:

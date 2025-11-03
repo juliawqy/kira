@@ -16,7 +16,6 @@ from tests.mock_data.task.integration_data import (
     EXPECTED_RESPONSE_FIELDS,
     TASK_CREATE_CHILD,
     INVALID_TASK_ID_NONEXISTENT,
-    INACTIVE_TASK_PAYLOAD,
     TASK_3_PAYLOAD,
     VALID_PROJECT,
     VALID_PROJECT_2,
@@ -254,8 +253,10 @@ def test_create_parent_assignment_nonexistent_parent(client, task_base_path, tes
 def test_create_parent_assignment_inactive_parent(client, task_base_path, test_db_session):
     """Attaching a child to an inactive parent should return 400 and no DB row created."""
 
-    parent_resp = client.post(f"{task_base_path}/", json=serialize_payload(INACTIVE_TASK_PAYLOAD))
+    parent_resp = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     parent_task = parent_resp.json()
+
+    client.post(f"{task_base_path}/{parent_task['id']}/delete")
 
     child_resp = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_CHILD))
     child_task = child_resp.json()
@@ -346,7 +347,9 @@ def test_attach_subtask_self_reference_returns_400(client, task_base_path):
 def test_attach_inactive_subtask_returns_404(client, task_base_path):
     """Inactive subtasks cannot be attached."""
     parent = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD)).json()
-    inactive = client.post(f"{task_base_path}/", json=serialize_payload(INACTIVE_TASK_PAYLOAD)).json()
+    inactive = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_CHILD)).json()
+
+    client.post(f"{task_base_path}/{inactive['id']}/delete")
 
     resp = client.post(
         f"{task_base_path}/{parent['id']}/subtasks",

@@ -92,10 +92,12 @@ def test_delete_task_nonexistent_id_returns_404(client, task_base_path):
 # INT-004/003
 def test_delete_task_already_inactive_returns_404(client, task_base_path):
     """Verify deleting already inactive task returns 404."""
-    response = client.post(f"{task_base_path}/", json=serialize_payload(INACTIVE_TASK_PAYLOAD))
+    response = client.post(f"{task_base_path}/", json=serialize_payload(TASK_CREATE_PAYLOAD))
     assert response.status_code == 201
-    task_id = INACTIVE_TASK["id"]
 
+    client.post(f"{task_base_path}/{EXPECTED_TASK_RESPONSE['id']}/delete")
+
+    task_id = INACTIVE_TASK["id"]
     response = client.post(f"{task_base_path}/{task_id}/delete")
     assert response.status_code == 404
 

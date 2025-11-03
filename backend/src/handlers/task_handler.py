@@ -5,7 +5,6 @@ from typing import Iterable, Optional
 from datetime import date
 from datetime import datetime
 
-
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
 from backend.src.services import project as project_service
@@ -58,17 +57,18 @@ def create_task(
     project_id: int,
     active: bool = True,
     parent_id: Optional[int] = None,
+    creator_id: int
 ):
     if not title or not title.strip():
         raise ValueError("Task title cannot be empty or whitespace.")
     
     if parent_id is not None:
-            parent = task_service.get_task_with_subtasks(parent_id)
-            if not parent:
-                raise ValueError(f"Parent task {parent_id} not found.")
-            
-            if not parent.active:
-                raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
+        parent = task_service.get_task_with_subtasks(parent_id)
+        if not parent:
+            raise ValueError(f"Parent task {parent_id} not found.")
+        
+        if not parent.active:
+            raise ValueError(f"Parent task {parent_id} is inactive and cannot accept subtasks.")
 
     task = task_service.add_task(
         title=title,
@@ -86,6 +86,8 @@ def create_task(
 
     if parent_id is not None:
         task_service.link_subtask(parent_id, task.id)
+
+    assignment_service.assign_users(task.id, [creator_id])
 
     return task
 
@@ -192,7 +194,18 @@ def update_task(
             )
         except Exception:
             pass
-
+        logger.info(
+            "Task update notification dispatched",
+            extra={
+                "task_id": updated.id,
+                "type": NotificationType.TASK_UPDATE.value,
+                "success": getattr(resp, "success", None),
+                "email_message": getattr(resp, "message", None),
+                "recipients_count": getattr(resp, "recipients_count", None),
+                "email_id": getattr(resp, "email_id", None),
+            },
+        )
+    print("pass notif")
     return updated
 
 def get_task(task_id: int):
