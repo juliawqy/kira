@@ -336,12 +336,24 @@ async function renderTeamManagementView() {
   teamMgmtEl.innerHTML = `<div class="muted">Loading…</div>`;
   
   try {
-    // Fetch team tasks for the manager (returns dict grouped by team)
-    const data = await apiTask(`/manager/${CURRENT_USER.user_id}`, { method: "GET" });
-    log("GET team-management tasks", data);
+    // Fetch team tasks based on user role
+    let data;
+    if (isCurrentUserManager() && !isCurrentUserDirector()) {
+      // Manager: get tasks from teams they manage
+      data = await apiTask(`/manager/${CURRENT_USER.user_id}`, { method: "GET" });
+      log("GET manager team-management tasks", data);
+    } else if (isCurrentUserDirector()) {
+      // Director: get tasks from departments they manage
+      data = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
+      log("GET director team-management tasks", data);
+    } else {
+      log("User is neither manager nor director");
+      teamMgmtEl.innerHTML = `<div class="muted">Access denied.</div>`;
+      return;
+    }
     
-    // Pass the dict directly to renderTeamManagement
-    const container = renderTeamManagement(data, { log, reload: () => renderTeamManagementView() });
+    // Pass the dict directly to renderTeamManagement (now async)
+    const container = await renderTeamManagement(data, { log, reload: () => renderTeamManagementView() });
     
     teamMgmtEl.innerHTML = "";
     teamMgmtEl.appendChild(container);
@@ -452,6 +464,10 @@ function initializeUserSelection() {
   if (managerOnlyTab && isCurrentUserManagerOrDirector()) {
     managerOnlyTab.style.display = "block";
   }
+  const managerOnlyTabTeamMgmt = document.getElementById("tabTeamManagement");
+  if (managerOnlyTabTeamMgmt && isCurrentUserManagerOrDirector()) {
+    managerOnlyTabTeamMgmt.style.display = "block";
+  }
 }
 
 function updateUserSelectionUI() {
@@ -489,6 +505,10 @@ function updateUserSelectionUI() {
     if (managerOnlyTab) {
       managerOnlyTab.style.display = isCurrentUserManagerOrDirector() ? "block" : "none";
     }
+    const managerOnlyTabTeamMgmt = document.getElementById("tabTeamManagement");
+    if (managerOnlyTabTeamMgmt) {
+      managerOnlyTabTeamMgmt.style.display = isCurrentUserManagerOrDirector() ? "block" : "none";
+    }
     
     // Auto-switch to List view if current tab is not accessible
     const activeTab = document.querySelector(".tab-btn.active");
@@ -497,6 +517,8 @@ function updateUserSelectionUI() {
       if (tabName === "teamSchedule" && !isCurrentUserStaff()) {
         switchTab("list");
       } else if (tabName === "timeline" && !isCurrentUserManagerOrDirector()) {
+        switchTab("list");
+      } else if (tabName === "teamManagement" && !isCurrentUserManagerOrDirector()) {
         switchTab("list");
       }
     }
@@ -519,14 +541,16 @@ function switchTab(tabName) {
   const tabCalendar = document.getElementById("tabCalendar");
   const tabTeamSchedule = document.getElementById("tabTeamSchedule");
   const tabTimeline = document.getElementById("tabTimeline");
+  const tabTeamManagement = document.getElementById("tabTeamManagement");
   const contentList = document.getElementById("tabContentList");
   const contentCalendar = document.getElementById("tabContentCalendar");
   const contentTeamSchedule = document.getElementById("tabContentTeamSchedule");
   const contentTimeline = document.getElementById("tabContentTimeline");
+  const contentTeamManagement = document.getElementById("tabContentTeamManagement");
   
   // Remove active class from all tabs and content
-  [tabList, tabCalendar, tabTeamSchedule, tabTimeline].forEach(tab => tab?.classList.remove("active"));
-  [contentList, contentCalendar, contentTeamSchedule, contentTimeline].forEach(content => content?.classList.remove("active"));
+  [tabList, tabCalendar, tabTeamSchedule, tabTimeline, tabTeamManagement].forEach(tab => tab?.classList.remove("active"));
+  [contentList, contentCalendar, contentTeamSchedule, contentTimeline, contentTeamManagement].forEach(content => content?.classList.remove("active"));
   
   if (tabName === "list") {
     tabList?.classList.add("active");
@@ -542,6 +566,10 @@ function switchTab(tabName) {
     contentTimeline?.classList.add("active");
     // Render timeline view when switching to timeline tab
     renderTimelineView();
+  } else if (tabName === "teamManagement") {
+    tabTeamManagement?.classList.add("active");
+    contentTeamManagement?.classList.add("active");
+    renderTeamManagementView();
   }
 }
 
@@ -590,6 +618,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("tabCalendar")?.addEventListener("click", () => switchTab("calendar"));
   document.getElementById("tabTeamSchedule")?.addEventListener("click", () => switchTab("teamSchedule"));
   document.getElementById("tabTimeline")?.addEventListener("click", () => switchTab("timeline"));
+  document.getElementById("tabTeamManagement")?.addEventListener("click", () => switchTab("teamManagement"));
 
   // Wire timeline sub-tabs
   document.getElementById("timelineTabList")?.addEventListener("click", () => switchTimelineSubTab("list"));
