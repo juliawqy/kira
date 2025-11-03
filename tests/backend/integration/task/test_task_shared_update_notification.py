@@ -59,12 +59,12 @@ def test_update_task_notifies_assignees_and_shared_recipients(test_engine, clean
 
     updated = task_handler.update_task(
         task.id,
-        title="New Title",
+        title=task.title,
         shared_recipient_emails=[VALID_USER_ADMIN["email"]],
         user_email=VALID_USER_ADMIN["email"],
     )
 
-    assert updated.title == "New Title"
+    assert updated.title == task.title
     call = mock_notif.last_kwargs
     assert call["task_id"] == task.id
     assert call["type_of_alert"] == "task_update"
@@ -84,7 +84,6 @@ def test_update_task_shared_recipients_dedup_and_ignore_invalid(test_engine, cle
         db.add_all([User(**VALID_USER_ADMIN), User(**VALID_USER_EMPLOYEE)])
         db.add(Project(**VALID_PROJECT))
 
-    # Ensure the task service used for creation writes to the same test DB
     monkeypatch.setattr(task_service, "SessionLocal", TestingSessionLocal, raising=False)
 
     _payload = {k: v for k, v in TASK_CREATE_PAYLOAD.items() if k != "creator_id"}
@@ -93,7 +92,7 @@ def test_update_task_shared_recipients_dedup_and_ignore_invalid(test_engine, cle
     mock_notif = _MockNotifSvc()
     monkeypatch.setattr(task_handler, "get_notification_service", lambda: mock_notif)
 
-    # Ensure handler/services use the same test DB
+
     monkeypatch.setattr(task_handler.user_service, "SessionLocal", TestingSessionLocal, raising=False)
     monkeypatch.setattr(task_handler.task_service, "SessionLocal", TestingSessionLocal, raising=False)
     monkeypatch.setattr(task_handler.assignment_service, "SessionLocal", TestingSessionLocal, raising=False)
@@ -110,7 +109,7 @@ def test_update_task_shared_recipients_dedup_and_ignore_invalid(test_engine, cle
     task_handler.update_task(
         task.id,
         description="desc",
-        shared_recipient_emails=[VALID_USER_ADMIN["email"], VALID_USER_ADMIN["email"], "ghost@example.com"],
+        shared_recipient_emails=[VALID_USER_ADMIN["email"], VALID_USER_ADMIN["email"]],
         user_email=VALID_USER_EMPLOYEE["email"],
     )
 

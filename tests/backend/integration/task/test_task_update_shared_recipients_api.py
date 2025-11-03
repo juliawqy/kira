@@ -11,6 +11,7 @@ from tests.mock_data.task.integration_data import (
     VALID_PROJECT,
     VALID_USER_ADMIN,
     VALID_USER_EMPLOYEE,
+    TASK_UPDATE_PARTIAL_TITLE,
 )
 
 
@@ -65,7 +66,7 @@ def test_update_task_shared_recipients_via_api(client, task_base_path, test_engi
     )
 
     patch_payload = {
-        "title": "API Updated",
+        "title": TASK_UPDATE_PARTIAL_TITLE["title"],
         "shared_recipient_emails": [VALID_USER_ADMIN["email"]],
     }
     resp = client.patch(f"{task_base_path}/{task_id}", json=patch_payload)
