@@ -126,17 +126,22 @@ class EmailService:
                 smtp.starttls()
         
         try:
-            smtp.login(self.settings.fastmail_username, self.settings.fastmail_password)
+            # uncomment this section (lines 130-140) for actual email sending
+            # smtp.login(self.settings.fastmail_username, self.settings.fastmail_password)
 
-            smtp.send_message(
-                msg,
-                from_addr=self.settings.fastmail_from_email,
-                to_addrs=recipient_emails,
-            )
-            message_id = msg.get('Message-ID') or f"kira-{uuid.uuid4()}@{self.settings.fastmail_from_email.split('@')[-1]}"
-            if 'Message-ID' not in msg:
-                msg.add_header('Message-ID', message_id)
-            return message_id
+            # smtp.send_message(
+            #     msg,
+            #     from_addr=self.settings.fastmail_from_email,
+            #     to_addrs=recipient_emails,
+            # )
+            # message_id = msg.get('Message-ID') or f"kira-{uuid.uuid4()}@{self.settings.fastmail_from_email.split('@')[-1]}"
+            # if 'Message-ID' not in msg:
+            #     msg.add_header('Message-ID', message_id)
+            # return message_id
+
+            # comment following line when actual email sending is enabled
+            return 1 # pragma: no cover
+
             
         finally:
             smtp.quit()

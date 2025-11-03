@@ -159,19 +159,31 @@ def update_task(
             new_values[f] = after
 
     if updated_fields:
-        
         assignees = assignment_service.list_assignees(task_id)
-        recipients = [u.email for u in assignees if getattr(u, 'email', None)] or None
+        recipient_set = {u.email for u in assignees if getattr(u, 'email', None)}
+        recipients = sorted(recipient_set) if recipient_set else None
+
+        resp = get_notification_service().notify_activity(
+            user_email=kwargs.get("user_email"),
+            task_id=updated.id,
+            task_title=updated.title or "",
+            type_of_alert=NotificationType.TASK_UPDATE.value,
+            updated_fields=updated_fields,
+            old_values=old_values,
+            new_values=new_values,
+            to_recipients=recipients,
+        )
         try:
-            resp = get_notification_service().notify_activity(
-                user_email=kwargs.get("user_email"),
-                task_id=updated.id,
-                task_title=updated.title or "",
-                type_of_alert=NotificationType.TASK_UPDATE.value,
-                updated_fields=updated_fields,
-                old_values=old_values,
-                new_values=new_values,
-                to_recipients=recipients,
+            logger.info(
+                "Notification response",
+                extra={
+                    "task_id": updated.id,
+                    "type": NotificationType.TASK_UPDATE.value,
+                    "success": getattr(resp, "success", None),
+                    "message": getattr(resp, "message", None),
+                    "recipients_count": getattr(resp, "recipients_count", None),
+                    "email_id": getattr(resp, "email_id", None),
+                },
             )
         except Exception:
             pass
@@ -186,7 +198,6 @@ def update_task(
                 "email_id": getattr(resp, "email_id", None),
             },
         )
-    print("pass notif")
     return updated
 
 def get_task(task_id: int):

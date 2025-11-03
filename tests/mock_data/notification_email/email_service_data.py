@@ -123,6 +123,12 @@ VALID_EMAIL_MESSAGE_WITH_CC_BCC = {
     "email_type": "general_notification"
 }
 
+# Standard CC recipients for tests that need multiple CC addresses
+CC_RECIPIENTS = [
+    {"email": "cc1@example.com", "name": "CC One"},
+    {"email": "cc2@example.com", "name": "CC Two"},
+]
+
 
 VALID_TASK_UPDATE_NOTIFICATION = {
     "task_id": 456,

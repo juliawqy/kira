@@ -68,3 +68,4 @@ class TaskUpdate(BaseModel):
     recurring: Optional[Annotated[int, Field(ge=0)]] = None
     tag: Optional[str] = None
     project_id: Optional[int] = None
+    shared_recipient_emails: Optional[List[str]] = None
