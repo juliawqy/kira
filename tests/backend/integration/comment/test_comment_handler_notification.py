@@ -62,7 +62,7 @@ def test_add_comment_triggers_notification_with_recipients_and_assignees(
     seed_task_and_users, monkeypatch
 ):
     mock_notif = _MockNotifSvc()
-    monkeypatch.setattr(comment_handler, "get_notification_service", lambda: mock_notif)
+    monkeypatch.setattr(comment_handler.comment_service, "get_notification_service", lambda: mock_notif)
     monkeypatch.setattr(
         comment_handler.assignment_service,
         "list_assignees",
@@ -98,7 +98,7 @@ def test_add_comment_notification_no_payload_and_no_assignees(
     seed_task_and_users, monkeypatch
 ):
     mock_notif = _MockNotifSvc()
-    monkeypatch.setattr(comment_handler, "get_notification_service", lambda: mock_notif)
+    monkeypatch.setattr(comment_handler.comment_service, "get_notification_service", lambda: mock_notif)
     monkeypatch.setattr(
         comment_handler.assignment_service,
         "list_assignees",
@@ -122,7 +122,7 @@ def test_add_comment_ignores_assignee_without_email(
     seed_task_and_users, monkeypatch
 ):
     mock_notif = _MockNotifSvc()
-    monkeypatch.setattr(comment_handler, "get_notification_service", lambda: mock_notif)
+    monkeypatch.setattr(comment_handler.comment_service, "get_notification_service", lambda: mock_notif)
     monkeypatch.setattr(
         comment_handler.assignment_service,
         "list_assignees",
@@ -147,7 +147,7 @@ def test_add_comment_two_valid_payload_no_assignees(
     seed_task_and_users, monkeypatch
 ):
     mock_notif = _MockNotifSvc()
-    monkeypatch.setattr(comment_handler, "get_notification_service", lambda: mock_notif)
+    monkeypatch.setattr(comment_handler.comment_service, "get_notification_service", lambda: mock_notif)
     monkeypatch.setattr(
         comment_handler.assignment_service,
         "list_assignees",
