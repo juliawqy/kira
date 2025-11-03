@@ -214,7 +214,7 @@ class TestUpcomingTaskReminderIntegration:
 
         if scenario_key == "no_deadline":
             email_service = get_email_service()
-            monkeypatch.setattr(email_service, "_get_task_notification_recipients", lambda task_id: [EmailRecipient(email="a@b.com")])
+            monkeypatch.setattr(email_service, "_get_task_notification_recipients", lambda task_id: [EmailRecipient(email=_reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["email"], name=_reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["name"])])
         result = upcoming_task_reminder(task_id)
         assert result["success"] == scenario["expected_response"]["success"]
         assert result["recipients_count"] == scenario["expected_response"]["recipients_count"]
@@ -285,7 +285,7 @@ class TestOverdueTaskReminderIntegration:
 
         if scenario_key == "no_deadline":
             email_service = get_email_service()
-            monkeypatch.setattr(email_service, "_get_task_notification_recipients", lambda task_id: [EmailRecipient(email="a@b.com")])
+            monkeypatch.setattr(email_service, "_get_task_notification_recipients", lambda task_id: [EmailRecipient(email=_reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["email"], name=_reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["name"])])
         result = overdue_task_reminder(task_id)
         assert result["success"] == scenario["expected_response"]["success"]
         assert result["recipients_count"] == scenario["expected_response"]["recipients_count"]

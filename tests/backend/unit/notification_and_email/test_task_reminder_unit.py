@@ -107,19 +107,19 @@ def test_upcoming_project_service_exception_is_silent(reminder_data, patch_email
     )
     monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
     es = get_email_service()
-    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email='a@b.com', name='A')])
+    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["email"], name=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["name"])])
     monkeypatch.setattr(project_service, 'get_project_by_id', lambda _pid: (_ for _ in ()).throw(Exception("proj service down")))
     
-    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: 1)
+    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: reminder_data.MOCK_MESSAGE_ID)
 
     
     result = upcoming_task_reminder(task_dict["id"])
 
     
     assert result["success"] is True
-    assert result["email_id"] == "1"
+    assert result["email_id"] == str(reminder_data.MOCK_MESSAGE_ID)
 
-# Overdue reminder unit tests
+
 # UNI-107/001 
 def test_overdue_no_deadline_returns_failure(reminder_data, patch_email_settings, monkeypatch):
     from backend.src.services import task as task_service
@@ -177,13 +177,13 @@ def test_overdue_project_service_exception_is_silent(reminder_data, patch_email_
     )
     monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
     es = get_email_service()
-    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email='a@b.com', name='A')])
+    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["email"], name=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["name"])])
     monkeypatch.setattr(project_service, 'get_project_by_id', lambda _pid: (_ for _ in ()).throw(Exception("proj service down")))
-    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: 1)
+    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: reminder_data.MOCK_MESSAGE_ID)
 
     result = overdue_task_reminder(task_dict["id"])
     assert result["success"] is True
-    assert result["email_id"] == "1"
+    assert result["email_id"] == str(reminder_data.MOCK_MESSAGE_ID)
 
 
 

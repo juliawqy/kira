@@ -42,6 +42,8 @@ TASK_WITH_PROJECT = {
     "deadline": "2025-12-25",
 }
 
+MOCK_MESSAGE_ID = 1
+
 
 # =============================================================================
 # RECIPIENT/SCENARIO MOCK DATA (recipient-based, not assignee-based)
