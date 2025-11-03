@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import pytest
@@ -27,11 +28,10 @@ _reminder_spec.loader.exec_module(_reminder_data)
 
 @pytest.fixture
 def patched_email_settings_tls(monkeypatch):
-    """Patch email settings to use test values, ignoring .env file."""
-    # Create test settings from integration data
+    """Patch email settings to use test TLS configuration."""
     settings = EmailSettings(**_integration_data.EMAIL_SETTINGS_TLS)
     
-    # Set all environment variables - these take precedence over .env file
+    # Set environment variables
     monkeypatch.setenv("FASTMAIL_SMTP_HOST", settings.fastmail_smtp_host)
     monkeypatch.setenv("FASTMAIL_SMTP_PORT", str(settings.fastmail_smtp_port))
     monkeypatch.setenv("FASTMAIL_USERNAME", settings.fastmail_username)
@@ -239,8 +239,8 @@ class TestUpcomingTaskReminderIntegration:
             monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: [])
         else:
             mock_assignees = [
-                _reminder_data.create_user_without_email(**user_data) 
-                for user_data in scenario["assignees"]
+                _reminder_data.create_user_without_email(**user_data)
+                for user_data in scenario["assignees"]        
             ]
             monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: mock_assignees)
         
@@ -269,7 +269,7 @@ class TestUpcomingTaskReminderIntegration:
                                             task_factory_with_kwargs, monkeypatch, scenario_key):
         """Test all error scenarios."""
         import backend.src.services.task_assignment as assignment_service
-        import backend.src.services.task as task_service
+        import backend.src.services.task as task_service      
         from backend.src.services.email import get_email_service
         from backend.src.schemas.user import UserRead
         from fastapi import HTTPException
@@ -292,25 +292,26 @@ class TestUpcomingTaskReminderIntegration:
         
         # Setup mocks based on scenario
         if scenario_key == "task_not_found":
-            monkeypatch.setattr(task_service, "get_task_with_subtasks", 
+            monkeypatch.setattr(task_service, "get_task_with_subtasks",
                               lambda task_id: scenario["mock_task_service_return"])
-            
+        
         elif scenario_key == "no_deadline":
             mock_assignees = [UserRead(**user_data) for user_data in scenario["assignees"]]
             monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: mock_assignees)
-            
-        elif scenario_key == "assignment_service_error":
-            error = scenario["assignment_service_error"]
-            monkeypatch.setattr(assignment_service, "list_assignees", 
+        
+        elif scenario_key == "assignment_service_error":      
+            error = scenario["assignment_service_error"]      
+            monkeypatch.setattr(assignment_service, "list_assignees",
                               lambda task_id: (_ for _ in ()).throw(error))
-            
+        
         elif scenario_key == "email_service_error":
             mock_assignees = [UserRead(**user_data) for user_data in scenario["assignees"]]
             monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: mock_assignees)
             email_service = get_email_service()
             error = scenario["email_service_error"]
-            monkeypatch.setattr(email_service, "send_email", 
-                              lambda *args, **kwargs: (_ for _ in ()).throw(error))
+            monkeypatch.setattr(email_service, "send_email",  
+                              lambda *args, **kwargs: (_ for _
+ in ()).throw(error))
         
         # Execute test based on expected behavior
         if "expected_response" in scenario:
@@ -377,8 +378,8 @@ class TestOverdueTaskReminderIntegration:
             monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: [])
         else:
             mock_assignees = [
-                _reminder_data.create_user_without_email(**user_data) 
-                for user_data in scenario["assignees"]
+                _reminder_data.create_user_without_email(**user_data)
+                for user_data in scenario["assignees"]        
             ]
             monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: mock_assignees)
         
@@ -407,7 +408,7 @@ class TestOverdueTaskReminderIntegration:
                                             task_factory_with_kwargs, monkeypatch, scenario_key):
         """Test all error scenarios."""
         import backend.src.services.task_assignment as assignment_service
-        import backend.src.services.task as task_service
+        import backend.src.services.task as task_service      
         from backend.src.services.email import get_email_service
         from backend.src.schemas.user import UserRead
         from fastapi import HTTPException
@@ -430,25 +431,26 @@ class TestOverdueTaskReminderIntegration:
         
         # Setup mocks based on scenario
         if scenario_key == "task_not_found":
-            monkeypatch.setattr(task_service, "get_task_with_subtasks", 
+            monkeypatch.setattr(task_service, "get_task_with_subtasks",
                               lambda task_id: scenario["mock_task_service_return"])
-            
+        
         elif scenario_key == "no_deadline":
             mock_assignees = [UserRead(**user_data) for user_data in scenario["assignees"]]
             monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: mock_assignees)
-            
-        elif scenario_key == "assignment_service_error":
-            error = scenario["assignment_service_error"]
-            monkeypatch.setattr(assignment_service, "list_assignees", 
+        
+        elif scenario_key == "assignment_service_error":      
+            error = scenario["assignment_service_error"]      
+            monkeypatch.setattr(assignment_service, "list_assignees",
                               lambda task_id: (_ for _ in ()).throw(error))
-            
+        
         elif scenario_key == "email_service_error":
             mock_assignees = [UserRead(**user_data) for user_data in scenario["assignees"]]
             monkeypatch.setattr(assignment_service, "list_assignees", lambda task_id: mock_assignees)
             email_service = get_email_service()
             error = scenario["email_service_error"]
-            monkeypatch.setattr(email_service, "send_email", 
-                              lambda *args, **kwargs: (_ for _ in ()).throw(error))
+            monkeypatch.setattr(email_service, "send_email",  
+                              lambda *args, **kwargs: (_ for _
+ in ()).throw(error))
         
         # Execute test based on expected behavior
         if "expected_response" in scenario:
@@ -464,3 +466,347 @@ class TestOverdueTaskReminderIntegration:
             for message_part in expected["detail_contains"]:
                 assert message_part in str(exc_info.value.detail)
 
+
+class TestTaskReminderAPI:
+    """Integration tests for task reminder API endpoints (routes)."""
+    
+    @pytest.fixture(scope="class")
+    def api_client(self, test_engine_backend_integration):
+        """Create a TestClient for API route testing."""
+        from fastapi.testclient import TestClient
+        from backend.src.main import app
+        from sqlalchemy.orm import sessionmaker
+        import backend.src.services.task as task_service
+        import backend.src.services.task_assignment as assignment_service
+        
+        TestingSessionLocal = sessionmaker(
+            bind=test_engine_backend_integration,
+            autoflush=False,
+            autocommit=False,
+            expire_on_commit=False,
+        )
+        task_service.SessionLocal = TestingSessionLocal
+        assignment_service.SessionLocal = TestingSessionLocal
+        
+        with TestClient(app) as client:
+            yield client
+    
+    def test_upcoming_reminder_api_success(self, api_client, db_session, patched_email_settings_tls, patched_smtp_tls, 
+                                           task_factory_with_kwargs, patched_mixed_assignees):
+        """Test upcoming reminder API endpoint returns 200 on success."""
+        from datetime import date
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task = task_factory_with_kwargs(**task_data)
+        
+        response = api_client.post(f"/kira/app/api/v1/task/{task.id}/notify-upcoming")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["recipients_count"] == scenario["expected_response"]["recipients_count"]
+    
+    def test_upcoming_reminder_api_valueerror_converted_to_404(self, api_client, db_session, patched_email_settings_tls, 
+                                                               patched_smtp_tls, monkeypatch):
+        """Test that ValueError from handler is converted to 404 by route."""
+        import backend.src.handlers.task_handler as task_handler
+        
+        # Mock handler to raise ValueError
+        def mock_upcoming_reminder(task_id):
+            raise ValueError("Task not found")
+        
+        monkeypatch.setattr(task_handler, "upcoming_task_reminder", mock_upcoming_reminder)
+        
+        response = api_client.post("/kira/app/api/v1/task/999/notify-upcoming")
+        assert response.status_code == 404
+        assert "Task not found" in response.json()["detail"]
+    
+    def test_upcoming_reminder_api_generic_exception_converted_to_500(self, api_client, db_session, 
+                                                                       patched_email_settings_tls, patched_smtp_tls, 
+                                                                       monkeypatch):
+        """Test that generic Exception from handler is converted to 500 by route."""
+        import backend.src.handlers.task_handler as task_handler
+        
+        # Mock handler to raise generic Exception
+        def mock_upcoming_reminder(task_id):
+            raise Exception("Database connection failed")
+        
+        monkeypatch.setattr(task_handler, "upcoming_task_reminder", mock_upcoming_reminder)
+        
+        response = api_client.post("/kira/app/api/v1/task/1/notify-upcoming")
+        assert response.status_code == 500
+        assert "Error sending notification" in response.json()["detail"]
+        assert "Database connection failed" in response.json()["detail"]
+    
+    def test_upcoming_reminder_api_httpexception_re_raised(self, api_client, db_session, patched_email_settings_tls, 
+                                                           patched_smtp_tls, monkeypatch):
+        """Test that HTTPException from handler is properly re-raised by route."""
+        import backend.src.handlers.task_handler as task_handler
+        from fastapi import HTTPException
+        
+        # Mock handler to raise HTTPException
+        def mock_upcoming_reminder(task_id):
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        monkeypatch.setattr(task_handler, "upcoming_task_reminder", mock_upcoming_reminder)
+        
+        response = api_client.post("/kira/app/api/v1/task/999/notify-upcoming")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
+    
+    def test_overdue_reminder_api_success(self, api_client, db_session, patched_email_settings_tls, patched_smtp_tls, 
+                                         task_factory_with_kwargs, patched_mixed_assignees):
+        """Test overdue reminder API endpoint returns 200 on success."""
+        from datetime import date
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task_data["title"] = "Overdue Task"
+        task = task_factory_with_kwargs(**task_data)
+        
+        response = api_client.post(f"/kira/app/api/v1/task/{task.id}/notify-overdue")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["recipients_count"] == scenario["expected_response"]["recipients_count"]
+    
+    def test_overdue_reminder_api_valueerror_converted_to_404(self, api_client, db_session, patched_email_settings_tls, 
+                                                              patched_smtp_tls, monkeypatch):
+        """Test that ValueError from handler is converted to 404 by route."""
+        import backend.src.handlers.task_handler as task_handler
+        
+        # Mock handler to raise ValueError
+        def mock_overdue_reminder(task_id):
+            raise ValueError("Task not found")
+        
+        monkeypatch.setattr(task_handler, "overdue_task_reminder", mock_overdue_reminder)
+        
+        response = api_client.post("/kira/app/api/v1/task/999/notify-overdue")
+        assert response.status_code == 404
+        assert "Task not found" in response.json()["detail"]
+    
+    def test_overdue_reminder_api_generic_exception_converted_to_500(self, api_client, db_session, 
+                                                                     patched_email_settings_tls, patched_smtp_tls, 
+                                                                     monkeypatch):
+        """Test that generic Exception from handler is converted to 500 by route."""
+        import backend.src.handlers.task_handler as task_handler
+        
+        # Mock handler to raise generic Exception
+        def mock_overdue_reminder(task_id):
+            raise Exception("Database connection failed")
+        
+        monkeypatch.setattr(task_handler, "overdue_task_reminder", mock_overdue_reminder)
+        
+        response = api_client.post("/kira/app/api/v1/task/1/notify-overdue")
+        assert response.status_code == 500
+        assert "Error sending notification" in response.json()["detail"]
+        assert "Database connection failed" in response.json()["detail"]
+    
+    def test_overdue_reminder_api_httpexception_re_raised(self, api_client, db_session, patched_email_settings_tls, 
+                                                          patched_smtp_tls, monkeypatch):
+        """Test that HTTPException from handler is properly re-raised by route."""
+        import backend.src.handlers.task_handler as task_handler
+        from fastapi import HTTPException
+        
+        # Mock handler to raise HTTPException
+        def mock_overdue_reminder(task_id):
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        monkeypatch.setattr(task_handler, "overdue_task_reminder", mock_overdue_reminder)
+        
+        response = api_client.post("/kira/app/api/v1/task/999/notify-overdue")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
+    
+    # INT-REM-007 - Handler edge cases
+    def test_upcoming_reminder_project_service_exception_silently_handled(self, db_session, patched_email_settings_tls, 
+                                                                          patched_smtp_tls, task_factory_with_kwargs, 
+                                                                          patched_mixed_assignees, monkeypatch):
+        """Test that project service exceptions are silently handled (lines 140-141)."""
+        from datetime import date
+        import backend.src.services.project as project_service
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task = task_factory_with_kwargs(**task_data)
+        
+        # Mock project service to raise exception
+        monkeypatch.setattr(project_service, "get_project_by_id", lambda project_id: (_ for _ in ()).throw(Exception("Project service error")))
+        
+        # Should still succeed despite project service error
+        result = upcoming_task_reminder(task.id)
+        assert result["success"] is True
+    
+    def test_upcoming_reminder_email_service_returns_none(self, db_session, patched_email_settings_tls, 
+                                                          patched_smtp_tls, task_factory_with_kwargs, 
+                                                          patched_mixed_assignees, monkeypatch):
+        """Test handler when email service returns None (line 181)."""
+        from datetime import date
+        from backend.src.services.email import get_email_service
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task = task_factory_with_kwargs(**task_data)
+        
+        # Mock email service to return None
+        email_service = get_email_service()
+        monkeypatch.setattr(email_service, "send_email", lambda *args, **kwargs: None)
+        
+        from fastapi import HTTPException
+        with pytest.raises(HTTPException) as exc_info:
+            upcoming_task_reminder(task.id)
+        assert exc_info.value.status_code == 500
+        assert "Email service returned no response" in str(exc_info.value.detail)
+    
+    def test_upcoming_reminder_email_service_returns_failure(self, db_session, patched_email_settings_tls, 
+                                                             patched_smtp_tls, task_factory_with_kwargs, 
+                                                             patched_mixed_assignees, monkeypatch):
+        """Test handler when email service returns success=False (lines 187-188)."""
+        from datetime import date
+        from backend.src.services.email import get_email_service, EmailResponse
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task = task_factory_with_kwargs(**task_data)
+        
+        # Mock email service to return failure response
+        email_service = get_email_service()
+        monkeypatch.setattr(email_service, "send_email", lambda *args, **kwargs: EmailResponse(
+            success=False,
+            message="Email validation failed",
+            recipients_count=0
+        ))
+        
+        from fastapi import HTTPException
+        with pytest.raises(HTTPException) as exc_info:
+            upcoming_task_reminder(task.id)
+        assert exc_info.value.status_code == 500
+        assert "Error sending notification" in str(exc_info.value.detail)
+        assert "Email validation failed" in str(exc_info.value.detail)
+    
+    def test_upcoming_reminder_unexpected_exception_handled(self, db_session, patched_email_settings_tls, 
+                                                            patched_smtp_tls, task_factory_with_kwargs, 
+                                                            patched_mixed_assignees, monkeypatch):
+        """Test outer exception handler (lines 199-200)."""
+        from datetime import date
+        from backend.src.schemas.email import EmailRecipient
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task = task_factory_with_kwargs(**task_data)
+        
+        # Mock EmailRecipient to raise an unexpected exception when creating recipients
+        # This happens at line 159, outside inner try-except blocks
+        original_email_recipient = EmailRecipient
+        def mock_email_recipient(*args, **kwargs):
+            raise AttributeError("Unexpected error creating email recipient")
+        monkeypatch.setattr("backend.src.handlers.task_handler.EmailRecipient", mock_email_recipient)
+        
+        from fastapi import HTTPException
+        with pytest.raises(HTTPException) as exc_info:
+            upcoming_task_reminder(task.id)
+        assert exc_info.value.status_code == 500
+        assert "Unexpected error" in str(exc_info.value.detail)
+    
+    def test_overdue_reminder_project_service_exception_silently_handled(self, db_session, patched_email_settings_tls, 
+                                                                         patched_smtp_tls, task_factory_with_kwargs, 
+                                                                         patched_mixed_assignees, monkeypatch):
+        """Test that project service exceptions are silently handled (lines 250-251)."""
+        from datetime import date
+        import backend.src.services.project as project_service
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task_data["title"] = "Overdue Task"
+        task = task_factory_with_kwargs(**task_data)
+        
+        # Mock project service to raise exception
+        monkeypatch.setattr(project_service, "get_project_by_id", lambda project_id: (_ for _ in ()).throw(Exception("Project service error")))
+        
+        # Should still succeed despite project service error
+        result = overdue_task_reminder(task.id)
+        assert result["success"] is True
+    
+    def test_overdue_reminder_email_service_returns_none(self, db_session, patched_email_settings_tls, 
+                                                         patched_smtp_tls, task_factory_with_kwargs, 
+                                                         patched_mixed_assignees, monkeypatch):
+        """Test handler when email service returns None (line 291)."""
+        from datetime import date
+        from backend.src.services.email import get_email_service
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task_data["title"] = "Overdue Task"
+        task = task_factory_with_kwargs(**task_data)
+        
+        # Mock email service to return None
+        email_service = get_email_service()
+        monkeypatch.setattr(email_service, "send_email", lambda *args, **kwargs: None)
+        
+        from fastapi import HTTPException
+        with pytest.raises(HTTPException) as exc_info:
+            overdue_task_reminder(task.id)
+        assert exc_info.value.status_code == 500
+        assert "Email service returned no response" in str(exc_info.value.detail)
+    
+    def test_overdue_reminder_email_service_returns_failure(self, db_session, patched_email_settings_tls, 
+                                                            patched_smtp_tls, task_factory_with_kwargs, 
+                                                            patched_mixed_assignees, monkeypatch):
+        """Test handler when email service returns success=False (lines 297-298)."""
+        from datetime import date
+        from backend.src.services.email import get_email_service, EmailResponse
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task_data["title"] = "Overdue Task"
+        task = task_factory_with_kwargs(**task_data)
+        
+        # Mock email service to return failure response
+        email_service = get_email_service()
+        monkeypatch.setattr(email_service, "send_email", lambda *args, **kwargs: EmailResponse(
+            success=False,
+            message="Email validation failed",
+            recipients_count=0
+        ))
+        
+        from fastapi import HTTPException
+        with pytest.raises(HTTPException) as exc_info:
+            overdue_task_reminder(task.id)
+        assert exc_info.value.status_code == 500
+        assert "Error sending notification" in str(exc_info.value.detail)
+        assert "Email validation failed" in str(exc_info.value.detail)
+    
+    def test_overdue_reminder_unexpected_exception_handled(self, db_session, patched_email_settings_tls, 
+                                                          patched_smtp_tls, task_factory_with_kwargs, 
+                                                          patched_mixed_assignees, monkeypatch):
+        """Test outer exception handler (lines 309-310)."""
+        from datetime import date
+        from backend.src.schemas.email import EmailRecipient
+        
+        scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
+        task_data = scenario["task_data"].copy()
+        task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+        task_data["title"] = "Overdue Task"
+        task = task_factory_with_kwargs(**task_data)
+        
+        # Mock EmailRecipient to raise an unexpected exception when creating recipients
+        # This happens at line 259, outside inner try-except blocks
+        original_email_recipient = EmailRecipient
+        def mock_email_recipient(*args, **kwargs):
+            raise AttributeError("Unexpected error creating email recipient")
+        monkeypatch.setattr("backend.src.handlers.task_handler.EmailRecipient", mock_email_recipient)
+        
+        from fastapi import HTTPException
+        with pytest.raises(HTTPException) as exc_info:
+            overdue_task_reminder(task.id)
+        assert exc_info.value.status_code == 500
+        assert "Unexpected error" in str(exc_info.value.detail)
