@@ -223,7 +223,7 @@ class TestUpcomingTaskReminderIntegration:
 class TestOverdueTaskReminderIntegration:
     """Integration tests for overdue_task_reminder endpoint."""
     
-    # INT-107-001 - Comprehensive success test with multiple assignees
+    # INT-107-001 
     def test_overdue_reminder_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, recipients_mixed):
         """Test comprehensive success scenario including mixed email availability."""
         from datetime import date
@@ -245,7 +245,7 @@ class TestOverdueTaskReminderIntegration:
         server.send_message.assert_not_called()
         server.quit.assert_called_once()
     
-    # INT-107-002 - No recipients scenario
+    # INT-107-002 
     @pytest.mark.parametrize("fixture_name", ["recipients_empty", "recipients_none_configured"])
     def test_overdue_reminder_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, request, fixture_name):
         """Test early return when no assignees have email addresses."""
@@ -265,7 +265,7 @@ class TestOverdueTaskReminderIntegration:
         server.login.assert_not_called()
         server.send_message.assert_not_called()
     
-    # INT-107-003 - Error scenarios
+    # INT-107-003 
     @pytest.mark.parametrize("scenario_key", [
         "no_deadline",
     ])
