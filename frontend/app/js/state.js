@@ -26,6 +26,37 @@ export const getAssignees = (t) => t.assignees || t.users || [];
 export const getPriorityDisplay = (t) => (typeof t.priority === "number" ? String(t.priority) : (t.priority || "—"));
 export const getUsers = () => USERS;
 
+// Toast notification helper
+export function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  const content = document.createElement('div');
+  content.className = 'toast-content';
+  content.textContent = message;
+  toast.appendChild(content);
+  
+  const dismiss = document.createElement('button');
+  dismiss.className = 'toast-dismiss';
+  dismiss.innerHTML = '×';
+  dismiss.setAttribute('aria-label', 'Dismiss');
+  dismiss.addEventListener('click', () => dismissToast(toast));
+  toast.appendChild(dismiss);
+  
+  container.appendChild(toast);
+  
+  // Auto-dismiss after 3 seconds
+  setTimeout(() => dismissToast(toast), 3000);
+  
+  function dismissToast(element) {
+    element.classList.add('fade-out');
+    setTimeout(() => element.remove(), 300);
+  }
+}
+
 // User filtering helpers
 export const getTasksForCurrentUser = () => {
   if (!CURRENT_USER) return LAST_TASKS;
