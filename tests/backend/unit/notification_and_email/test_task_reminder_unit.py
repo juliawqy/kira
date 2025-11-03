@@ -119,6 +119,80 @@ def test_upcoming_project_service_exception_is_silent(reminder_data, patch_email
     assert result["success"] is True
     assert result["email_id"] == str(reminder_data.MOCK_MESSAGE_ID)
 
+# UNI-029/004 
+def test_upcoming_task_not_found(reminder_data, patch_email_settings, monkeypatch):
+    """Test upcoming reminder when task is not found."""
+    from backend.src.services import task as task_service
+    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: None)
+
+    result = upcoming_task_reminder(999)
+
+    assert result["success"] is False
+    assert result["message"] == "Task not found"
+    assert result["recipients_count"] == 0
+
+# UNI-029/005 
+def test_upcoming_project_found_with_name(reminder_data, patch_email_settings, monkeypatch):
+    """Test upcoming reminder when project is found and has project_name."""
+    from backend.src.services import task as task_service
+    import backend.src.services.project as project_service
+    from backend.src.services.email import get_email_service
+    task_dict = reminder_data.UPCOMING_TASK.copy()
+    task = _TaskObj(
+        task_id=task_dict["id"],
+        title=task_dict.get('title'),
+        deadline=date.fromisoformat(task_dict['deadline']),
+        priority=task_dict.get('priority'),
+        description=task_dict.get('description'),
+        project_id=task_dict.get('project_id'),
+    )
+    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
+    es = get_email_service()
+    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["email"], name=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["name"])])
+    monkeypatch.setattr(project_service, 'get_project_by_id', lambda _pid: {"project_name": "Test Project"})
+    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: reminder_data.MOCK_MESSAGE_ID)
+
+    result = upcoming_task_reminder(task_dict["id"])
+
+    assert result["success"] is True
+    assert result["email_id"] == str(reminder_data.MOCK_MESSAGE_ID)
+
+
+# UNI-029/006 
+def test_upcoming_send_failure_message_id_not_one(reminder_data, patch_email_settings, monkeypatch):
+    """Test upcoming reminder when send returns message_id != 1."""
+    from backend.src.services import task as task_service
+    from backend.src.services.email import get_email_service
+    task_dict = reminder_data.UPCOMING_TASK.copy()
+    task = _TaskObj(
+        task_id=task_dict["id"],
+        title=task_dict.get('title'),
+        deadline=date.fromisoformat(task_dict['deadline']),
+        priority=task_dict.get('priority'),
+        description=task_dict.get('description'),
+        project_id=task_dict.get('project_id'),
+    )
+    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
+    es = get_email_service()
+    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["email"], name=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["name"])])
+    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: 999)
+
+    result = upcoming_task_reminder(task_dict["id"])
+
+    assert result["success"] is False
+    assert result["message"] == "Error sending notification"
+    assert result["recipients_count"] == 1
+
+# UNI-029/007 
+def test_upcoming_exception_caught(reminder_data, patch_email_settings, monkeypatch):
+    """Test upcoming reminder when exception occurs in try block."""
+    from backend.src.services import task as task_service
+    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: (_ for _ in ()).throw(Exception("Task service error")))
+
+    result = upcoming_task_reminder(1)
+
+    assert result is None
+
 
 # UNI-107/001 
 def test_overdue_no_deadline_returns_failure(reminder_data, patch_email_settings, monkeypatch):
@@ -185,5 +259,77 @@ def test_overdue_project_service_exception_is_silent(reminder_data, patch_email_
     assert result["success"] is True
     assert result["email_id"] == str(reminder_data.MOCK_MESSAGE_ID)
 
+# UNI-107/004 
+def test_overdue_task_not_found(reminder_data, patch_email_settings, monkeypatch):
+    """Test overdue reminder when task is not found."""
+    from backend.src.services import task as task_service
+    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: None)
 
+    result = overdue_task_reminder(999)
+
+    assert result["success"] is False
+    assert result["message"] == "Task not found"
+    assert result["recipients_count"] == 0
+
+# UNI-107/005 
+def test_overdue_project_found_with_name(reminder_data, patch_email_settings, monkeypatch):
+    """Test overdue reminder when project is found and has project_name."""
+    from backend.src.services import task as task_service
+    import backend.src.services.project as project_service
+    from backend.src.services.email import get_email_service
+    task_dict = reminder_data.OVERDUE_TASK.copy()
+    task = _TaskObj(
+        task_id=task_dict["id"],
+        title=task_dict.get('title'),
+        deadline=date.fromisoformat(task_dict['deadline']),
+        priority=task_dict.get('priority'),
+        description=task_dict.get('description'),
+        project_id=task_dict.get('project_id'),
+    )
+    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
+    es = get_email_service()
+    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["email"], name=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["name"])])
+    monkeypatch.setattr(project_service, 'get_project_by_id', lambda _pid: {"project_name": "Test Project"})
+    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: reminder_data.MOCK_MESSAGE_ID)
+
+    result = overdue_task_reminder(task_dict["id"])
+
+    assert result["success"] is True
+    assert result["email_id"] == str(reminder_data.MOCK_MESSAGE_ID)
+
+
+# UNI-107/006 
+def test_overdue_send_failure_message_id_not_one(reminder_data, patch_email_settings, monkeypatch):
+    """Test overdue reminder when send returns message_id != 1."""
+    from backend.src.services import task as task_service
+    from backend.src.services.email import get_email_service
+    task_dict = reminder_data.OVERDUE_TASK.copy()
+    task = _TaskObj(
+        task_id=task_dict["id"],
+        title=task_dict.get('title'),
+        deadline=date.fromisoformat(task_dict['deadline']),
+        priority=task_dict.get('priority'),
+        description=task_dict.get('description'),
+        project_id=task_dict.get('project_id'),
+    )
+    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: task)
+    es = get_email_service()
+    monkeypatch.setattr(es, '_get_task_notification_recipients', lambda _tid: [EmailRecipient(email=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["email"], name=reminder_data.SINGLE_ASSIGNEE_WITH_EMAIL[0]["name"])])
+    monkeypatch.setattr(es, '_send_smtp_message', lambda *args, **kwargs: 999)
+
+    result = overdue_task_reminder(task_dict["id"])
+
+    assert result["success"] is False
+    assert result["message"] == "Error sending notification"
+    assert result["recipients_count"] == 1
+
+# UNI-107/007 
+def test_overdue_exception_caught(reminder_data, patch_email_settings, monkeypatch):
+    """Test overdue reminder when exception occurs in try block."""
+    from backend.src.services import task as task_service
+    monkeypatch.setattr(task_service, 'get_task_with_subtasks', lambda _id: (_ for _ in ()).throw(Exception("Task service error")))
+
+    result = overdue_task_reminder(1)
+
+    assert result is None
 

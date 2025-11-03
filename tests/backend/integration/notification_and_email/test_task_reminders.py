@@ -380,3 +380,27 @@ class TestTaskReminderAPI:
         result = overdue_task_reminder(task.id)
         assert result["success"] is True
     
+    # INT-029/006 - Test route exception handler (lines 227-228)
+    def test_upcoming_reminder_route_value_error_exception(self, api_client, monkeypatch):
+        """Test route exception handler when handler raises ValueError."""
+        import backend.src.handlers.task_handler as task_handler
+        def raise_value_error(task_id):
+            raise ValueError("Task not found")
+        monkeypatch.setattr(task_handler, 'upcoming_task_reminder', raise_value_error)
+        
+        response = api_client.post("/kira/app/api/v1/task/999/notify-upcoming")
+        assert response.status_code == 404
+        assert "Task not found" in response.json()["detail"]
+    
+    # INT-107/006 - Test route exception handler (lines 244-245)
+    def test_overdue_reminder_route_value_error_exception(self, api_client, monkeypatch):
+        """Test route exception handler when handler raises ValueError."""
+        import backend.src.handlers.task_handler as task_handler
+        def raise_value_error(task_id):
+            raise ValueError("Task not found")
+        monkeypatch.setattr(task_handler, 'overdue_task_reminder', raise_value_error)
+        
+        response = api_client.post("/kira/app/api/v1/task/999/notify-overdue")
+        assert response.status_code == 404
+        assert "Task not found" in response.json()["detail"]
+    
