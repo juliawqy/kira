@@ -302,6 +302,16 @@ def seed_database():
             TaskAssignment(task_id=2, user_id=julia_id),
             TaskAssignment(task_id=3, user_id=julia_id),
             TaskAssignment(task_id=5, user_id=julia_id),  # Shared task
+            
+            # Manager's assignments (Project Alpha - tasks 1, 4, 5, 6)
+            TaskAssignment(task_id=1, user_id=manager_id),
+            TaskAssignment(task_id=4, user_id=manager_id),
+            TaskAssignment(task_id=5, user_id=manager_id),
+            TaskAssignment(task_id=6, user_id=manager_id),
+            
+            # Director's assignments (Project Beta - tasks 2, 3)
+            TaskAssignment(task_id=2, user_id=director_id),
+            TaskAssignment(task_id=3, user_id=director_id),
         ]
         
         session.add_all(assignments)

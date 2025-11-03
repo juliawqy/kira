@@ -106,8 +106,8 @@ export function renderTaskCard(task, { log, reload }) {
   el.className = "task";
   el.dataset.id = task.id;
 
-  // Add overdue styling for staff members
-  if (isCurrentUserStaff() && isTaskOverdue(task)) {
+  // Add overdue styling for all users
+  if (isTaskOverdue(task)) {
     el.classList.add("task-overdue");
   }
 
@@ -131,7 +131,8 @@ export function renderTaskCard(task, { log, reload }) {
   // Status badge
   if (task.status) {
     const statusBadge = document.createElement("span");
-    statusBadge.className = "task-badge status";
+    const statusClass = `task-badge status ${task.status.toLowerCase().replace(' ', '-')}`;
+    statusBadge.className = statusClass;
     statusBadge.textContent = task.status;
     meta.appendChild(statusBadge);
   }
@@ -409,29 +410,20 @@ function renderAssigneeControls(task, { log, reload }) {
   const renderAssignees = (list) => {
     // Clear both containers
     current.innerHTML = "";
-    const chipsInlineEl = document.getElementById(`assignee-chips-${task.id}`);
-    if (chipsInlineEl) chipsInlineEl.innerHTML = "";
+    chipsContainer.innerHTML = "";
     
     // Update the count in the label
-    const countEl = document.getElementById(`assignee-count-${task.id}`);
-    if (countEl) {
-      if (!list || list.length === 0) {
-        countEl.textContent = "";
-      } else {
-        countEl.textContent = ` (${list.length}):`;
-      }
+    if (!list || list.length === 0) {
+      countEl.textContent = "";
+    } else {
+      countEl.textContent = ` (${list.length}):`;
     }
     
     if (!list || list.length === 0) {
       const none = document.createElement("span");
       none.className = "assignee-empty";
       none.textContent = "No assignees";
-      // Add to inline container instead of main container
-      if (chipsInlineEl) {
-        chipsInlineEl.appendChild(none);
-      } else {
-      current.appendChild(none);
-      }
+      chipsContainer.appendChild(none);
       return;
     }
     
@@ -461,9 +453,7 @@ function renderAssigneeControls(task, { log, reload }) {
       chip.appendChild(remove);
       
       // Add to inline container
-      if (chipsInlineEl) {
-        chipsInlineEl.appendChild(chip);
-      }
+      chipsContainer.appendChild(chip);
     });
   };
 
@@ -1062,6 +1052,47 @@ function renderCommentsSection(task, { log, reload }) {
   commentsContainer.id = `comments-${task.id}`;
   commentsWrap.appendChild(commentsContainer);
 
+  // Create a local renderComments function that uses closure variables
+  const renderComments = (comments) => {
+    // Update count
+    if (!comments || comments.length === 0) {
+      countEl.textContent = "";
+    } else {
+      countEl.textContent = ` (${comments.length})`;
+    }
+    
+    // Clear container
+    commentsContainer.innerHTML = "";
+    
+    if (!comments || comments.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "comment-empty";
+      empty.textContent = "No comments yet";
+      commentsContainer.appendChild(empty);
+      return;
+    }
+    
+    // Sort comments by timestamp (newest first)
+    const sortedComments = [...comments].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    sortedComments.forEach(comment => {
+      const commentEl = renderCommentCard(comment);
+      commentsContainer.appendChild(commentEl);
+    });
+  };
+  
+  // Load comments function using closure
+  async function loadComments() {
+    try {
+      const comments = await apiTask(`/${task.id}/comment`, { method: "GET" });
+      renderComments(comments || []);
+      slog("Loaded comments for task", task.id, comments);
+    } catch (error) {
+      slog("Failed to load comments", error);
+      renderComments([]);
+    }
+  }
+
   // Add comment form (always show for all tasks, including completed)
   const addCommentForm = document.createElement("div");
   addCommentForm.className = "add-comment-form";
@@ -1115,7 +1146,7 @@ function renderCommentsSection(task, { log, reload }) {
     try {
       await addCommentToTask(task.id, userId, commentText, slog);
       textarea.value = "";
-      await loadCommentsForTask(task.id, slog);
+      await loadComments();
       // Don't reload - just refresh comments locally to keep task expanded
     } catch (error) {
       alert("Failed to add comment: " + error.message);
@@ -1128,7 +1159,7 @@ function renderCommentsSection(task, { log, reload }) {
   commentsWrap.appendChild(addCommentForm);
 
   // Load and render comments
-  loadCommentsForTask(task.id, slog);
+  loadComments();
 
   return commentsWrap;
 }

@@ -15,6 +15,9 @@ from backend.src.database.models.task_assignment import TaskAssignment
 from backend.src.database.models.comment import Comment
 from backend.src.database.models.project import Project
 from backend.src.database.models.parent_assignment import ParentAssignment
+from backend.src.database.models.department import Department
+from backend.src.database.models.team import Team
+from backend.src.database.models.team_assignment import TeamAssignment
 from backend.src.enums.user_role import UserRole
 from backend.src.enums.task_status import TaskStatus
 from passlib.context import CryptContext
@@ -83,6 +86,60 @@ def seed_database():
         
         print(f"Created users: Cong (ID: {cong_id}), Julia (ID: {julia_id})")
         print(f"Created users: Manager (ID: {manager_id}), Director (ID: {director_id})")
+        
+        # Create departments
+        print("Creating departments...")
+        departments = [
+            Department(
+                department_id=1,
+                department_name="Engineering",
+                manager_id=director_id
+            )
+        ]
+        session.add_all(departments)
+        session.flush()
+        dept_id = departments[0].department_id
+        print(f"Created department: Engineering (ID: {dept_id})")
+        
+        # Create teams
+        print("Creating teams...")
+        teams = [
+            Team(
+                team_id=1,
+                team_name="Alpha Team",
+                manager_id=manager_id,
+                department_id=dept_id,
+                team_number="010100"
+            ),
+            Team(
+                team_id=2,
+                team_name="Beta Team",
+                manager_id=manager_id,
+                department_id=dept_id,
+                team_number="010200"
+            )
+        ]
+        session.add_all(teams)
+        session.flush()
+        team1_id = teams[0].team_id
+        team2_id = teams[1].team_id
+        print(f"Created teams: Alpha Team (ID: {team1_id}), Beta Team (ID: {team2_id})")
+        
+        # Assign users to departments and teams
+        print("Assigning users to departments and teams...")
+        users["cong"].department_id = dept_id
+        users["julia"].department_id = dept_id
+        users["director"].department_id = dept_id  # Director also belongs to their own department
+        
+        team_assignments = [
+            TeamAssignment(team_id=team1_id, user_id=cong_id),
+            TeamAssignment(team_id=team1_id, user_id=manager_id),
+            TeamAssignment(team_id=team2_id, user_id=julia_id),
+            TeamAssignment(team_id=team2_id, user_id=manager_id),
+        ]
+        session.add_all(team_assignments)
+        session.flush()
+        print(f"Assigned users to teams")
         
         # Create projects
         print("Creating projects...")
@@ -297,6 +354,50 @@ def seed_database():
                 tag="documentation",
                 project_id=1,
                 active=True
+            ),
+            
+            # Additional tasks for better team distribution
+            # Project Alpha tasks for Julia
+            Task(
+                id=22,
+                title="Alpha requirements gathering",
+                description="Collect and document project requirements",
+                start_date=today,
+                deadline=today + timedelta(days=5),
+                status=TaskStatus.IN_PROGRESS.value,
+                priority=7,
+                recurring=0,
+                tag="documentation",
+                project_id=1,
+                active=True
+            ),
+            # Project Beta tasks for Cong
+            Task(
+                id=23,
+                title="Beta testing plan",
+                description="Develop comprehensive testing strategy",
+                start_date=today + timedelta(days=1),
+                deadline=today + timedelta(days=7),
+                status=TaskStatus.TO_DO.value,
+                priority=6,
+                recurring=0,
+                tag="testing",
+                project_id=2,
+                active=True
+            ),
+            # Project Gamma tasks for both
+            Task(
+                id=24,
+                title="Gamma API integration",
+                description="Integrate with external API services",
+                start_date=today + timedelta(days=2),
+                deadline=today + timedelta(days=9),
+                status=TaskStatus.TO_DO.value,
+                priority=8,
+                recurring=0,
+                tag="development",
+                project_id=3,
+                active=True
             )
         ]
         
@@ -413,6 +514,31 @@ def seed_database():
             # Overdue tasks
             TaskAssignment(task_id=20, user_id=julia_id),  # Urgent code fix -> Julia
             TaskAssignment(task_id=21, user_id=cong_id),  # Client feedback review -> Cong
+            
+            # Additional tasks for better distribution
+            TaskAssignment(task_id=22, user_id=julia_id),  # Alpha requirements -> Julia
+            TaskAssignment(task_id=23, user_id=cong_id),   # Beta testing plan -> Cong
+            TaskAssignment(task_id=24, user_id=julia_id),  # Gamma API integration -> Julia
+            
+            # Manager's assignments (Project Alpha & Gamma - tasks 1, 4, 5, 6, 11, 14, 15, 21, 22, 24)
+            TaskAssignment(task_id=1, user_id=manager_id),
+            TaskAssignment(task_id=4, user_id=manager_id),
+            TaskAssignment(task_id=5, user_id=manager_id),
+            TaskAssignment(task_id=6, user_id=manager_id),
+            TaskAssignment(task_id=11, user_id=manager_id),
+            TaskAssignment(task_id=14, user_id=manager_id),
+            TaskAssignment(task_id=15, user_id=manager_id),
+            TaskAssignment(task_id=21, user_id=manager_id),
+            TaskAssignment(task_id=22, user_id=manager_id),
+            TaskAssignment(task_id=24, user_id=manager_id),
+            
+            # Director's assignments (Project Beta - tasks 2, 3, 12, 13, 20, 23)
+            TaskAssignment(task_id=2, user_id=director_id),
+            TaskAssignment(task_id=3, user_id=director_id),
+            TaskAssignment(task_id=12, user_id=director_id),
+            TaskAssignment(task_id=13, user_id=director_id),
+            TaskAssignment(task_id=20, user_id=director_id),
+            TaskAssignment(task_id=23, user_id=director_id),
         ]
         
         session.add_all(assignments)
@@ -458,6 +584,48 @@ def seed_database():
                 user_id=manager_id,
                 comment="Please coordinate on this shared task.",
                 timestamp=now - timedelta(hours=5)
+            ),
+            Comment(
+                task_id=11,
+                user_id=julia_id,
+                comment="Exploring different design approaches for this feature.",
+                timestamp=now - timedelta(hours=6)
+            ),
+            Comment(
+                task_id=12,
+                user_id=julia_id,
+                comment="Identified root cause. Working on fix.",
+                timestamp=now - timedelta(minutes=45)
+            ),
+            Comment(
+                task_id=20,
+                user_id=julia_id,
+                comment="This is urgent! Prioritizing above other tasks.",
+                timestamp=now - timedelta(days=1)
+            ),
+            Comment(
+                task_id=21,
+                user_id=cong_id,
+                comment="Need to address this feedback before next client call.",
+                timestamp=now - timedelta(hours=2)
+            ),
+            Comment(
+                task_id=22,
+                user_id=julia_id,
+                comment="Gathering requirements from stakeholders.",
+                timestamp=now - timedelta(hours=4)
+            ),
+            Comment(
+                task_id=23,
+                user_id=cong_id,
+                comment="Drafting comprehensive test scenarios.",
+                timestamp=now - timedelta(hours=3)
+            ),
+            Comment(
+                task_id=24,
+                user_id=julia_id,
+                comment="Reviewing API documentation before integration.",
+                timestamp=now - timedelta(hours=7)
             ),
         ]
         
