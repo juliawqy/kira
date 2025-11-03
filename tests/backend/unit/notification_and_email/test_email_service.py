@@ -4,6 +4,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 
 from backend.src.services.email import EmailService, get_email_service
+from tests.mock_data.notification_email.email_service_data import CC_RECIPIENTS
 from backend.src.schemas.email import EmailRecipient, EmailResponse
 
 class TestEmailService:
@@ -101,7 +102,7 @@ class TestEmailService:
     #     mock_server = patched_smtp
     #     msg = MIMEMultipart()
     #     recipients = [EmailRecipient(**single_recipient_list[0])]
-    #     cc = [EmailRecipient(email="cc1@example.com"), EmailRecipient(email="cc2@example.com")]
+    #     cc = [EmailRecipient(**entry) for entry in CC_RECIPIENTS]
 
     #     email_service._send_smtp_message(msg, recipients, cc=cc)
     #     assert mock_server.send_message.call_count == 1
