@@ -5,6 +5,7 @@ import { renderCalendar, bindCalendarNav } from "./ui/calendar.js";
 import { bindCreateForm } from "./ui/createForm.js";
 import { bindEditDialog } from "./ui/editDialog.js";
 import { renderTimeline } from "./ui/timeline.js";
+import { renderGantt } from "./ui/gantt.js";
 
 function log(label, payload) {
   const logEl = document.getElementById("log");
@@ -244,8 +245,54 @@ async function renderTimelineView() {
   
   try {
     const filterProject = document.getElementById("timelineFilterProject")?.value || "";
-    const filterStatus = document.getElementById("timelineFilterStatus")?.value || "";
-    const filterPriority = document.getElementById("timelineFilterPriority")?.value || "";
+    const sortBy = document.getElementById("timelineSortBy")?.value || "";
+    
+    // Get all tasks (already loaded in LAST_TASKS for managers/directors)
+    let filteredTasks = LAST_TASKS || [];
+    
+    // Apply project filter
+    if (filterProject) {
+      filteredTasks = filteredTasks.filter(t => {
+        const projectId = t.project_id?.toString() || "";
+        return projectId === filterProject;
+      });
+    }
+    
+    // Apply sorting
+    if (sortBy === "status") {
+      const statusOrder = { "To-do": 1, "In-progress": 2, "Blocked": 3, "Completed": 4 };
+      filteredTasks.sort((a, b) => {
+        const aStatus = statusOrder[a.status] || 999;
+        const bStatus = statusOrder[b.status] || 999;
+        return aStatus - bStatus;
+      });
+    } else if (sortBy === "priority") {
+      filteredTasks.sort((a, b) => {
+        const aPriority = a.priority || 0;
+        const bPriority = b.priority || 0;
+        return bPriority - aPriority; // Higher priority first
+      });
+    }
+    
+    // Render timeline with filtered and sorted tasks
+    renderTimeline(filteredTasks, { log, reload: () => autoReload() });
+    
+  } catch (e) {
+    timelineEl.innerHTML = `<div class="muted">Error loading timeline.</div>`;
+    log("Timeline error", String(e));
+  }
+}
+
+async function renderGanttView() {
+  const ganttEl = document.getElementById("timelineGantt");
+  if (!ganttEl || !isCurrentUserManagerOrDirector()) return;
+  
+  ganttEl.innerHTML = `<div class="muted">Loading…</div>`;
+  
+  try {
+    const filterProject = document.getElementById("ganttFilterProject")?.value || "";
+    const filterStatus = document.getElementById("ganttFilterStatus")?.value || "";
+    const filterPriority = document.getElementById("ganttFilterPriority")?.value || "";
     
     // Get all tasks (already loaded in LAST_TASKS for managers/directors)
     let filteredTasks = LAST_TASKS || [];
@@ -272,12 +319,12 @@ async function renderTimelineView() {
       });
     }
     
-    // Render timeline with filtered tasks
-    renderTimeline(filteredTasks, { log, reload: () => autoReload() });
+    // Render gantt with filtered tasks
+    renderGantt(filteredTasks, { log, reload: () => autoReload() });
     
   } catch (e) {
-    timelineEl.innerHTML = `<div class="muted">Error loading timeline.</div>`;
-    log("Timeline error", String(e));
+    ganttEl.innerHTML = `<div class="muted">Error loading gantt.</div>`;
+    log("Gantt error", String(e));
   }
 }
 
@@ -333,9 +380,10 @@ async function loadParents(){
       renderTeamCalendar();
     }
     
-    // Apply timeline view if manager/director
+    // Apply timeline and gantt views if manager/director
     if (isCurrentUserManagerOrDirector()) {
       renderTimelineView();
+      renderGanttView();
     }
     
     log("GET /task/user/", userTasks);
@@ -397,6 +445,29 @@ function updateUserSelectionUI() {
     } else if (CURRENT_USER.user_id === 4) {
       directorBtn?.classList.add("active");
     }
+    
+    // Show/hide staff-only tab
+    const staffOnlyTab = document.getElementById("tabTeamSchedule");
+    if (staffOnlyTab) {
+      staffOnlyTab.style.display = isCurrentUserStaff() ? "block" : "none";
+    }
+    
+    // Show/hide manager-only tab
+    const managerOnlyTab = document.getElementById("tabTimeline");
+    if (managerOnlyTab) {
+      managerOnlyTab.style.display = isCurrentUserManagerOrDirector() ? "block" : "none";
+    }
+    
+    // Auto-switch to List view if current tab is not accessible
+    const activeTab = document.querySelector(".tab-btn.active");
+    if (activeTab) {
+      const tabName = activeTab.getAttribute("data-tab");
+      if (tabName === "teamSchedule" && !isCurrentUserStaff()) {
+        switchTab("list");
+      } else if (tabName === "timeline" && !isCurrentUserManagerOrDirector()) {
+        switchTab("list");
+      }
+    }
   }
 }
 
@@ -437,6 +508,30 @@ function switchTab(tabName) {
   } else if (tabName === "timeline") {
     tabTimeline?.classList.add("active");
     contentTimeline?.classList.add("active");
+    // Render timeline view when switching to timeline tab
+    renderTimelineView();
+  }
+}
+
+// Wire timeline sub-tabs
+function switchTimelineSubTab(subTabName) {
+  const timelineTabList = document.getElementById("timelineTabList");
+  const timelineTabGantt = document.getElementById("timelineTabGantt");
+  const subContentList = document.getElementById("timelineSubContentList");
+  const subContentGantt = document.getElementById("timelineSubContentGantt");
+  
+  // Remove active class from all timeline sub-tabs
+  [timelineTabList, timelineTabGantt].forEach(tab => tab?.classList.remove("active"));
+  [subContentList, subContentGantt].forEach(content => content?.classList.remove("active"));
+  
+  if (subTabName === "list") {
+    timelineTabList?.classList.add("active");
+    subContentList?.classList.add("active");
+    renderTimelineView();
+  } else if (subTabName === "gantt") {
+    timelineTabGantt?.classList.add("active");
+    subContentGantt?.classList.add("active");
+    renderGanttView();
   }
 }
 
@@ -463,6 +558,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("tabCalendar")?.addEventListener("click", () => switchTab("calendar"));
   document.getElementById("tabTeamSchedule")?.addEventListener("click", () => switchTab("teamSchedule"));
   document.getElementById("tabTimeline")?.addEventListener("click", () => switchTab("timeline"));
+
+  // Wire timeline sub-tabs
+  document.getElementById("timelineTabList")?.addEventListener("click", () => switchTimelineSubTab("list"));
+  document.getElementById("timelineTabGantt")?.addEventListener("click", () => switchTimelineSubTab("gantt"));
 
   // Wire calendar controls
   document.getElementById("calDateMode")?.addEventListener("change", () => document.dispatchEvent(new Event("redraw-calendar")));
@@ -529,10 +628,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("teamCalFilterProject")?.addEventListener("change", () => renderTeamCalendar());
   document.getElementById("teamCalFilterTag")?.addEventListener("change", () => renderTeamCalendar());
 
-  // Wire timeline filters
+  // Wire timeline filters and sort
   document.getElementById("timelineFilterProject")?.addEventListener("change", () => renderTimelineView());
-  document.getElementById("timelineFilterStatus")?.addEventListener("change", () => renderTimelineView());
-  document.getElementById("timelineFilterPriority")?.addEventListener("change", () => renderTimelineView());
+  document.getElementById("timelineSortBy")?.addEventListener("change", () => renderTimelineView());
+
+  // Wire gantt filters
+  document.getElementById("ganttFilterProject")?.addEventListener("change", () => renderGanttView());
+  document.getElementById("ganttFilterStatus")?.addEventListener("change", () => renderGanttView());
+  document.getElementById("ganttFilterPriority")?.addEventListener("change", () => renderGanttView());
 
   // Wire create dialog buttons
   const btnToggleCreate = document.getElementById("btnToggleCreate");

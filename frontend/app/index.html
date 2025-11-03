@@ -7,21 +7,23 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <!-- Top User Selection Bar -->
+  <div style="position: fixed; top: 0; right: 0; z-index: 1000; padding: 16px; background: var(--panel); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 14px; color: var(--sub);">Logged in as:</span>
+      <div class="user-selection">
+        <button class="user-btn" id="userCong" data-user-id="1">Cong</button>
+        <button class="user-btn" id="userJulia" data-user-id="2">Julia</button>
+        <button class="user-btn" id="userManager" data-user-id="3">Manager</button>
+        <button class="user-btn" id="userDirector" data-user-id="4">Director</button>
+      </div>
+    </div>
+  </div>
+
   <div class="wrap">
     <div class="header-bar">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <img src="./kira_logo.png" alt="Kira Logo" style="height: 40px; width: auto;" />
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 14px; color: var(--sub);">Logged in as:</span>
-          <div class="user-selection">
-            <button class="user-btn" id="userCong" data-user-id="1">Cong</button>
-            <button class="user-btn" id="userJulia" data-user-id="2">Julia</button>
-            <button class="user-btn" id="userManager" data-user-id="3">Manager</button>
-            <button class="user-btn" id="userDirector" data-user-id="4">Director</button>
-          </div>
-        </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <img src="./Kira_black.png" alt="Kira Logo" style="height: 60px; width: auto;" />
       </div>
     </div>
 
@@ -135,6 +137,24 @@
           </div>
         </div>
         <div id="calendar"></div>
+        <div class="cal-legend">
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-todo"></div>
+            <span>To-do</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-inprogress"></div>
+            <span>In-progress</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-blocked"></div>
+            <span>Blocked</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-overdue"></div>
+            <span>Overdue</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -147,7 +167,7 @@
             <button class="cal-nav-btn" id="teamCalPrev" type="button">← Prev</button>
             <div id="teamCalTitle" class="cal-title"></div>
             <button class="cal-nav-btn" id="teamCalNext" type="button">Next →</button>
-          </div>
+      </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <select id="teamCalDateMode" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
               <option value="due" selected>Deadline</option>
@@ -183,11 +203,29 @@
               <option value="research">Research</option>
               <option value="audit">Audit</option>
             </select>
-          </div>
+    </div>
         </div>
         <div id="teamCalendar"></div>
-      </div>
-    </div>
+        <div class="cal-legend">
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-todo"></div>
+            <span>To-do</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-inprogress"></div>
+            <span>In-progress</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-blocked"></div>
+            <span>Blocked</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-overdue"></div>
+            <span>Overdue</span>
+          </div>
+        </div>
+        </div>
+        </div>
 
     <!-- Timeline View Tab (Manager/Director Only) -->
     <div class="tab-content" id="tabContentTimeline">
@@ -197,7 +235,7 @@
           <button class="tab-btn active" id="timelineTabList" data-timeline-sub="list">List</button>
           <button class="tab-btn" id="timelineTabGantt" data-timeline-sub="gantt">Gantt</button>
         </div>
-      </div>
+        </div>
 
       <!-- Timeline List View -->
       <div class="timeline-sub-content active" id="timelineSubContentList">
@@ -207,25 +245,17 @@
             <div style="display: flex; gap: 8px; align-items: center;">
               <select id="timelineFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
                 <option value="">All Projects</option>
-                <option value="1">Project Alpha (1)</option>
+            <option value="1">Project Alpha (1)</option>
                 <option value="2">Project Beta (2)</option>
                 <option value="3">Project Gamma (3)</option>
               </select>
-              <select id="timelineFilterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
-                <option value="">All Status</option>
-                <option value="To-do">To-do</option>
-                <option value="In-progress">In-progress</option>
-                <option value="Blocked">Blocked</option>
-                <option value="Completed">Completed</option>
-              </select>
-              <select id="timelineFilterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
-                <option value="">All Priority</option>
-                <option value="high">High (8-10)</option>
-                <option value="medium">Medium (5-7)</option>
-                <option value="low">Low (1-4)</option>
-              </select>
-            </div>
-          </div>
+              <select id="timelineSortBy" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">Sort by</option>
+                <option value="status">Sort by Status</option>
+                <option value="priority">Sort by Priority</option>
+          </select>
+        </div>
+        </div>
           <div id="timeline"></div>
         </div>
       </div>
@@ -257,15 +287,15 @@
               </select>
               <button class="cal-nav-btn" id="ganttZoomOut" type="button" title="Zoom Out">−</button>
               <button class="cal-nav-btn" id="ganttZoomIn" type="button" title="Zoom In">+</button>
-            </div>
-          </div>
+      </div>
+    </div>
           <div id="timelineGantt"></div>
         </div>
       </div>
     </div>
 
     <!-- Console -->
-    <div class="panel" style="margin-top: 12px;">
+    <div class="panel" style="margin-top: 12px; display: none;">
       <h2>Console</h2>
       <div id="log" class="console mono small"></div>
     </div>

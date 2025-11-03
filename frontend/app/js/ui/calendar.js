@@ -90,9 +90,15 @@ export function renderCalendar(tasks, { log, reload, targetCalendarId = "calenda
         const el = document.createElement("div");
         el.className = "cal-task";
         
-        // Add overdue styling for staff members
-        if (isCurrentUserStaff() && isTaskOverdue(t)) {
+        // Add status-based styling
+        if (isTaskOverdue(t)) {
           el.classList.add("cal-task-overdue");
+        } else if (t.status === "In-progress") {
+          el.classList.add("cal-task-inprogress");
+        } else if (t.status === "Blocked") {
+          el.classList.add("cal-task-blocked");
+        } else if (t.status === "To-do") {
+          el.classList.add("cal-task-todo");
         }
         
         const title = escapeHtml(t.title || `(untitled #${t.id})`);
