@@ -384,12 +384,18 @@ async function loadParents(){
       } else if (isCurrentUserDirector()) {
         // For directors, load tasks from their managed departments (returns dict grouped by team)
         const data = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
-        // Flatten the dict into an array of all tasks
+        // Flatten the dict into an array of all tasks, deduplicating by task ID
         userTasks = [];
+        const taskIdsSeen = new Set();
         if (data && typeof data === 'object') {
           Object.values(data).forEach(teamTaskList => {
             if (Array.isArray(teamTaskList)) {
-              userTasks.push(...teamTaskList);
+              teamTaskList.forEach(task => {
+                if (!taskIdsSeen.has(task.id)) {
+                  taskIdsSeen.add(task.id);
+                  userTasks.push(task);
+                }
+              });
             }
           });
         }
