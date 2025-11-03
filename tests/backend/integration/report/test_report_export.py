@@ -20,13 +20,19 @@ from tests.mock_data.report_data import (
     MOCK_USER_TEAM_MEMBER_1,
     MOCK_USER_TEAM_MEMBER_2,
     MOCK_PROJECT,
-    MOCK_TASK_TO_DO,
-    MOCK_TASK_TO_DO_2,
-    MOCK_TASK_IN_PROGRESS,
-    MOCK_TASK_COMPLETED,
-    MOCK_TASK_COMPLETED_2,
-    MOCK_TASK_BLOCKED,
-    MOCK_TASK_ASSIGNEES
+    MOCK_PROJECT_ID,
+    MOCK_TASKS_FOR_INTEGRATION,
+    MOCK_TASK_IDS_FOR_INTEGRATION,
+    MOCK_TASK_ASSIGNEES,
+    MOCK_USER_IDS_BY_NAME,
+    EXPECTED_REPORT_SHEET_NAME,
+    EXPECTED_REPORT_HEADER_PROJECT_NAME,
+    EXPECTED_REPORT_SECTION_SUMMARY,
+    EXPECTED_REPORT_METRIC_TOTAL_TASKS,
+    EXPECTED_REPORT_METRIC_PROJECTED_TASKS,
+    EXPECTED_REPORT_METRIC_COMPLETED_TASKS,
+    NOT_FOUND_PROJECT_ID,
+    EXPECTED_ERROR_PROJECT_NOT_FOUND
 )
 
 
@@ -95,45 +101,29 @@ def setup_project_with_tasks(isolated_test_db):
         session.add(project)
         session.flush()
         
-        tasks_data = [
-            MOCK_TASK_TO_DO,
-            MOCK_TASK_TO_DO_2,
-            MOCK_TASK_IN_PROGRESS,
-            MOCK_TASK_COMPLETED,
-            MOCK_TASK_COMPLETED_2,
-            MOCK_TASK_BLOCKED
-        ]
-        
         tasks = []
-        for task_data in tasks_data:
+        for task_data in MOCK_TASKS_FOR_INTEGRATION:
             task_dict = {k: v for k, v in task_data.items() if k != "id"}
             task = Task(**task_dict)
             session.add(task)
             session.flush()
             tasks.append(task)
     
-        assignee_name_to_user_id = {
-            "Project Manager": 1,
-            "Team Member 1": 2,
-            "Team Member 2": 3
-        }
-        
         assignments = []
-        task_mock_ids = [1, 7, 2, 3, 8, 4]
         
-        for task_idx, mock_task_id in enumerate(task_mock_ids):
+        for task_idx, mock_task_id in enumerate(MOCK_TASK_IDS_FOR_INTEGRATION):
             if mock_task_id in MOCK_TASK_ASSIGNEES:
                 for assignee_name in MOCK_TASK_ASSIGNEES[mock_task_id]:
-                    if assignee_name in assignee_name_to_user_id:
+                    if assignee_name in MOCK_USER_IDS_BY_NAME:
                         assignments.append(TaskAssignment(
                             task_id=tasks[task_idx].id,
-                            user_id=assignee_name_to_user_id[assignee_name]
+                            user_id=MOCK_USER_IDS_BY_NAME[assignee_name]
                         ))
         
         session.add_all(assignments)
         session.commit()
         
-        yield {"project_id": 1, "project": project, "tasks": tasks, "users": [user1, user2, user3]}
+        yield {"project_id": MOCK_PROJECT_ID, "project": project, "tasks": tasks, "users": [user1, user2, user3]}
         
     finally:
         session.close()
@@ -172,13 +162,15 @@ class TestReportExport:
     
     def test_generate_pdf_report_project_not_found(self, isolated_test_db):
         """Test PDF generation with non-existent project."""
-        with pytest.raises(ValueError, match="Project 9999 not found"):
-            generate_pdf_report(9999)
+        expected_error = EXPECTED_ERROR_PROJECT_NOT_FOUND.format(project_id=NOT_FOUND_PROJECT_ID)
+        with pytest.raises(ValueError, match=expected_error):
+            generate_pdf_report(NOT_FOUND_PROJECT_ID)
     
     def test_generate_excel_report_project_not_found(self, isolated_test_db):
         """Test Excel generation with non-existent project."""
-        with pytest.raises(ValueError, match="Project 9999 not found"):
-            generate_excel_report(9999)
+        expected_error = EXPECTED_ERROR_PROJECT_NOT_FOUND.format(project_id=NOT_FOUND_PROJECT_ID)
+        with pytest.raises(ValueError, match=expected_error):
+            generate_excel_report(NOT_FOUND_PROJECT_ID)
     
     def test_pdf_report_contains_all_statuses(self, setup_project_with_tasks):
         """Verify PDF report includes all task statuses."""
@@ -201,20 +193,20 @@ class TestReportExport:
         
         wb = load_workbook(excel_buffer)
         
-        assert "Project Schedule Report" in wb.sheetnames
-        ws = wb["Project Schedule Report"]
+        assert EXPECTED_REPORT_SHEET_NAME in wb.sheetnames
+        ws = wb[EXPECTED_REPORT_SHEET_NAME]
         assert ws["A1"].value is not None
-        assert ws["A2"].value == "Project Name"
+        assert ws["A2"].value == EXPECTED_REPORT_HEADER_PROJECT_NAME
         assert ws["B2"].value is not None
-        assert ws["A4"].value == "Summary"
+        assert ws["A4"].value == EXPECTED_REPORT_SECTION_SUMMARY
         
         summary_values = []
         for row in range(5, 11):
             if ws[f"A{row}"].value:
                 summary_values.append(ws[f"A{row}"].value)
         
-        assert "Total Tasks" in summary_values
-        assert "Projected Tasks" in summary_values or "Completed Tasks" in summary_values
+        assert EXPECTED_REPORT_METRIC_TOTAL_TASKS in summary_values
+        assert EXPECTED_REPORT_METRIC_PROJECTED_TASKS in summary_values or EXPECTED_REPORT_METRIC_COMPLETED_TASKS in summary_values
 
     def test_generate_pdf_report_service_exception(self, setup_project_with_tasks, monkeypatch):
         """Test PDF generation when report service raises a non-ValueError exception."""
@@ -336,21 +328,23 @@ class TestReportAPI:
             session.add(project)
             session.commit()
             
-            return {"project_id": MOCK_PROJECT["project_id"]}
+            return {"project_id": MOCK_PROJECT_ID}
         finally:
             session.close()
 
     def test_api_export_pdf_report_project_not_found(self, api_client):
         """Test PDF export API with non-existent project returns 404."""
-        response = api_client.get("/kira/app/api/v1/report/project/9999/pdf")
+        expected_error = EXPECTED_ERROR_PROJECT_NOT_FOUND.format(project_id=NOT_FOUND_PROJECT_ID)
+        response = api_client.get(f"/kira/app/api/v1/report/project/{NOT_FOUND_PROJECT_ID}/pdf")
         assert response.status_code == 404
-        assert "Project 9999 not found" in response.json()["detail"]
+        assert expected_error in response.json()["detail"]
 
     def test_api_export_excel_report_project_not_found(self, api_client):
         """Test Excel export API with non-existent project returns 404."""
-        response = api_client.get("/kira/app/api/v1/report/project/9999/excel")
+        expected_error = EXPECTED_ERROR_PROJECT_NOT_FOUND.format(project_id=NOT_FOUND_PROJECT_ID)
+        response = api_client.get(f"/kira/app/api/v1/report/project/{NOT_FOUND_PROJECT_ID}/excel")
         assert response.status_code == 404
-        assert "Project 9999 not found" in response.json()["detail"]
+        assert expected_error in response.json()["detail"]
 
     def test_api_export_pdf_report_general_exception(self, api_client, api_setup_project, monkeypatch):
         """Test PDF export API returns 500 when handler raises non-ValueError exception."""

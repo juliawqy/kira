@@ -212,7 +212,6 @@ def generate_excel_report(
     wb = Workbook()
     ws = wb.active
     ws.title = "Project Schedule Report"
-        # Header style
     header_fill = PatternFill(start_color="3949AB", end_color="3949AB", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF", size=12)
     border = Border(

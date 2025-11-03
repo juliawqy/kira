@@ -46,6 +46,14 @@ MOCK_USER_BY_NAME = {
     "Team Member 2": MOCK_USER_TEAM_MEMBER_2
 }
 
+MOCK_USER_IDS_BY_NAME = {
+    "Project Manager": 1,
+    "Team Member 1": 2,
+    "Team Member 2": 3
+}
+
+MOCK_PROJECT_ID = 1
+
 MOCK_PROJECT = {
     "project_id": 1,
     "project_name": "Test Project Report",
@@ -201,4 +209,24 @@ MOCK_TASK_ASSIGNEES_ALL_UNASSIGNED = {
     3: [],
     4: []
 }
+
+MOCK_TASKS_FOR_INTEGRATION = [
+    MOCK_TASK_TO_DO,
+    MOCK_TASK_TO_DO_2,
+    MOCK_TASK_IN_PROGRESS,
+    MOCK_TASK_COMPLETED,
+    MOCK_TASK_COMPLETED_2,
+    MOCK_TASK_BLOCKED
+]
+
+MOCK_TASK_IDS_FOR_INTEGRATION = [task["id"] for task in MOCK_TASKS_FOR_INTEGRATION]
+
+EXPECTED_REPORT_SHEET_NAME = "Project Schedule Report"
+EXPECTED_REPORT_HEADER_PROJECT_NAME = "Project Name"
+EXPECTED_REPORT_SECTION_SUMMARY = "Summary"
+EXPECTED_REPORT_METRIC_TOTAL_TASKS = "Total Tasks"
+EXPECTED_REPORT_METRIC_PROJECTED_TASKS = "Projected Tasks"
+EXPECTED_REPORT_METRIC_COMPLETED_TASKS = "Completed Tasks"
+NOT_FOUND_PROJECT_ID = 9999
+EXPECTED_ERROR_PROJECT_NOT_FOUND = "Project {project_id} not found"
 
