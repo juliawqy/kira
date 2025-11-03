@@ -1,5 +1,9 @@
+from typing import Iterable, Optional
+
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.comment import Comment
+from backend.src.services.notification import get_notification_service
+from backend.src.enums.notification import NotificationType
 
 def add_comment(task_id: int, user_id: int, comment: str):
     with SessionLocal.begin() as db:
@@ -65,4 +69,24 @@ def delete_comment(comment_id: int):
             raise ValueError("Comment not found")
         db.delete(c)
         return True
+
+
+def _send_notify(
+    *,
+    task_id: int,
+    task_title: str,
+    commenter_email: Optional[str],
+    commenter_name: Optional[str],
+    recipients: Optional[Iterable[str]] = None,
+):
+    svc = get_notification_service()
+    resp = svc.notify_activity(
+        user_email=commenter_email,
+        task_id=task_id,
+        task_title=task_title,
+        type_of_alert=NotificationType.COMMENT_CREATE.value,
+        comment_user=commenter_name,
+        to_recipients=sorted(set(recipients)) if recipients else None,
+    )
+    return resp
 

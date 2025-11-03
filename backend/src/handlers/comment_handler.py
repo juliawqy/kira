@@ -1,4 +1,3 @@
-import logging
 import threading
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
@@ -6,9 +5,6 @@ from backend.src.services import comment as comment_service
 from backend.src.services import task_assignment as assignment_service
 from backend.src.services.notification import get_notification_service
 from backend.src.enums.notification import NotificationType
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails: list[str] = None):
     """Add a comment to a task and notify recipients."""
@@ -39,28 +35,17 @@ def add_comment(task_id: int, user_id: int, comment_text: str, recipient_emails:
     commenter_email = getattr(user, "email", None) or "system@kira.local"
     commenter_name = getattr(user, "name", None) or commenter_email
 
-    def _send_notify():
-        svc = get_notification_service()
-        resp = svc.notify_activity(
-            user_email=commenter_email,
-            task_id=task_id,
-            task_title=task_title,
-            type_of_alert=NotificationType.COMMENT_CREATE.value,
-            comment_user=commenter_name,
-            to_recipients=sorted(recipients) if recipients else None,
-        )
-        logger.info(
-            "Comment notification dispatched",
-            extra={
-                "task_id": task_id,
-                "type": NotificationType.COMMENT_CREATE.value,
-                "success": getattr(resp, "success", None),
-                "resp_message": getattr(resp, "message", None),
-                "recipients_count": getattr(resp, "recipients_count", None),
-            },
-        )
-
-    threading.Thread(target=_send_notify, daemon=True).start()
+    threading.Thread(
+        target=comment_service._send_notify,
+        kwargs={
+            "task_id": task_id,
+            "task_title": task_title,
+            "commenter_email": commenter_email,
+            "commenter_name": commenter_name,
+            "recipients": sorted(recipients) if recipients else None,
+        },
+        daemon=True,
+    ).start()
 
     return comment
 
@@ -137,16 +122,6 @@ def notify_comment_mentions(task_id: int, user_id: int, recipient_emails: list[s
         type_of_alert=NotificationType.COMMENT_MENTION.value,
         comment_user=commenter_name,
         to_recipients=sorted(valid_recipients),
-    )
-    logger.info(
-        "Comment mention notification dispatched",
-        extra={
-            "task_id": task_id,
-            "type": NotificationType.COMMENT_MENTION.value,
-            "success": getattr(resp, "success", None),
-            "resp_message": getattr(resp, "message", None),
-            "recipients_count": getattr(resp, "recipients_count", None),
-        },
     )
 
     return resp
