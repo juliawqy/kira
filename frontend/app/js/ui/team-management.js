@@ -1,5 +1,6 @@
 // js/ui/team-management.js
-import { parseYMD, getSubtasks, getUsers } from "../state.js";
+import { parseYMD, getSubtasks, getUsers, getAssignees } from "../state.js";
+import { apiTask } from "../api.js";
 import { renderTaskCard } from "./cards.js";
 
 function isTaskOverdue(task) {
@@ -24,9 +25,9 @@ function daysUntilDeadline(task) {
  * Main function to render the team management dashboard
  * @param {Object} data - Dictionary of team_number -> list of tasks
  * @param {Object} options - { log, reload }
- * @returns {HTMLElement} - Container with all team sections
+ * @returns {Promise<HTMLElement>} - Container with all team sections
  */
-export function renderTeamManagement(data, { log, reload } = {}) {
+export async function renderTeamManagement(data, { log, reload } = {}) {
   const container = document.createElement("div");
   container.className = "team-management-container";
   
@@ -35,13 +36,28 @@ export function renderTeamManagement(data, { log, reload } = {}) {
     return container;
   }
   
+  // Debug/summary header to ensure something renders
+  try {
+    const teamKeys = Object.keys(data || {});
+    const summary = document.createElement("div");
+    summary.className = "muted";
+    summary.style.marginBottom = "8px";
+    summary.textContent = `Teams loaded: ${teamKeys.length} (${teamKeys.join(", ")})`;
+    container.appendChild(summary);
+    if (typeof log === "function") log("TeamManagement keys", teamKeys);
+  } catch {}
+  
   // Render each team's section
-  Object.entries(data).forEach(([teamNumber, tasks]) => {
-    if (Array.isArray(tasks) && tasks.length > 0) {
-      const teamSection = renderTeamSection(teamNumber, tasks, { log, reload });
-      container.appendChild(teamSection);
+  for (const [teamNumber, tasks] of Object.entries(data)) {
+    try {
+      if (Array.isArray(tasks) && tasks.length > 0) {
+        const teamSection = await renderTeamSection(teamNumber, tasks, { log, reload });
+        container.appendChild(teamSection);
+      }
+    } catch (e) {
+      if (typeof log === "function") log("renderTeamSection error", String(e));
     }
-  });
+  }
   
   if (container.children.length === 0) {
     container.innerHTML = '<div class="muted">No tasks found for any team.</div>';
@@ -53,9 +69,28 @@ export function renderTeamManagement(data, { log, reload } = {}) {
 /**
  * Render a single team section with all metrics and tasks
  */
-function renderTeamSection(teamNumber, tasks, { log, reload }) {
+async function renderTeamSection(teamNumber, tasks, { log, reload }) {
   const section = document.createElement("div");
   section.className = "team-section";
+  
+  // Fetch assignees for metrics calculation
+  const tasksNeedingAssignees = tasks.filter(t => !getAssignees(t) || getAssignees(t).length === 0);
+  if (tasksNeedingAssignees.length > 0) {
+    try {
+      await Promise.all(
+        tasksNeedingAssignees.map(async (t) => {
+          try {
+            const list = await apiTask(`/${t.id}/assignees`, { method: "GET" });
+            if (Array.isArray(list)) {
+              t.assignees = list;
+            }
+          } catch (e) {
+            if (typeof log === "function") log("load assignees for metrics error", String(e));
+          }
+        })
+      );
+    } catch {}
+  }
   
   const metrics = calculateTeamMetrics(tasks);
   
@@ -267,11 +302,136 @@ function renderTeamSection(teamNumber, tasks, { log, reload }) {
     
     // Task cards for this project
     projectTasks.forEach(task => {
-      const taskCard = renderTaskCard(task, { log, reload });
-      tasksContainer.appendChild(taskCard);
+      try {
+        const taskCard = renderTaskCard(task, { log, reload });
+        tasksContainer.appendChild(taskCard);
+      } catch (e) {
+        if (typeof log === "function") log("renderTaskCard error", String(e));
+      }
     });
   });
   
+  // Grouping controls
+  const controls = document.createElement("div");
+  controls.style.display = "flex";
+  controls.style.gap = "8px";
+  controls.style.alignItems = "center";
+  controls.style.margin = "8px 0";
+  const label = document.createElement("span");
+  label.className = "muted";
+  label.textContent = "Group by:";
+  const btnProject = document.createElement("button");
+  btnProject.className = "btn";
+  btnProject.textContent = "Project";
+  const btnMember = document.createElement("button");
+  btnMember.className = "btn";
+  btnMember.textContent = "Member";
+  controls.appendChild(label);
+  controls.appendChild(btnProject);
+  controls.appendChild(btnMember);
+
+  section.appendChild(controls);
+
+  const renderByProject = () => {
+    tasksContainer.innerHTML = "";
+    const tasksByProject = {};
+    tasks.forEach(task => {
+      const projectId = task.project_id || "unassigned";
+      if (!tasksByProject[projectId]) tasksByProject[projectId] = [];
+      tasksByProject[projectId].push(task);
+    });
+    Object.entries(tasksByProject).forEach(([projectId, projectTasks]) => {
+      const projectLabel = document.createElement("div");
+      projectLabel.className = "team-project-label";
+      const projectNames = new Set(projectTasks.map(t => t.project?.name || `Project ${projectId}`));
+      projectLabel.textContent = Array.from(projectNames).join(", ");
+      tasksContainer.appendChild(projectLabel);
+      projectTasks.forEach(task => {
+        try {
+          const taskCard = renderTaskCard(task, { log, reload });
+          tasksContainer.appendChild(taskCard);
+        } catch (e) { if (typeof log === "function") log("renderTaskCard error", String(e)); }
+      });
+    });
+  };
+
+  const renderByMember = async () => {
+    tasksContainer.innerHTML = "";
+    const loading = document.createElement("div");
+    loading.className = "muted";
+    loading.textContent = "Loading assignees…";
+    tasksContainer.appendChild(loading);
+
+    // Fetch assignees for tasks missing them
+    const tasksNeedingAssignees = tasks.filter(t => !getAssignees(t) || getAssignees(t).length === 0);
+    if (tasksNeedingAssignees.length) {
+      try {
+        await Promise.all(
+          tasksNeedingAssignees.map(async (t) => {
+            try {
+              const list = await apiTask(`/${t.id}/assignees`, { method: "GET" });
+              if (Array.isArray(list)) {
+                // attach to task so subsequent renders have it
+                t.assignees = list;
+              }
+            } catch (e) {
+              if (typeof log === "function") log("load assignees error", String(e));
+            }
+          })
+        );
+      } catch {}
+    }
+
+    // Build groups
+    const byMember = {};
+    const unassigned = [];
+    tasks.forEach(task => {
+      const assignees = getAssignees(task);
+      if (!assignees || assignees.length === 0) {
+        unassigned.push(task);
+        return;
+      }
+      assignees.forEach(a => {
+        const key = a.name || a.full_name || a.email || `User ${a.user_id ?? a.id}`;
+        if (!byMember[key]) byMember[key] = [];
+        byMember[key].push(task);
+      });
+    });
+
+    // Render
+    tasksContainer.innerHTML = "";
+    Object.entries(byMember).forEach(([memberName, memberTasks]) => {
+      const memberLabel = document.createElement("div");
+      memberLabel.className = "team-project-label";
+      memberLabel.textContent = memberName;
+      tasksContainer.appendChild(memberLabel);
+      memberTasks.forEach(task => {
+        try {
+          const taskCard = renderTaskCard(task, { log, reload });
+          tasksContainer.appendChild(taskCard);
+        } catch (e) { if (typeof log === "function") log("renderTaskCard error", String(e)); }
+      });
+    });
+    if (unassigned.length) {
+      const unl = document.createElement("div");
+      unl.className = "team-project-label";
+      unl.textContent = "Unassigned";
+      tasksContainer.appendChild(unl);
+      unassigned.forEach(task => {
+        try {
+          const taskCard = renderTaskCard(task, { log, reload });
+          tasksContainer.appendChild(taskCard);
+        } catch (e) { if (typeof log === "function") log("renderTaskCard error", String(e)); }
+      });
+    }
+  };
+
+  // Default view
+  renderByProject();
+
+  btnProject.addEventListener("click", renderByProject);
+  btnMember.addEventListener("click", () => { void renderByMember(); });
+
   section.appendChild(tasksContainer);
   
   return section;

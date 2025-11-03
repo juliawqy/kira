@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from fastapi import APIRouter, HTTPException, Query
 import json
@@ -78,7 +78,7 @@ def list_project_tasks_by_user(project_id: int, user_id: int):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/manager/{manager_id}", response_model=dict, name="list_tasks_by_manager")
+@router.get("/manager/{manager_id}", response_model=Dict[str, List[TaskWithSubTasks]], name="list_tasks_by_manager")
 def list_tasks_by_manager(manager_id: int):
     """Get all tasks assigned to users managed by a specific manager."""
     try:
@@ -98,7 +98,7 @@ def list_tasks_by_project_by_manager(manager_id: int):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.get("/director/{director_id}", response_model=dict, name="list_tasks_by_director")
+@router.get("/director/{director_id}", response_model=Dict[str, List[TaskWithSubTasks]], name="list_tasks_by_director")
 def list_tasks_by_director(director_id: int):
     """Get all tasks for users in the department managed by a specific director."""
     try:
