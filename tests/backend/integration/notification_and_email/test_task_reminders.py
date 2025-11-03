@@ -27,7 +27,11 @@ _reminder_spec.loader.exec_module(_reminder_data)
 
 @pytest.fixture
 def patched_email_settings_tls(monkeypatch):
+    """Patch email settings to use test values, ignoring .env file."""
+    # Create test settings from integration data
     settings = EmailSettings(**_integration_data.EMAIL_SETTINGS_TLS)
+    
+    # Set all environment variables - these take precedence over .env file
     monkeypatch.setenv("FASTMAIL_SMTP_HOST", settings.fastmail_smtp_host)
     monkeypatch.setenv("FASTMAIL_SMTP_PORT", str(settings.fastmail_smtp_port))
     monkeypatch.setenv("FASTMAIL_USERNAME", settings.fastmail_username)
@@ -39,8 +43,26 @@ def patched_email_settings_tls(monkeypatch):
     monkeypatch.setenv("USE_TLS", "True")
     monkeypatch.setenv("USE_SSL", "False")
     monkeypatch.setenv("TIMEOUT", str(settings.timeout))
+    
+    # Recreate email service - it will read from env vars (which we just set)
+    # This matches the pattern from test_notification_email_flow.py
     import backend.src.services.email as email_service_module
-    email_service_module.email_service = EmailService()
+    
+    # Create new service instance - it will read from env vars we just set
+    new_service = EmailService()
+    
+    # IMPORTANT: Directly patch the settings to ensure test values are used
+    # This bypasses any potential .env file reading issues
+    new_service.settings = settings
+    
+    # Verify settings are correct and validation passes
+    assert new_service.settings.fastmail_username == settings.fastmail_username
+    assert new_service.settings.fastmail_password == settings.fastmail_password
+    assert new_service._validate_settings() == True, f"Email settings validation failed. Settings: {new_service.settings}"
+    
+    # Update the module-level instance that get_email_service() returns
+    email_service_module.email_service = new_service
+    
     return settings
 
 
@@ -123,11 +145,56 @@ def patched_assignees_without_emails(monkeypatch):
     return mock_assignees
 
 
+@pytest.fixture
+def task_factory_with_kwargs(db_session):
+    """Wrapper around task_factory that properly merges kwargs into default data."""
+    def _create_task_with_kwargs(**kwargs):
+        # Create task with merged data (kwargs override defaults)
+        from backend.src.database.models.task import Task
+        from backend.src.database.models.project import Project
+        from backend.src.database.models.user import User
+        from backend.src.enums.task_status import TaskStatus
+        from tests.mock_data.notification_email.integration_data import VALID_USER, VALID_PROJECT
+        import importlib.util
+        from pathlib import Path
+        
+        # Load the mock module to get DEFAULT_TASK_DATA (same logic as conftest)
+        mock_dir = Path(__file__).parents[3] / 'mock_data' / 'notification_email'
+        file_path = mock_dir / 'integration_notification_email_data.py'
+        spec = importlib.util.spec_from_file_location(f"mock_{file_path.stem}", str(file_path))
+        if spec and spec.loader:
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            default_data = dict(getattr(module, 'DEFAULT_TASK_DATA', {}))
+        else:
+            default_data = {}
+        
+        default_data.setdefault("status", TaskStatus.TO_DO.value)
+        # Merge kwargs into default_data (kwargs override defaults)
+        default_data.update(kwargs)
+        
+        # Create user and project
+        user = User(**VALID_USER)
+        db_session.add(user)
+        db_session.flush()
+        project = Project(**VALID_PROJECT)
+        db_session.add(project)
+        db_session.flush()
+        
+        # Create task with merged data
+        task = Task(**default_data)
+        db_session.add(task)
+        db_session.commit()
+        db_session.refresh(task)
+        return task
+    return _create_task_with_kwargs
+
+
 class TestUpcomingTaskReminderIntegration:
     """Integration tests for upcoming_task_reminder endpoint."""
     
     # INT-REM-001 - Comprehensive success test with mixed email availability  
-    def test_upcoming_reminder_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory, patched_mixed_assignees):
+    def test_upcoming_reminder_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, patched_mixed_assignees):
         """Test comprehensive success scenario including mixed email availability."""
         from datetime import date
         
@@ -135,7 +202,7 @@ class TestUpcomingTaskReminderIntegration:
         scenario = _reminder_data.MIXED_EMAIL_ASSIGNEES_SUCCESS
         task_data = scenario["task_data"].copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
-        task = task_factory(**task_data)
+        task = task_factory_with_kwargs(**task_data)
         
         # Call the function
         result = upcoming_task_reminder(task.id)
@@ -154,7 +221,7 @@ class TestUpcomingTaskReminderIntegration:
     
     # INT-REM-002 - No recipients scenario
     @pytest.mark.parametrize("scenario_key", ["empty_assignees", "no_email_addresses"])
-    def test_upcoming_reminder_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory, monkeypatch, scenario_key):
+    def test_upcoming_reminder_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, monkeypatch, scenario_key):
         """Test early return when no assignees have email addresses."""
         import backend.src.services.task_assignment as assignment_service
         
@@ -165,7 +232,7 @@ class TestUpcomingTaskReminderIntegration:
         from datetime import date
         task_data = scenario["task_data"].copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
-        task = task_factory(**task_data)
+        task = task_factory_with_kwargs(**task_data)
         
         # Setup mock based on scenario
         if scenario["assignees"] == []:
@@ -198,8 +265,8 @@ class TestUpcomingTaskReminderIntegration:
         "assignment_service_error",
         "email_service_error",
     ])
-    def test_upcoming_reminder_error_scenarios(self, db_session, patched_email_settings_tls, patched_smtp_tls, 
-                                            task_factory, monkeypatch, scenario_key):
+    def test_upcoming_reminder_error_scenarios(self, db_session, patched_email_settings_tls, patched_smtp_tls,
+                                            task_factory_with_kwargs, monkeypatch, scenario_key):
         """Test all error scenarios."""
         import backend.src.services.task_assignment as assignment_service
         import backend.src.services.task as task_service
@@ -215,8 +282,10 @@ class TestUpcomingTaskReminderIntegration:
         task = None
         if scenario_key != "task_not_found":
             task_data = scenario.get("task_data", _reminder_data.UPCOMING_TASK).copy()
-            task_data["deadline"] = date.fromisoformat(task_data["deadline"])
-            task = task_factory(**task_data)
+            # Only parse deadline if it exists in task_data   
+            if "deadline" in task_data:
+                task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+            task = task_factory_with_kwargs(**task_data)
             task_id = task.id
         else:
             task_id = scenario["task_id"]
@@ -262,7 +331,7 @@ class TestOverdueTaskReminderIntegration:
     """Integration tests for overdue_task_reminder endpoint."""
     
     # INT-REM-004 - Comprehensive success test with multiple assignees
-    def test_overdue_reminder_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory, patched_mixed_assignees):
+    def test_overdue_reminder_comprehensive_success(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, patched_mixed_assignees):
         """Test comprehensive success scenario including mixed email availability."""
         from datetime import date
         
@@ -271,7 +340,7 @@ class TestOverdueTaskReminderIntegration:
         task_data = scenario["task_data"].copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
         task_data["title"] = "Overdue Task"  # Change title for overdue
-        task = task_factory(**task_data)
+        task = task_factory_with_kwargs(**task_data)
         
         # Call the function
         result = overdue_task_reminder(task.id)
@@ -290,7 +359,7 @@ class TestOverdueTaskReminderIntegration:
     
     # INT-REM-005 - No recipients scenario
     @pytest.mark.parametrize("scenario_key", ["empty_assignees", "no_email_addresses"])
-    def test_overdue_reminder_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory, monkeypatch, scenario_key):
+    def test_overdue_reminder_no_recipients(self, db_session, patched_email_settings_tls, patched_smtp_tls, task_factory_with_kwargs, monkeypatch, scenario_key):
         """Test early return when no assignees have email addresses."""
         import backend.src.services.task_assignment as assignment_service
         from datetime import date
@@ -301,7 +370,7 @@ class TestOverdueTaskReminderIntegration:
         # Create task using mock data
         task_data = scenario["task_data"].copy()
         task_data["deadline"] = date.fromisoformat(task_data["deadline"])
-        task = task_factory(**task_data)
+        task = task_factory_with_kwargs(**task_data)
         
         # Setup mock based on scenario
         if scenario["assignees"] == []:
@@ -334,8 +403,8 @@ class TestOverdueTaskReminderIntegration:
         "assignment_service_error",
         "email_service_error",
     ])
-    def test_overdue_reminder_error_scenarios(self, db_session, patched_email_settings_tls, patched_smtp_tls, 
-                                            task_factory, monkeypatch, scenario_key):
+    def test_overdue_reminder_error_scenarios(self, db_session, patched_email_settings_tls, patched_smtp_tls,
+                                            task_factory_with_kwargs, monkeypatch, scenario_key):
         """Test all error scenarios."""
         import backend.src.services.task_assignment as assignment_service
         import backend.src.services.task as task_service
@@ -351,8 +420,10 @@ class TestOverdueTaskReminderIntegration:
         task = None
         if scenario_key != "task_not_found":
             task_data = scenario.get("task_data", _reminder_data.OVERDUE_TASK).copy()
-            task_data["deadline"] = date.fromisoformat(task_data["deadline"])
-            task = task_factory(**task_data)
+            # Only parse deadline if it exists in task_data   
+            if "deadline" in task_data:
+                task_data["deadline"] = date.fromisoformat(task_data["deadline"])
+            task = task_factory_with_kwargs(**task_data)
             task_id = task.id
         else:
             task_id = scenario["task_id"]

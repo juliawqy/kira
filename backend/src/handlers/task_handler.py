@@ -104,84 +104,107 @@ def upcoming_task_reminder(task_id: int):
 
     Returns a dict with keys: success, message, recipients_count, email_id (optional).
     """
-    # Verify task exists
-    task = task_service.get_task_with_subtasks(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+    try:
+        # Verify task exists
+        task = task_service.get_task_with_subtasks(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
 
-    # Check if task has a deadline
-    if not task.deadline:
-        return {
-            "success": False,
-            "message": "Task does not have a deadline",
-            "recipients_count": 0,
-        }
+        # Check if task has a deadline
+        if not hasattr(task, 'deadline') or not task.deadline:
+            return {
+                "success": False,
+                "message": "Task does not have a deadline",
+                "recipients_count": 0,
+            }
 
-    # Resolve recipients from assignees that have an email
-    assignees = assignment_service.list_assignees(task_id)
-    recipients = [u.email for u in assignees if getattr(u, 'email', None)]
+        # Resolve recipients from assignees that have an email
+        try:
+            assignees = assignment_service.list_assignees(task_id)
+            # Convert to list immediately to catch any exceptions from generator patterns
+            # This ensures exceptions from test mocks (generator.throw) are caught
+            # Filter to only include users with valid email addresses (non-None, non-empty)
+            recipients = [getattr(u, 'email', None) for u in assignees if getattr(u, 'email', None)]
+        except Exception as e:
+            # Convert assignment service errors to HTTPException
+            raise HTTPException(status_code=404, detail=f"Assignment service error: {str(e)}")
 
-    # Fallback to test recipient if no assignees found
-    if not recipients:
-        email_service = get_email_service()
-        test_email = getattr(email_service.settings, 'test_recipient_email', None)
-        if test_email:
-            recipients = [test_email]
-        else:
+        # Early return if no recipients
+        if not recipients:
             return {
                 "success": True,
                 "message": "No assigned users with email addresses found",
                 "recipients_count": 0,
             }
 
-    # Get project name if available
-    project_name = None
-    if task.project_id:
+        # Get project name if available
+        project_name = None
+        if task.project_id:
+            try:
+                project = project_service.get_project_by_id(task.project_id)
+                if project:
+                    project_name = project.get("project_name")
+            except Exception:
+                pass
+
+        # Prepare template data - assume 1 day until deadline
+        template_data = {
+            'task_id': task.id,
+            'task_title': task.title or "Untitled Task",
+            'deadline_date': task.deadline.strftime('%Y-%m-%d') if task.deadline else "N/A",
+            'priority': task.priority or "N/A",
+            'description': task.description,
+            'project_name': project_name,
+            'time_until_deadline': "tomorrow",
+            'task_url': f"http://localhost:8000/tasks/{task.id}"
+        }
+
+        # Send email using template
+        email_service = get_email_service()
+        
+        # Create recipients list
+        recipient_list = [EmailRecipient(email=email) for email in recipients]
+        
+        # Create email message - Pydantic will auto-convert dict to EmailContent
+        email_message = EmailMessage(
+            recipients=recipient_list,
+            content={
+                'subject': f"Upcoming Deadline: {task.title or 'Untitled Task'}",
+                'template_name': 'upcoming_deadline',
+                'template_data': template_data
+            },
+            email_type=EmailType.UPCOMING_DEADLINE
+        )
+        
+        # Send email - catch exceptions that might be thrown by mocked send_email
         try:
-            project = project_service.get_project_by_id(task.project_id)
-            if project:
-                project_name = project.get("project_name")
-        except Exception:
-            pass
+            response = email_service.send_email(email_message)
+        except Exception as e:
+            # If send_email throws (e.g., from test mocks), convert to HTTPException
+            raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
+        
+        # Ensure we got a valid response
+        if not response:
+            raise HTTPException(status_code=500, detail="Email service returned no response")
+        
+        # If email service reports failure (e.g., validation failed), raise HTTPException
+        # EmailResponse is a Pydantic model with success attribute (boolean)
+        response_success = getattr(response, 'success', None)
+        if response_success is False or response_success is None:
+            error_msg = getattr(response, 'message', 'Unknown error')
+            raise HTTPException(status_code=500, detail=f"Error sending notification: {error_msg}")
 
-    # Prepare template data - assume 1 day until deadline
-    template_data = {
-        'task_id': task.id,
-        'task_title': task.title or "Untitled Task",
-        'deadline_date': task.deadline.strftime('%Y-%m-%d'),
-        'priority': task.priority or "N/A",
-        'description': task.description,
-        'project_name': project_name,
-        'time_until_deadline': "tomorrow",
-        'task_url': f"http://localhost:8000/tasks/{task.id}"
-    }
-
-    # Send email using template
-    email_service = get_email_service()
-    
-    # Create recipients list
-    recipient_list = [EmailRecipient(email=email) for email in recipients]
-    
-    # Create email message
-    email_message = EmailMessage(
-        recipients=recipient_list,
-        content={
-            'subject': f"Upcoming Deadline: {task.title or 'Untitled Task'}",
-            'template_name': 'upcoming_deadline',
-            'template_data': template_data
-        },
-        email_type=EmailType.UPCOMING_DEADLINE
-    )
-    
-    # Send email
-    response = email_service.send_email(email_message)
-
-    return {
-        "success": getattr(response, 'success', None),
-        "message": getattr(response, 'message', None),
-        "recipients_count": getattr(response, 'recipients_count', 0),
-        "email_id": getattr(response, 'email_id', None),
-    }
+        # Only return success response if we explicitly got success=True
+        return {
+            "success": response.success,
+            "message": response.message,
+            "recipients_count": response.recipients_count,
+            "email_id": getattr(response, 'email_id', None),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
 def overdue_task_reminder(task_id: int):
@@ -191,84 +214,107 @@ def overdue_task_reminder(task_id: int):
 
     Returns a dict with keys: success, message, recipients_count, email_id (optional).
     """
-    # Verify task exists
-    task = task_service.get_task_with_subtasks(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+    try:
+        # Verify task exists
+        task = task_service.get_task_with_subtasks(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
 
-    # Check if task has a deadline
-    if not task.deadline:
-        return {
-            "success": False,
-            "message": "Task does not have a deadline",
-            "recipients_count": 0,
-        }
+        # Check if task has a deadline
+        if not hasattr(task, 'deadline') or not task.deadline:
+            return {
+                "success": False,
+                "message": "Task does not have a deadline",
+                "recipients_count": 0,
+            }
 
-    # Resolve recipients from assignees that have an email
-    assignees = assignment_service.list_assignees(task_id)
-    recipients = [u.email for u in assignees if getattr(u, 'email', None)]
+        # Resolve recipients from assignees that have an email
+        try:
+            assignees = assignment_service.list_assignees(task_id)
+            # Convert to list immediately to catch any exceptions from generator patterns
+            # This ensures exceptions from test mocks (generator.throw) are caught
+            # Filter to only include users with valid email addresses (non-None, non-empty)
+            recipients = [getattr(u, 'email', None) for u in assignees if getattr(u, 'email', None)]
+        except Exception as e:
+            # Convert assignment service errors to HTTPException
+            raise HTTPException(status_code=404, detail=f"Assignment service error: {str(e)}")
 
-    # Fallback to test recipient if no assignees found
-    if not recipients:
-        email_service = get_email_service()
-        test_email = getattr(email_service.settings, 'test_recipient_email', None)
-        if test_email:
-            recipients = [test_email]
-        else:
+        # Early return if no recipients
+        if not recipients:
             return {
                 "success": True,
                 "message": "No assigned users with email addresses found",
                 "recipients_count": 0,
             }
 
-    # Get project name if available
-    project_name = None
-    if task.project_id:
+        # Get project name if available
+        project_name = None
+        if task.project_id:
+            try:
+                project = project_service.get_project_by_id(task.project_id)
+                if project:
+                    project_name = project.get("project_name")
+            except Exception:
+                pass
+
+        # Prepare template data - assume 1 day overdue
+        template_data = {
+            'task_id': task.id,
+            'task_title': task.title or "Untitled Task",
+            'deadline_date': task.deadline.strftime('%Y-%m-%d') if task.deadline else "N/A",
+            'priority': task.priority or "N/A",
+            'description': task.description,
+            'project_name': project_name,
+            'days_overdue': "1 day",
+            'task_url': f"http://localhost:8000/tasks/{task.id}"
+        }
+
+        # Send email using template
+        email_service = get_email_service()
+        
+        # Create recipients list
+        recipient_list = [EmailRecipient(email=email) for email in recipients]
+        
+        # Create email message - Pydantic will auto-convert dict to EmailContent
+        email_message = EmailMessage(
+            recipients=recipient_list,
+            content={
+                'subject': f"Overdue Task: {task.title or 'Untitled Task'}",
+                'template_name': 'overdue_deadline',
+                'template_data': template_data
+            },
+            email_type=EmailType.OVERDUE_DEADLINE
+        )
+        
+        # Send email - catch exceptions that might be thrown by mocked send_email
         try:
-            project = project_service.get_project_by_id(task.project_id)
-            if project:
-                project_name = project.get("project_name")
-        except Exception:
-            pass
+            response = email_service.send_email(email_message)
+        except Exception as e:
+            # If send_email throws (e.g., from test mocks), convert to HTTPException
+            raise HTTPException(status_code=500, detail=f"Error sending notification: {str(e)}")
+        
+        # Ensure we got a valid response
+        if not response:
+            raise HTTPException(status_code=500, detail="Email service returned no response")
+        
+        # If email service reports failure (e.g., validation failed), raise HTTPException
+        # EmailResponse is a Pydantic model with success attribute (boolean)
+        response_success = getattr(response, 'success', None)
+        if response_success is False or response_success is None:
+            error_msg = getattr(response, 'message', 'Unknown error')
+            raise HTTPException(status_code=500, detail=f"Error sending notification: {error_msg}")
 
-    # Prepare template data - assume 1 day overdue
-    template_data = {
-        'task_id': task.id,
-        'task_title': task.title or "Untitled Task",
-        'deadline_date': task.deadline.strftime('%Y-%m-%d'),
-        'priority': task.priority or "N/A",
-        'description': task.description,
-        'project_name': project_name,
-        'days_overdue': "1 day",
-        'task_url': f"http://localhost:8000/tasks/{task.id}"
-    }
-
-    # Send email using template
-    email_service = get_email_service()
-    
-    # Create recipients list
-    recipient_list = [EmailRecipient(email=email) for email in recipients]
-    
-    # Create email message
-    email_message = EmailMessage(
-        recipients=recipient_list,
-        content={
-            'subject': f"Overdue Task: {task.title or 'Untitled Task'}",
-            'template_name': 'overdue_deadline',
-            'template_data': template_data
-        },
-        email_type=EmailType.OVERDUE_DEADLINE
-    )
-    
-    # Send email
-    response = email_service.send_email(email_message)
-
-    return {
-        "success": getattr(response, 'success', None),
-        "message": getattr(response, 'message', None),
-        "recipients_count": getattr(response, 'recipients_count', 0),
-        "email_id": getattr(response, 'email_id', None),
-    }
+        # Only return success response if we explicitly got success=True
+        return {
+            "success": response.success,
+            "message": response.message,
+            "recipients_count": response.recipients_count,
+            "email_id": getattr(response, 'email_id', None),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 def update_task(
     task_id: int,
