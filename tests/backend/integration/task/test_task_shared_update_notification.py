@@ -26,15 +26,27 @@ class _MockNotifSvc:
 
 # INT-135/001
 def test_update_task_notifies_assignees_and_shared_recipients(test_engine, clean_db, monkeypatch):
-    TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
     with TestingSessionLocal.begin() as db:
         db.add_all([User(**VALID_USER_ADMIN), User(**VALID_USER_EMPLOYEE)])
         db.add(Project(**VALID_PROJECT))
 
-    task = task_service.add_task(**TASK_CREATE_PAYLOAD)
+    monkeypatch.setattr(task_service, "SessionLocal", TestingSessionLocal, raising=False)
+
+    _payload = {k: v for k, v in TASK_CREATE_PAYLOAD.items() if k != "creator_id"}
+    task = task_service.add_task(**_payload)
 
     mock_notif = _MockNotifSvc()
     monkeypatch.setattr(task_handler, "get_notification_service", lambda: mock_notif)
+    monkeypatch.setattr(task_handler.user_service, "SessionLocal", TestingSessionLocal, raising=False)
+    monkeypatch.setattr(task_handler.task_service, "SessionLocal", TestingSessionLocal, raising=False)
+    monkeypatch.setattr(task_handler.assignment_service, "SessionLocal", TestingSessionLocal, raising=False)
 
     class _Assignee:
         def __init__(self, email):
@@ -61,15 +73,30 @@ def test_update_task_notifies_assignees_and_shared_recipients(test_engine, clean
 
 # INT-135/002
 def test_update_task_shared_recipients_dedup_and_ignore_invalid(test_engine, clean_db, monkeypatch):
-    TestingSessionLocal = sessionmaker(bind=test_engine, future=True)
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
     with TestingSessionLocal.begin() as db:
         db.add_all([User(**VALID_USER_ADMIN), User(**VALID_USER_EMPLOYEE)])
         db.add(Project(**VALID_PROJECT))
 
-    task = task_service.add_task(**TASK_CREATE_PAYLOAD)
+    # Ensure the task service used for creation writes to the same test DB
+    monkeypatch.setattr(task_service, "SessionLocal", TestingSessionLocal, raising=False)
+
+    _payload = {k: v for k, v in TASK_CREATE_PAYLOAD.items() if k != "creator_id"}
+    task = task_service.add_task(**_payload)
 
     mock_notif = _MockNotifSvc()
     monkeypatch.setattr(task_handler, "get_notification_service", lambda: mock_notif)
+
+    # Ensure handler/services use the same test DB
+    monkeypatch.setattr(task_handler.user_service, "SessionLocal", TestingSessionLocal, raising=False)
+    monkeypatch.setattr(task_handler.task_service, "SessionLocal", TestingSessionLocal, raising=False)
+    monkeypatch.setattr(task_handler.assignment_service, "SessionLocal", TestingSessionLocal, raising=False)
 
     class _Assignee:
         def __init__(self, email):
