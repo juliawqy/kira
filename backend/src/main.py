@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from sqlalchemy.sql.expression import true
 
 from backend.src.database.db_setup import Base, engine
 from backend.src.database.models.task import Task  
@@ -20,9 +19,11 @@ app = FastAPI(title="KIRA API")
 # Add CORS middleware BEFORE including routers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # in dev, allow all origins
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["http://127.0.0.1:3000", "http://localhost:3000"],  # explicit origins
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.include_router(v1_router)

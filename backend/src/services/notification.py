@@ -114,6 +114,11 @@ class NotificationService:
                     f"Activity notification FAILED for task {task_id}, type={type_of_alert}, error={resp.message}"
                 )
                 logger.error(f"Failed to send activity notification '{type_of_alert}': {resp.message}")
+                logger.error(f"DEBUG - Response object: {repr(resp)}")
+                logger.error(f"DEBUG - Response type: {type(resp)}")
+                logger.error(f"DEBUG - Response attributes: {dir(resp)}")
+                logger.error(f"DEBUG - email_id value: {repr(getattr(resp, 'email_id', None))}")
+                logger.error(f"DEBUG - email_id type: {type(getattr(resp, 'email_id', None))}")
 
             return resp
 
@@ -153,15 +158,10 @@ class NotificationService:
     def _resolve_recipients(
         self, *, task_id: int, to_recipients: Optional[List[str]], cc_recipients: Optional[List[str]]
     ) -> Tuple[List[str], List[str]]:
-        # Global gate: if no configured/default recipients, short-circuit regardless
-        default_recipients = self.email_service._get_task_notification_recipients(task_id)
-        if not default_recipients:
-            return [], (cc_recipients or [])
-
-        # Otherwise prefer explicit recipients when provided
         if to_recipients:
             to_list = to_recipients
         else:
+            default_recipients = self.email_service._get_task_notification_recipients(task_id)
             to_list = [r.email for r in default_recipients]
 
         cc_list = cc_recipients or []
