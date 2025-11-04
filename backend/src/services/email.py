@@ -13,14 +13,6 @@ from ..templates.email_templates import EmailTemplates
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-# Add console handler if not already present
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.propagate = False
 
 
 class EmailService:
@@ -52,20 +44,12 @@ class EmailService:
             logger.info(
                 f"Email dispatched: msgid={message_id}, subject=\"{subj}\", to={to_list}, cc={cc_list}")
             
-            # DEBUG: Log message_id details
-            logger.info(f"DEBUG - message_id value: {repr(message_id)}, type: {type(message_id)}")
-            
-            response = EmailResponse(
+            return EmailResponse(
                 success=True,
                 message="Email sent successfully",
                 recipients_count=len(email_message.recipients),
                 email_id=message_id,
             )
-            
-            # DEBUG: Log response details
-            logger.info(f"DEBUG - EmailResponse email_id: {repr(response.email_id)}, type: {type(response.email_id)}")
-            
-            return response
             
         except Exception as e:
             logger.error(f"Failed to send email: {str(e)}")
@@ -156,9 +140,7 @@ class EmailService:
             # return message_id
 
             # comment following line when actual email sending is enabled
-            ret_val = f"kira-{str(uuid.uuid4())}"
-            logger.info(f"DEBUG _send_smtp_message returning: {repr(ret_val)}, type: {type(ret_val)}")
-            return ret_val # pragma: no cover
+            return 1 # pragma: no cover
 
             
         finally:
