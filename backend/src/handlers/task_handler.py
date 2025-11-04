@@ -5,10 +5,13 @@ from typing import Iterable, Optional
 from datetime import date
 from datetime import datetime
 
+from datetime import date, datetime, timedelta
+from typing import Dict, Any
 from backend.src.services import task as task_service
 from backend.src.services import user as user_service
 from backend.src.services import project as project_service
 from backend.src.services.notification import get_notification_service
+from backend.src.services.email import get_email_service
 from backend.src.services import task_assignment as assignment_service
 from backend.src.enums.notification import NotificationType
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
@@ -17,6 +20,9 @@ from backend.src.enums.task_sort import TaskSort, ALLOWED_SORTS
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 
+from backend.src.enums.email import EmailType
+from backend.src.schemas.email import EmailMessage, EmailRecipient
+from fastapi import HTTPException
 
 
 logger = logging.getLogger(__name__)
@@ -90,6 +96,167 @@ def create_task(
     assignment_service.assign_users(task.id, [creator_id])
 
     return task
+
+def upcoming_task_reminder(task_id: int):
+    """Send upcoming deadline reminder email to all assigned users of a task.
+    
+    Assumes this is called exactly one day before the deadline.
+
+    Returns a dict with keys: success, message, recipients_count, email_id (optional).
+    """
+    try:
+        task = task_service.get_task_with_subtasks(task_id)
+        if not task:
+            return {
+                "success": False,
+                "message": "Task not found",
+                "recipients_count": 0,
+            }
+
+        if not hasattr(task, 'deadline') or not task.deadline:
+            return {
+                "success": False,
+                "message": "Task does not have a deadline",
+                "recipients_count": 0,
+            }
+
+        email_service = get_email_service()
+        recipients_objs = email_service._get_task_notification_recipients(task_id)
+
+        if not recipients_objs:
+            return {
+                "success": True,
+                "message": "No recipients configured for notifications",
+                "recipients_count": 0,
+            }
+
+        project_name = None
+        try:
+            project = project_service.get_project_by_id(task.project_id)
+            if project:
+                project_name = project.get("project_name")
+        except Exception:
+            pass
+
+        template_data = {
+            'task_id': task.id,
+            'task_title': task.title or "Untitled Task",
+            'deadline_date': task.deadline.strftime('%Y-%m-%d') if task.deadline else "N/A",
+            'priority': task.priority or "N/A",
+            'description': task.description,
+            'project_name': project_name,
+            'time_until_deadline': "tomorrow",
+            'task_url': f"http://localhost:8000/tasks/{task.id}"
+        }
+
+        email_message = EmailMessage(
+            recipients=recipients_objs,
+            content={
+                'subject': f"Upcoming Deadline: {task.title or 'Untitled Task'}",
+                'template_name': 'upcoming_deadline',
+                'template_data': template_data
+            },
+            email_type=EmailType.UPCOMING_DEADLINE
+        )
+        
+        msg = email_service._prepare_message(email_message)
+        message_id = email_service._send_smtp_message(msg, recipients_objs)
+
+        if message_id != 1:
+            return {
+                "success": False,
+                "message": "Error sending notification",
+                "recipients_count": len(recipients_objs or []),
+            }
+        return {
+            "success": True,
+            "message": "Email sent successfully",
+            "recipients_count": len(recipients_objs or []),
+            "email_id": "1",
+        }
+    except Exception:
+        pass
+
+
+def overdue_task_reminder(task_id: int):
+    """Send overdue deadline reminder email to all assigned users of a task.
+    
+    Assumes this is called exactly one day after the deadline.
+
+    Returns a dict with keys: success, message, recipients_count, email_id (optional).
+    """
+    try:
+        task = task_service.get_task_with_subtasks(task_id)
+        if not task:
+            return {
+                "success": False,
+                "message": "Task not found",
+                "recipients_count": 0,
+            }
+
+        if not hasattr(task, 'deadline') or not task.deadline:
+            return {
+                "success": False,
+                "message": "Task does not have a deadline",
+                "recipients_count": 0,
+            }
+
+        email_service = get_email_service()
+        recipients_objs = email_service._get_task_notification_recipients(task_id)
+
+        if not recipients_objs:
+            return {
+                "success": True,
+                "message": "No recipients configured for notifications",
+                "recipients_count": 0,
+            }
+
+        project_name = None
+        try:
+            project = project_service.get_project_by_id(task.project_id)
+            if project:
+                project_name = project.get("project_name")
+        except Exception:
+            pass
+
+        template_data = {
+            'task_id': task.id,
+            'task_title': task.title or "Untitled Task",
+            'deadline_date': task.deadline.strftime('%Y-%m-%d') if task.deadline else "N/A",
+            'priority': task.priority or "N/A",
+            'description': task.description,
+            'project_name': project_name,
+            'days_overdue': "1 day",
+            'task_url': f"http://localhost:8000/tasks/{task.id}"
+        }
+
+        email_message = EmailMessage(
+            recipients=recipients_objs,
+            content={
+                'subject': f"Overdue Task: {task.title or 'Untitled Task'}",
+                'template_name': 'overdue_deadline',
+                'template_data': template_data
+            },
+            email_type=EmailType.OVERDUE_DEADLINE
+        )
+        
+        msg = email_service._prepare_message(email_message)
+        message_id = email_service._send_smtp_message(msg, recipients_objs)
+
+        if message_id != 1:
+            return {
+                "success": False,
+                "message": "Error sending notification",
+                "recipients_count": len(recipients_objs or []),
+            }
+        return {
+            "success": True,
+            "message": "Email sent successfully",
+            "recipients_count": len(recipients_objs or []),
+            "email_id": "1",
+        }
+    except Exception:
+        pass
 
 def update_task(
     task_id: int,

@@ -211,9 +211,41 @@ def clear_task_assignees(task_id: int):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+@router.post("/{task_id}/notify-upcoming", name="notify_upcoming_task")
+def notify_upcoming_task(task_id: int):
+    """
+    Send upcoming deadline reminder email to all assigned users of a task.
+    
+    Args:
+        task_id: ID of the task
+        
+    Returns:
+        Email response with success status and recipient count
+    """
+    try:
+        return task_handler.upcoming_task_reminder(task_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-# ---------------- Comments ------------------
 
+@router.post("/{task_id}/notify-overdue", name="notify_overdue_task")
+def notify_overdue_task(task_id: int):
+    """
+    Send overdue deadline reminder email to all assigned users of a task.
+    
+    Args:
+        task_id: ID of the task
+        
+    Returns:
+        Email response with success status and recipient count
+    """
+    try:
+        return task_handler.overdue_task_reminder(task_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+# ------------------ Comments ------------------
 
 @router.post("/{task_id}/comment", response_model=CommentRead, name="add_comment")
 def add_comment(task_id: int, payload: CommentCreate):
