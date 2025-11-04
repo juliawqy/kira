@@ -14,6 +14,14 @@ from ..templates.email_templates import EmailTemplates
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+if not logger.handlers: # pragma: no cover
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.propagate = False
+
 
 class EmailService:
     
@@ -37,19 +45,22 @@ class EmailService:
                 email_message.recipients,
                 email_message.cc,
             )
+    
+            message_id_str = str(message_id) if message_id is not None else None
 
             to_list = [r.email for r in (email_message.recipients or [])]
             cc_list = [r.email for r in (email_message.cc or [])]
             subj = getattr(email_message.content, 'subject', None) if not isinstance(email_message.content, dict) else email_message.content.get('subject')
             logger.info(
-                f"Email dispatched: msgid={message_id}, subject=\"{subj}\", to={to_list}, cc={cc_list}")
-            
-            return EmailResponse(
+                f"Email dispatched: msgid={message_id_str}, subject=\"{subj}\", to={to_list}, cc={cc_list}")
+
+            response = EmailResponse(
                 success=True,
                 message="Email sent successfully",
                 recipients_count=len(email_message.recipients),
-                email_id=message_id,
+                email_id=message_id_str,
             )
+            return response
             
         except Exception as e:
             logger.error(f"Failed to send email: {str(e)}")

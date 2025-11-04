@@ -318,7 +318,7 @@ VALID_PROJECT = {
 VALID_PROJECT_2 = {
     "project_id": 2,
     "project_name": "Integration Test Project",
-    "project_manager": 1,
+    "project_manager": 3,
     "active": True,
 }
 
@@ -384,6 +384,16 @@ VALID_USER_MANAGER = {
     "department_id": None
 }
 
+VALID_USER_DIRECTOR = {
+    "user_id": 4,
+    "email": "david.director@example.com",
+    "name": "David Director",
+    "role": UserRole.DIRECTOR.value,
+    "admin": True,
+    "hashed_pw": "Direct0rPass!",
+    "department_id": None
+}
+
 VALID_USER_ADMIN_TASK_ASSIGNMENT = {
     "user_id": 1,
     "name": "Alice Admin",
@@ -402,6 +412,43 @@ VALID_USER_EMPLOYEE_TASK_ASSIGNMENT = {
     "department_id": None,
     "admin": False,
     "hashed_pw": "Empl@yee123",
+}
+
+VALID_DEPARTMENT = {
+    "department_id": 1,
+    "department_name": "Engineering",
+    "manager_id": 4
+}
+
+VALID_TEAM = {
+    "team_id": 1,
+    "team_name": "Integration Test Team",
+    "team_number": "010100",
+    "department_id": 1,
+    "manager_id": 1
+}
+
+VALID_SUBTEAM = {
+    "team_id": 2,
+    "team_name": "Integration Test Subteam",
+    "team_number": "010102",
+    "department_id": 1,
+    "manager_id": 1,
+}
+
+VALID_TEAM_ASSIGNMENT_1 = {
+    "team_id": 1,
+    "user_id": 1
+}
+
+VALID_TEAM_ASSIGNMENT_2 = {
+    "team_id": 1,
+    "user_id": 3
+}
+
+VALID_SUBTEAM_ASSIGNMENT = {
+    "team_id": 2,
+    "user_id": 2
 }
 
 INVALID_USER_ID = 99999

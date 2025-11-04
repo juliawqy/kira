@@ -75,3 +75,26 @@ def test_get_nonexistent_project(isolated_test_db):
 
     with pytest.raises(ValueError):
         project_handler.get_project_by_id(NOT_FOUND_ID)
+
+# INT-077/005
+def test_get_projects_by_manager_success(isolated_test_db):
+    """Test getting all projects managed by a manager."""
+
+    project1 = project_handler.create_project("Project Alpha", MANAGER_USER["user_id"])
+    project2 = project_handler.create_project("Project Beta", MANAGER_USER["user_id"])
+
+    manager_projects = project_handler.get_projects_by_manager(MANAGER_USER["user_id"])
+    
+    assert isinstance(manager_projects, list)
+    assert len(manager_projects) == 2
+    assert all(p["project_manager"] == MANAGER_USER["user_id"] for p in manager_projects)
+    assert project1["project_id"] in [p["project_id"] for p in manager_projects]
+    assert project2["project_id"] in [p["project_id"] for p in manager_projects]
+
+# INT-077/006
+def test_get_projects_by_manager_no_projects(isolated_test_db):
+    """Test getting projects for a manager with no projects."""
+    projects = project_handler.get_projects_by_manager(MANAGER_USER["user_id"])
+    
+    assert isinstance(projects, list)
+    assert len(projects) == 0

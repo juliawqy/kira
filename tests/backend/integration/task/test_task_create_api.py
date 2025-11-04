@@ -20,6 +20,7 @@ from tests.mock_data.task.integration_data import (
     VALID_PROJECT,
     VALID_PROJECT_2,
     VALID_USER_ADMIN,
+    VALID_USER_MANAGER,
     INVALID_PRIORITIES,
     INVALID_PRIORITY_TASK_PAYLOAD_BASE,
     INVALID_STATUS,
@@ -80,7 +81,9 @@ def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
 
     manager = User(**VALID_USER_ADMIN)
-    test_db_session.add(manager)
+    manager2 = User(**VALID_USER_MANAGER)
+
+    test_db_session.add_all([manager, manager2])
     test_db_session.flush()
 
     project = Project(**VALID_PROJECT)

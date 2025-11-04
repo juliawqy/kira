@@ -17,6 +17,7 @@ from backend.src.enums.notification import NotificationType
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 from backend.src.enums.task_filter import TaskFilter, ALLOWED_FILTERS
 from backend.src.enums.task_sort import TaskSort, ALLOWED_SORTS
+from backend.src.enums.user_role import UserRole
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 
@@ -326,11 +327,12 @@ def update_task(
             new_values[f] = after
 
     if updated_fields:
+
         assignees = assignment_service.list_assignees(task_id)
         recipient_set = {u.email for u in assignees if getattr(u, 'email', None)}
         recipients = sorted(recipient_set) if recipient_set else None
 
-        resp = get_notification_service().notify_activity(
+        notify_kwargs = dict(
             user_email=kwargs.get("user_email"),
             task_id=updated.id,
             task_title=updated.title or "",
@@ -338,8 +340,11 @@ def update_task(
             updated_fields=updated_fields,
             old_values=old_values,
             new_values=new_values,
-            to_recipients=recipients,
         )
+        if recipients:
+            notify_kwargs["to_recipients"] = recipients
+
+        resp = get_notification_service().notify_activity(**notify_kwargs)
         try:
             logger.info(
                 "Notification response",
@@ -527,3 +532,16 @@ def list_project_tasks_by_user(project_id: int, user_id: int):
         raise ValueError(f"User {user_id} not found")
 
     return task_service.list_project_tasks_by_user(project_id, user_id)
+
+def list_project_tasks_by_manager(project_manager_id: int):
+    manager = user_service.get_user(project_manager_id)
+    if not manager:
+        raise ValueError(f"User {project_manager_id} not found")
+    if manager.role != UserRole.MANAGER.value:
+        raise ValueError(f"User {project_manager_id} is not a manager")
+    projects = project_service.get_projects_by_manager(project_manager_id)
+    all_tasks = []
+    for project in projects:
+        tasks = task_service.list_tasks_by_project(project["project_id"], active_only=True)
+        all_tasks.extend(tasks)
+    return all_tasks

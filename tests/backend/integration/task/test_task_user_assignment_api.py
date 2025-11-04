@@ -86,9 +86,12 @@ def create_test_users_and_project(test_db_session):
     admin_user = User(**VALID_CREATE_PAYLOAD_ADMIN)
     employee_user = User(**VALID_CREATE_PAYLOAD_USER)
     manager_user = User(**VALID_CREATE_PAYLOAD_MANAGER)
+    test_db_session.add_all([admin_user, employee_user, manager_user])
+    test_db_session.commit()
+    test_db_session.flush()
     project = Project(**VALID_PROJECT)
     project2 = Project(**VALID_PROJECT_2)
-    test_db_session.add_all([admin_user, employee_user, manager_user, project, project2])
+    test_db_session.add_all([project, project2])
     test_db_session.commit()
 
     return [admin_user.user_id, employee_user.user_id, manager_user.user_id]

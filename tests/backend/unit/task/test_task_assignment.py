@@ -9,8 +9,6 @@ from tests.mock_data.task.unit_data import (
     VALID_DEFAULT_TASK,
     INACTIVE_TASK,
     INVALID_TASK_ID_NONEXISTENT,
-)
-from tests.mock_data.user.unit_data import (
     VALID_USER_ADMIN,
     VALID_USER,
     INVALID_USER_ID,

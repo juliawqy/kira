@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select, exists
 from sqlalchemy.orm import selectinload
 
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 from backend.src.database.models.user import User
 from backend.src.database.models.task_assignment import TaskAssignment
+from backend.src.database.models.parent_assignment import ParentAssignment
 from backend.src.schemas.user import UserRead
 
 
@@ -117,12 +118,17 @@ def list_tasks_for_user(
     active_only: bool = True,
 ) -> list[Task]:
     """
-    Return tasks assigned to a user.
+    Return top-level tasks assigned to a user with their corresponding subtasks.
     """
     with SessionLocal() as session:
+        # Only return parent tasks (not subtasks)
+        not_a_subtask = ~exists(
+            select(ParentAssignment.subtask_id).where(ParentAssignment.subtask_id == Task.id)
+        )
         stmt = (
             select(Task)
-            .options(selectinload(Task.subtask_links))
+            .where(not_a_subtask)
+            .options(selectinload(Task.subtask_links).selectinload(ParentAssignment.subtask))
             .join(TaskAssignment, TaskAssignment.task_id == Task.id)
             .filter(TaskAssignment.user_id == user_id)
         )

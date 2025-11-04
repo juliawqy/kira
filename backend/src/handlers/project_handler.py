@@ -19,6 +19,10 @@ def get_project_by_id(project_id: int):
         raise ValueError("Project not found.")
     return project
 
+def get_projects_by_manager(project_manager_id: int):
+    """Get all projects managed by a specific manager."""
+    return project_service.get_projects_by_manager(project_manager_id)
+
 
 # -------- Project x User Handlers -------------------------------------------------------
 

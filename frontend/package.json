@@ -1,9 +1,14 @@
 {
     "scripts": {
+      "start": "cd app && npx http-server -p 3000 -o --cors",
+      "dev": "cd app && npx http-server -p 3000 -o --cors",
       "test": "vitest run --dir tests",
       "test:unit": "vitest run --dir tests/unit",
       "test:integration": "vitest run --dir tests/integration",
       "test:e2e": "playwright test tests/e2e"
+    },
+    "devDependencies": {
+      "http-server": "^14.1.1"
     }
   }
   

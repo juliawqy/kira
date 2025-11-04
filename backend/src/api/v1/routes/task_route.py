@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from fastapi import APIRouter, HTTPException, Query
 import json
@@ -11,6 +11,9 @@ from backend.src.schemas.comment import CommentCreate, CommentRead, CommentUpdat
 import backend.src.handlers.task_assignment_handler as assignment_handler
 import backend.src.handlers.task_handler as task_handler
 import backend.src.handlers.comment_handler as comment_handler
+import backend.src.handlers.project_handler as project_handler
+import backend.src.handlers.department_handler as department_handler
+import backend.src.services.user as user_service
 
 router = APIRouter(prefix="/task", tags=["task"])
 
@@ -73,6 +76,36 @@ def list_project_tasks_by_user(project_id: int, user_id: int):
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/manager/{manager_id}", response_model=Dict[str, List[TaskWithSubTasks]], name="list_tasks_by_manager")
+def list_tasks_by_manager(manager_id: int):
+    """Get all tasks assigned to users managed by a specific manager."""
+    try:
+        all_tasks = assignment_handler.list_tasks_by_manager(manager_id)
+        return all_tasks
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/manager/project/{manager_id}", response_model=List[TaskWithSubTasks], name="list_tasks_by_project_by_manager")
+def list_tasks_by_project_by_manager(manager_id: int):
+    """Get all tasks in projects managed by a specific manager."""
+    try:
+        all_tasks = task_handler.list_project_tasks_by_manager(manager_id)
+        return all_tasks
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/director/{director_id}", response_model=Dict[str, List[TaskWithSubTasks]], name="list_tasks_by_director")
+def list_tasks_by_director(director_id: int):
+    """Get all tasks for users in the department managed by a specific director."""
+    try:
+        all_tasks = assignment_handler.list_tasks_by_director(director_id)
+        return all_tasks
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/parents", response_model=List[TaskRead], name="list_parent_tasks")

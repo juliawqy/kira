@@ -17,6 +17,7 @@ from tests.mock_data.task.integration_data import (
     VALID_PROJECT,
     VALID_PROJECT_2,
     VALID_USER_ADMIN,
+    VALID_USER_MANAGER,
     INVALID_TASK_ID_NONEXISTENT,
 )
 
@@ -54,7 +55,8 @@ def test_db_session(test_engine):
 def seed_project_and_user(test_db_session, clean_db):
     """Ensure valid user/project setup before each test."""
     manager = User(**VALID_USER_ADMIN)
-    test_db_session.add(manager)
+    manager2 = User(**VALID_USER_MANAGER)
+    test_db_session.add_all([manager, manager2])
     test_db_session.flush()
     project = Project(**VALID_PROJECT)
     project2 = Project(**VALID_PROJECT_2)

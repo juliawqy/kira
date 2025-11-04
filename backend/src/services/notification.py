@@ -11,6 +11,14 @@ from ..enums.notification import NotificationType
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+if not logger.handlers: # pragma: no cover
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.propagate = False
+
 
 class NotificationService:
     
@@ -145,10 +153,14 @@ class NotificationService:
     def _resolve_recipients(
         self, *, task_id: int, to_recipients: Optional[List[str]], cc_recipients: Optional[List[str]]
     ) -> Tuple[List[str], List[str]]:
+
+        default_recipients = self.email_service._get_task_notification_recipients(task_id)
+        if not default_recipients:
+            return [], (cc_recipients or [])
+
         if to_recipients:
             to_list = to_recipients
         else:
-            default_recipients = self.email_service._get_task_notification_recipients(task_id)
             to_list = [r.email for r in default_recipients]
 
         cc_list = cc_recipients or []

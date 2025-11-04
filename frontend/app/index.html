@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Task Manager – Modular (Light)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Top User Selection Bar -->
+  <div style="position: fixed; top: 0; right: 0; z-index: 1000; padding: 16px; background: var(--panel); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 14px; color: var(--sub);">Logged in as:</span>
+      <div class="user-selection">
+        <button class="user-btn" id="userCong" data-user-id="1">Cong</button>
+        <button class="user-btn" id="userJulia" data-user-id="2">Julia</button>
+        <button class="user-btn" id="userManager" data-user-id="3">Manager</button>
+        <button class="user-btn" id="userDirector" data-user-id="4">Director</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="header-bar">
+      <div style="display: flex; align-items: center; gap: 8px; justify-content: space-between; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <img src="./Kira_black.png" alt="Kira Logo" style="height: 60px; width: auto;" />
+        </div>
+        <button class="btn" id="btnSettings" type="button" title="Reminder Settings" style="font-size: 14px;">⚙️ Settings</button>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="panel" style="margin-top: 12px; padding-bottom: 0;">
+      <div class="tabs">
+        <button class="tab-btn active" id="tabList" data-tab="list">List View</button>
+        <button class="tab-btn" id="tabCalendar" data-tab="calendar">Calendar View</button>
+        <button class="tab-btn staff-only" id="tabTeamSchedule" data-tab="teamSchedule">Project Schedule</button>
+        <button class="tab-btn manager-only" id="tabTimeline" data-tab="timeline">Timeline View</button>
+        <button class="tab-btn manager-only" id="tabTeamManagement" data-tab="teamManagement">Team Management</button>
+      </div>
+    </div>
+
+    <!-- List View Tab -->
+    <div class="tab-content active" id="tabContentList">
+      <!-- On-going Tasks list -->
+      <div class="panel" style="margin-top: 12px;" id="ongoingPanel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h2 style="margin:0;">On-going Tasks</h2>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="filterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Status</option>
+              <option value="To-do">To-do</option>
+              <option value="In-progress">In-progress</option>
+              <option value="Blocked">Blocked</option>
+            </select>
+            <select id="filterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Priority</option>
+              <option value="high">High (8-10)</option>
+              <option value="medium">Medium (5-7)</option>
+              <option value="low">Low (1-4)</option>
+            </select>
+            <select id="filterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Projects</option>
+              <option value="1">Project Alpha (1)</option>
+              <option value="2">Project Beta (2)</option>
+              <option value="3">Project Gamma (3)</option>
+            </select>
+            <select id="filterTag" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Tags</option>
+              <option value="logistics">Logistics</option>
+              <option value="documentation">Documentation</option>
+              <option value="testing">Testing</option>
+              <option value="development">Development</option>
+              <option value="meeting">Meeting</option>
+              <option value="completed">Completed</option>
+              <option value="bugfix">Bugfix</option>
+              <option value="design">Design</option>
+              <option value="research">Research</option>
+              <option value="audit">Audit</option>
+            </select>
+            <button class="btn-create-task" id="btnToggleCreate" type="button" title="Create Task" style="margin-left: 4px;">+</button>
+          </div>
+        </div>
+        <div id="ongoing"></div>
+      </div>
+
+      <!-- Completed Tasks list -->
+      <div class="panel" style="margin-top: 12px;" id="completedPanel">
+        <h2 style="margin:0 0 12px 0;">Completed Tasks</h2>
+        <div id="completed"></div>
+      </div>
+    </div>
+
+    <!-- Calendar View Tab -->
+    <div class="tab-content" id="tabContentCalendar">
+      <!-- Calendar panel -->
+      <div class="panel cal-wrap" id="calendarPanel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="cal-nav-btn" id="calPrev" type="button">← Prev</button>
+            <div id="calTitle" class="cal-title"></div>
+            <button class="cal-nav-btn" id="calNext" type="button">Next →</button>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="calDateMode" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="due" selected>Deadline</option>
+              <option value="start">Start date</option>
+            </select>
+            <select id="calFilterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Status</option>
+              <option value="To-do">To-do</option>
+              <option value="In-progress">In-progress</option>
+              <option value="Blocked">Blocked</option>
+            </select>
+            <select id="calFilterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Priority</option>
+              <option value="high">High (8-10)</option>
+              <option value="medium">Medium (5-7)</option>
+              <option value="low">Low (1-4)</option>
+            </select>
+            <select id="calFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Projects</option>
+              <option value="1">Project Alpha (1)</option>
+              <option value="2">Project Beta (2)</option>
+              <option value="3">Project Gamma (3)</option>
+            </select>
+            <select id="calFilterTag" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Tags</option>
+              <option value="logistics">Logistics</option>
+              <option value="documentation">Documentation</option>
+              <option value="testing">Testing</option>
+              <option value="development">Development</option>
+              <option value="meeting">Meeting</option>
+              <option value="completed">Completed</option>
+              <option value="bugfix">Bugfix</option>
+              <option value="design">Design</option>
+              <option value="research">Research</option>
+              <option value="audit">Audit</option>
+            </select>
+          </div>
+        </div>
+        <div id="calendar"></div>
+        <div class="cal-legend">
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-todo"></div>
+            <span>To-do</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-inprogress"></div>
+            <span>In-progress</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-blocked"></div>
+            <span>Blocked</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-overdue"></div>
+            <span>Overdue</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-reminder"></div>
+            <span>Reminder</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Schedule View Tab (Staff Only) -->
+    <div class="tab-content" id="tabContentTeamSchedule">
+      <!-- Team Schedule panel -->
+      <div class="panel cal-wrap" id="teamSchedulePanel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="cal-nav-btn" id="teamCalPrev" type="button">← Prev</button>
+            <div id="teamCalTitle" class="cal-title"></div>
+            <button class="cal-nav-btn" id="teamCalNext" type="button">Next →</button>
+      </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="teamCalDateMode" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="due" selected>Deadline</option>
+              <option value="start">Start date</option>
+            </select>
+            <select id="teamCalFilterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Status</option>
+              <option value="To-do">To-do</option>
+              <option value="In-progress">In-progress</option>
+              <option value="Blocked">Blocked</option>
+            </select>
+            <select id="teamCalFilterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Priority</option>
+              <option value="high">High (8-10)</option>
+              <option value="medium">Medium (5-7)</option>
+              <option value="low">Low (1-4)</option>
+            </select>
+            <select id="teamCalFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="1" selected>Project Alpha (1)</option>
+              <option value="2">Project Beta (2)</option>
+              <option value="3">Project Gamma (3)</option>
+            </select>
+            <select id="teamCalFilterTag" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+              <option value="">All Tags</option>
+              <option value="logistics">Logistics</option>
+              <option value="documentation">Documentation</option>
+              <option value="testing">Testing</option>
+              <option value="development">Development</option>
+              <option value="meeting">Meeting</option>
+              <option value="completed">Completed</option>
+              <option value="bugfix">Bugfix</option>
+              <option value="design">Design</option>
+              <option value="research">Research</option>
+              <option value="audit">Audit</option>
+            </select>
+    </div>
+        </div>
+        <div id="teamCalendar"></div>
+        <div class="cal-legend">
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-todo"></div>
+            <span>To-do</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-inprogress"></div>
+            <span>In-progress</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-blocked"></div>
+            <span>Blocked</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-overdue"></div>
+            <span>Overdue</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-reminder"></div>
+            <span>Reminder</span>
+          </div>
+        </div>
+        </div>
+        </div>
+
+    <!-- Timeline View Tab (Manager/Director Only) -->
+    <div class="tab-content" id="tabContentTimeline">
+      <!-- Timeline sub-tabs -->
+      <div class="panel" style="margin-top: 12px; padding-bottom: 0;">
+        <div class="tabs">
+          <button class="tab-btn active" id="timelineTabList" data-timeline-sub="list">List</button>
+          <button class="tab-btn" id="timelineTabGantt" data-timeline-sub="gantt">Gantt</button>
+        </div>
+        </div>
+
+      <!-- Timeline List View -->
+      <div class="timeline-sub-content active" id="timelineSubContentList">
+        <div class="panel" style="margin-top: 12px;" id="timelinePanel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2 style="margin:0;">Timeline View</h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select id="timelineFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Projects</option>
+            <option value="1">Project Alpha (1)</option>
+                <option value="2">Project Beta (2)</option>
+                <option value="3">Project Gamma (3)</option>
+              </select>
+              <select id="timelineSortBy" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">Sort by</option>
+                <option value="status">Sort by Status</option>
+                <option value="priority">Sort by Priority</option>
+          </select>
+        </div>
+        </div>
+          <div id="timeline"></div>
+        </div>
+      </div>
+
+      <!-- Timeline Gantt View -->
+      <div class="timeline-sub-content" id="timelineSubContentGantt">
+        <div class="panel" style="margin-top: 12px;" id="timelineGanttPanel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2 style="margin:0;">Gantt View</h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select id="ganttFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Projects</option>
+                <option value="1">Project Alpha (1)</option>
+                <option value="2">Project Beta (2)</option>
+                <option value="3">Project Gamma (3)</option>
+              </select>
+              <select id="ganttFilterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Status</option>
+                <option value="To-do">To-do</option>
+                <option value="In-progress">In-progress</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Completed">Completed</option>
+              </select>
+              <select id="ganttFilterPriority" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+                <option value="">All Priority</option>
+                <option value="high">High (8-10)</option>
+                <option value="medium">Medium (5-7)</option>
+                <option value="low">Low (1-4)</option>
+              </select>
+              <button class="cal-nav-btn" id="ganttZoomOut" type="button" title="Zoom Out">−</button>
+              <button class="cal-nav-btn" id="ganttZoomIn" type="button" title="Zoom In">+</button>
+      </div>
+    </div>
+          <div id="timelineGantt"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Management View Tab (Manager/Director Only) -->
+    <div class="tab-content" id="tabContentTeamManagement">
+      <div class="panel" style="margin-top: 12px;" id="teamMgmtPanel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h2 style="margin:0;">Team Management</h2>
+        </div>
+        <div id="teamManagement"></div>
+      </div>
+    </div>
+
+    <!-- Console -->
+    <div class="panel" style="margin-top: 12px; display: none;">
+      <h2>Console</h2>
+      <div id="log" class="console mono small"></div>
+    </div>
+  </div>
+
+  <!-- Subtask Detail Panel (Right Side) -->
+  <div id="subtaskPanel" class="subtask-panel">
+    <div class="subtask-panel-backdrop"></div>
+    <div class="subtask-panel-content">
+      <div id="subtaskPanelInner"></div>
+    </div>
+  </div>
+
+  <!-- Calendar Task Detail Panel (Left Side) -->
+  <div id="calTaskPanel" class="cal-task-panel">
+    <div class="cal-task-panel-backdrop"></div>
+    <div class="cal-task-panel-content">
+      <div id="calTaskPanelInner"></div>
+    </div>
+  </div>
+
+  <!-- Create dialog -->
+  <dialog id="dlgCreate">
+    <form method="dialog" class="panel" style="min-width: 640px; background: var(--panel); padding: 24px;">
+      <h2 style="margin-top: 0; margin-bottom: 20px;">Create Task</h2>
+      <div class="grid three" id="createForm" style="gap: 16px;">
+        <div class="form-field"><label>Title</label><input id="c_title" /><div class="error" id="c_title_err"></div></div>
+        <div class="form-field" style="grid-column: span 2;"><label>Description</label><textarea id="c_desc" placeholder="Describe the task..."></textarea><div class="error" id="c_desc_err"></div></div>
+        <div class="form-field"><label>Priority (1–10)</label><input id="c_priority" type="number" min="1" max="10" value="5" /><div class="error" id="c_priority_err"></div></div>
+        <div class="form-field"><label>Start date</label><input id="c_start" type="date" placeholder="YYYY-MM-DD" /><div class="error" id="c_start_err"></div></div>
+        <div class="form-field"><label>Deadline</label><input id="c_due" type="date" placeholder="YYYY-MM-DD" /><div class="error" id="c_due_err"></div></div>
+        <div class="form-field">
+          <label>Project</label>
+          <select id="c_project">
+            <option value="" disabled selected>Select a project</option>
+            <option value="1">Project Alpha (1)</option>
+            <option value="2">Project Beta (2)</option>
+            <option value="3">Project Gamma (3)</option>
+          </select>
+          <div class="error" id="c_project_err"></div>
+        </div>
+        <div class="form-field"><label>Parent ID (create as subtask)</label><input id="c_parent" type="number" placeholder="optional" /><div class="error" id="c_parent_err"></div></div>
+        <div class="form-field"><label>Tag</label><input id="c_tag" placeholder="optional" /><div class="error" id="c_tag_err"></div></div>
+        <div class="form-field"><label>Recurring (days)</label><input id="c_recurring" type="number" min="0" max="365" value="0" /><div class="error" id="c_recurring_err"></div></div>
+      </div>
+      <div class="row" style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <span class="row-right" style="display: flex; gap: 8px;">
+          <button class="btn" value="cancel">Cancel</button>
+          <button class="btn primary" id="btnCreate" value="default">Create</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit dialog -->
+  <dialog id="dlgEdit">
+    <form method="dialog" class="panel" style="min-width: 640px; background: var(--panel);">
+      <h2>Edit Task</h2>
+      <div class="grid three">
+        <div class="form-field"><label>Title</label><input id="e_title" /><div class="error" id="e_title_err"></div></div>
+        <div class="form-field" style="grid-column: span 2;"><label>Description</label><textarea id="e_desc" placeholder="Describe the task..."></textarea><div class="error" id="e_desc_err"></div></div>
+        <div class="form-field"><label>Priority (1–10)</label><input id="e_priority" type="number" min="1" max="10" /><div class="error" id="e_priority_err"></div></div>
+        <div class="form-field"><label>Start date</label><input id="e_start" type="date" placeholder="YYYY-MM-DD"/><div class="error" id="e_start_err"></div></div>
+        <div class="form-field"><label>Deadline</label><input id="e_due" type="date" placeholder="YYYY-MM-DD"/><div class="error" id="e_due_err"></div></div>
+        <div class="form-field">
+          <label>Project</label>
+          <select id="e_project">
+            <option value="" disabled selected>Select a project</option>
+            <option value="1">Project Alpha (1)</option>
+            <option value="100">Project Beta (100)</option>
+            <option value="123">Project Gamma (123)</option>
+          </select>
+          <div class="error" id="e_project_err"></div>
+        </div>
+        <div class="form-field"><label>Tag</label><input id="e_tag" /><div class="error" id="e_tag_err"></div></div>
+        <div class="form-field"><label>Recurring (days)</label><input id="e_recurring" type="number" min="0" max="365"/><div class="error" id="e_recurring_err"></div></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div class="muted small" id="e_hint"></div>
+        <span class="row-right">
+          <button class="btn" value="cancel">Cancel</button>
+          <button class="btn success" id="btnSaveEdit" value="default">Save</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Reminder Settings Dialog -->
+  <dialog id="dlgReminderSettings">
+    <form method="dialog" class="panel" style="min-width: 500px; background: var(--panel); padding: 24px;">
+      <h2 style="margin-top: 0; margin-bottom: 20px;">Reminder Settings</h2>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Default Reminder Times:</label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="reminder1day" value="1day" />
+              <span>1 day before deadline</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="reminder1hour" value="1hour" />
+              <span>1 hour before deadline</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="reminder30min" value="30min" />
+              <span>30 minutes before deadline</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="reminder1week" value="1week" />
+              <span>1 week before deadline</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Show reminders for:</label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="showUpcoming" checked />
+              <span>Upcoming deadlines</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="showOverdue" checked />
+              <span>Overdue tasks</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <span class="row-right" style="display: flex; gap: 8px;">
+          <button class="btn" value="cancel">Cancel</button>
+          <button class="btn primary" id="btnSaveReminderSettings" value="default">Save Settings</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
