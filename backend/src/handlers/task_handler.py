@@ -131,13 +131,12 @@ def upcoming_task_reminder(task_id: int):
             }
 
         project_name = None
-        if task.project_id:
-            try:
-                project = project_service.get_project_by_id(task.project_id)
-                if project:
-                    project_name = project.get("project_name")
-            except Exception:
-                pass
+        try:
+            project = project_service.get_project_by_id(task.project_id)
+            if project:
+                project_name = project.get("project_name")
+        except Exception:
+            pass
 
         template_data = {
             'task_id': task.id,
@@ -213,13 +212,12 @@ def overdue_task_reminder(task_id: int):
             }
 
         project_name = None
-        if task.project_id:
-            try:
-                project = project_service.get_project_by_id(task.project_id)
-                if project:
-                    project_name = project.get("project_name")
-            except Exception:
-                pass
+        try:
+            project = project_service.get_project_by_id(task.project_id)
+            if project:
+                project_name = project.get("project_name")
+        except Exception:
+            pass
 
         template_data = {
             'task_id': task.id,
