@@ -79,11 +79,10 @@ def test_get_nonexistent_project(isolated_test_db):
 # INT-077/005
 def test_get_projects_by_manager_success(isolated_test_db):
     """Test getting all projects managed by a manager."""
-    # Create multiple projects managed by the same manager
+
     project1 = project_handler.create_project("Project Alpha", MANAGER_USER["user_id"])
     project2 = project_handler.create_project("Project Beta", MANAGER_USER["user_id"])
 
-    # Get projects for manager
     manager_projects = project_handler.get_projects_by_manager(MANAGER_USER["user_id"])
     
     assert isinstance(manager_projects, list)

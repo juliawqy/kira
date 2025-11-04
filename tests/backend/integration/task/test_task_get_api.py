@@ -36,7 +36,11 @@ from tests.mock_data.task.integration_data import (
     VALID_USER_EMPLOYEE,
     VALID_USER_MANAGER,
     VALID_USER_DIRECTOR,
-    INVALID_USER_ID
+    INVALID_USER_ID,
+    VALID_DEPARTMENT,
+    VALID_TEAM,
+    VALID_TEAM_ASSIGNMENT_1,
+    VALID_TEAM_ASSIGNMENT_2,
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -74,16 +78,18 @@ def create_test_project(test_db_session, clean_db):
     """Ensure a valid project exists for task creation (project_id=1)."""
     
     manager = User(**VALID_USER_ADMIN)
+    staff = User(**VALID_USER_EMPLOYEE)
     manager2 = User(**VALID_USER_MANAGER)
-    test_db_session.add_all([manager, manager2])
+    director = User(**VALID_USER_DIRECTOR)
+    test_db_session.add_all([manager, staff, manager2, director])
+    test_db_session.commit()
     test_db_session.flush()
 
     project = Project(**VALID_PROJECT)
-    project.project_id = VALID_PROJECT["project_id"]
     project2 = Project(**VALID_PROJECT_2)
-    project2.project_id = VALID_PROJECT_2["project_id"]
     test_db_session.add_all([project, project2])
     test_db_session.commit()
+    test_db_session.flush()
 
 # INT-002/001
 def test_list_tasks_success(client, task_base_path):
@@ -580,30 +586,16 @@ def test_list_tasks_invalid_project(client, task_base_path):
 def test_list_tasks_by_project_by_manager_success(client, task_base_path, test_db_session):
     """Test getting all tasks for projects managed by a manager."""
     
-    # Create a project managed by the manager (user_id 3)
-    manager_project = Project(
-        project_id=3,
-        project_name="Manager Project",
-        project_manager=VALID_USER_MANAGER['user_id'],
-        active=True
-    )
-    test_db_session.add(manager_project)
-    test_db_session.commit()
-    
-    # Create tasks in the manager's project
     for payload in (TASK_CREATE_PAYLOAD, TASK_2_PAYLOAD, TASK_3_PAYLOAD, TASK_4_PAYLOAD):
-        # Modify payload to use manager's project
-        modified_payload = serialize_payload(payload).copy()
-        modified_payload['project_id'] = 3
-        resp = client.post(f"{task_base_path}/", json=modified_payload)
+        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
 
-    response = client.get(f"{task_base_path}/manager/project/{VALID_USER_MANAGER['user_id']}")
+    response = client.get(f"{task_base_path}/manager/project/{VALID_USER_ADMIN['user_id']}")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
 
-    assert len(data) == 4
+    assert len(data) == 3
 
 # INT-002/015
 def test_list_tasks_by_project_by_manager_no_projects(client, task_base_path):
@@ -620,36 +612,29 @@ def test_list_tasks_by_director_success(client, task_base_path, test_db_session)
 
     existing_admin = test_db_session.query(User).filter(User.user_id == VALID_USER_ADMIN['user_id']).first()
     existing_manager = test_db_session.query(User).filter(User.user_id == VALID_USER_MANAGER['user_id']).first()
+    director = test_db_session.query(User).filter(User.user_id == VALID_USER_DIRECTOR['user_id']).first()
     
-    director_data = VALID_USER_DIRECTOR.copy()
-    director_data['department_id'] = None
-    director = User(**director_data)
-    test_db_session.add(director)
-    test_db_session.flush()
-    
-    dept = Department(department_id=1, department_name="Engineering", manager_id=director.user_id)
+    dept = Department(**VALID_DEPARTMENT)
     test_db_session.add(dept)
     test_db_session.flush()
 
-    director.department_id = 1
+    director.department_id = dept.department_id
     test_db_session.add(director)
 
-    existing_admin.department_id = 1
-    existing_manager.department_id = 1
+    existing_admin.department_id = dept.department_id
+    existing_manager.department_id = dept.department_id
     test_db_session.add_all([existing_admin, existing_manager])
     test_db_session.flush()
-    
-    team = Team(team_id=1, team_name="Alpha Team", manager_id=VALID_USER_ADMIN['user_id'], department_id=1, team_number="010100")
+
+    team = Team(**VALID_TEAM)
     test_db_session.add(team)
     test_db_session.flush()
-    
-    # Assign users to team
-    ta1 = TeamAssignment(team_id=1, user_id=existing_admin.user_id)
-    ta2 = TeamAssignment(team_id=1, user_id=existing_manager.user_id)
+
+    ta1 = TeamAssignment(**VALID_TEAM_ASSIGNMENT_1)
+    ta2 = TeamAssignment(**VALID_TEAM_ASSIGNMENT_2)
     test_db_session.add_all([ta1, ta2])
     test_db_session.commit()
-    
-    # Create tasks and assign them to users in the team
+
     task_ids = []
     for payload in (TASK_CREATE_PAYLOAD, TASK_2_PAYLOAD, TASK_3_PAYLOAD, TASK_4_PAYLOAD):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
@@ -667,23 +652,15 @@ def test_list_tasks_by_director_success(client, task_base_path, test_db_session)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, dict)
-    # Should have tasks grouped by team number (010100)
-    assert "010100" in data
-    assert isinstance(data["010100"], list)
-    # Should get all 4 tasks since both users in department have tasks
-    assert len(data["010100"]) >= 4
+    assert VALID_TEAM["team_number"] in data
+    assert isinstance(data[VALID_TEAM["team_number"]], list)
+    assert len(data[VALID_TEAM["team_number"]]) >= 4
 
 # INT-002/017
 def test_list_tasks_by_director_no_department(client, task_base_path, test_db_session):
     """Test getting tasks for a director with no department."""
-    # Create director without department
-    director_no_dept = VALID_USER_DIRECTOR.copy()
-    director_no_dept['department_id'] = None
-    director = User(**director_no_dept)
-    test_db_session.add(director)
-    test_db_session.commit()
     
-    response = client.get(f"{task_base_path}/director/{director.user_id}")
+    response = client.get(f"{task_base_path}/director/{VALID_USER_DIRECTOR['user_id']}")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, dict)
