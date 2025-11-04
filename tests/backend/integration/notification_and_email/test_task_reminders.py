@@ -380,7 +380,7 @@ class TestTaskReminderAPI:
         result = overdue_task_reminder(task.id)
         assert result["success"] is True
     
-    # INT-029/006 - Test route exception handler (lines 227-228)
+    # INT-029/006
     def test_upcoming_reminder_route_value_error_exception(self, api_client, monkeypatch):
         """Test route exception handler when handler raises ValueError."""
         import backend.src.handlers.task_handler as task_handler
@@ -392,7 +392,7 @@ class TestTaskReminderAPI:
         assert response.status_code == 404
         assert "Task not found" in response.json()["detail"]
     
-    # INT-107/006 - Test route exception handler (lines 244-245)
+    # INT-107/006
     def test_overdue_reminder_route_value_error_exception(self, api_client, monkeypatch):
         """Test route exception handler when handler raises ValueError."""
         import backend.src.handlers.task_handler as task_handler
