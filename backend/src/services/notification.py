@@ -11,7 +11,7 @@ from ..enums.notification import NotificationType
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-if not logger.handlers:
+if not logger.handlers: # pragma: no cover
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

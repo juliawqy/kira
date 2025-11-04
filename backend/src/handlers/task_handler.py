@@ -14,6 +14,7 @@ from backend.src.enums.notification import NotificationType
 from backend.src.enums.task_status import TaskStatus, ALLOWED_STATUSES
 from backend.src.enums.task_filter import TaskFilter, ALLOWED_FILTERS
 from backend.src.enums.task_sort import TaskSort, ALLOWED_SORTS
+from backend.src.enums.user_role import UserRole
 from backend.src.database.db_setup import SessionLocal
 from backend.src.database.models.task import Task
 
@@ -366,6 +367,11 @@ def list_project_tasks_by_user(project_id: int, user_id: int):
     return task_service.list_project_tasks_by_user(project_id, user_id)
 
 def list_project_tasks_by_manager(project_manager_id: int):
+    manager = user_service.get_user(project_manager_id)
+    if not manager:
+        raise ValueError(f"User {project_manager_id} not found")
+    if manager.role != UserRole.MANAGER.value:
+        raise ValueError(f"User {project_manager_id} is not a manager")
     projects = project_service.get_projects_by_manager(project_manager_id)
     all_tasks = []
     for project in projects:

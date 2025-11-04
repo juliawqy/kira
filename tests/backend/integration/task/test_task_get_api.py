@@ -39,8 +39,10 @@ from tests.mock_data.task.integration_data import (
     INVALID_USER_ID,
     VALID_DEPARTMENT,
     VALID_TEAM,
+    VALID_SUBTEAM,
     VALID_TEAM_ASSIGNMENT_1,
     VALID_TEAM_ASSIGNMENT_2,
+    VALID_SUBTEAM_ASSIGNMENT,
 )
 
 def serialize_payload(payload: dict) -> dict:
@@ -87,7 +89,8 @@ def create_test_project(test_db_session, clean_db):
 
     project = Project(**VALID_PROJECT)
     project2 = Project(**VALID_PROJECT_2)
-    test_db_session.add_all([project, project2])
+    dept = Department(**VALID_DEPARTMENT)
+    test_db_session.add_all([project, project2, dept])
     test_db_session.commit()
     test_db_session.flush()
 
@@ -607,22 +610,91 @@ def test_list_tasks_by_project_by_manager_no_projects(client, task_base_path):
     assert len(data) == 0
 
 # INT-002/016
+def test_list_tasks_by_project_by_non_manager(client, task_base_path):
+    """Test getting tasks for a non-manager user."""
+    response = client.get(f"{task_base_path}/manager/project/{VALID_USER_EMPLOYEE['user_id']}")
+    assert response.status_code == 404
+
+# INT-002/017
+def test_list_tasks_by_project_by_manager_invalid_manager(client, task_base_path):
+    """Test getting tasks for an invalid manager ID."""
+    response = client.get(f"{task_base_path}/manager/project/{INVALID_USER_ID}")
+    assert response.status_code == 404
+
+# INT-002/018
+def test_list_tasks_by_manager(client, task_base_path, test_db_session):
+    """Test getting all tasks for users managed by a manager."""
+
+    existing_employee = test_db_session.query(User).filter(User.user_id == VALID_USER_EMPLOYEE['user_id']).first()
+    existing_employee_2 = test_db_session.query(User).filter(User.user_id == VALID_USER_MANAGER['user_id']).first()
+    manager = test_db_session.query(User).filter(User.user_id == VALID_USER_ADMIN['user_id']).first()
+    
+    team = Team(**VALID_TEAM)
+    test_db_session.add(team)
+    test_db_session.flush()
+
+    subteam = Team(**VALID_SUBTEAM)
+    test_db_session.add(subteam)
+    test_db_session.flush()
+
+    ta1 = TeamAssignment(**VALID_TEAM_ASSIGNMENT_1)
+    tsa = TeamAssignment(**VALID_SUBTEAM_ASSIGNMENT)
+    test_db_session.add(ta1)
+    test_db_session.add(tsa)
+    test_db_session.commit()
+
+    task_ids = []
+    for payload in (TASK_CREATE_PAYLOAD, TASK_2_PAYLOAD):
+        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
+        assert resp.status_code == 201
+        task_ids.append(resp.json()['id'])
+    
+    # Assign tasks to users - assign both tasks to employee
+    client.post(f"{task_base_path}/{task_ids[0]}/assignees", json={"user_ids": [existing_employee.user_id]})
+    client.post(f"{task_base_path}/{task_ids[1]}/assignees", json={"user_ids": [existing_employee.user_id]})
+    client.post(f"{task_base_path}/{task_ids[1]}/assignees", json={"user_ids": [existing_employee_2.user_id]})
+    
+    # Get tasks for manager - returns list of tasks assigned to their employees
+    response = client.get(f"{task_base_path}/manager/{manager.user_id}")
+    assert response.status_code == 200
+    data = response.json()
+    print("help: ", data, len(data))
+    assert len(data[VALID_TEAM["team_number"]]) == 2
+
+# INT-002/019
+def test_list_tasks_by_manager_no_teams(client, task_base_path, test_db_session):
+    """Test getting tasks for a manager with no teams."""
+    response = client.get(f"{task_base_path}/manager/{VALID_USER_MANAGER['user_id']}")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, dict)
+    assert len(data) == 0
+
+# INT-002/020
+def test_list_tasks_by_manager_invalid_manager(client, task_base_path, test_db_session):
+    """Test getting tasks for an invalid manager ID."""
+    response = client.get(f"{task_base_path}/manager/{INVALID_USER_ID}")
+    assert response.status_code == 404
+
+# INT-002/021
+def test_list_tasks_by_manager_not_auth(client, task_base_path, test_db_session):
+    """Test getting tasks for a non-manager user."""
+    response = client.get(f"{task_base_path}/manager/{VALID_USER_EMPLOYEE['user_id']}")
+    assert response.status_code == 404
+
+# INT-002/022
 def test_list_tasks_by_director_success(client, task_base_path, test_db_session):
     """Test getting all tasks for users in director's department."""
 
     existing_admin = test_db_session.query(User).filter(User.user_id == VALID_USER_ADMIN['user_id']).first()
     existing_manager = test_db_session.query(User).filter(User.user_id == VALID_USER_MANAGER['user_id']).first()
     director = test_db_session.query(User).filter(User.user_id == VALID_USER_DIRECTOR['user_id']).first()
-    
-    dept = Department(**VALID_DEPARTMENT)
-    test_db_session.add(dept)
-    test_db_session.flush()
 
-    director.department_id = dept.department_id
+    director.department_id = VALID_DEPARTMENT["department_id"]
     test_db_session.add(director)
 
-    existing_admin.department_id = dept.department_id
-    existing_manager.department_id = dept.department_id
+    existing_admin.department_id = VALID_DEPARTMENT["department_id"]
+    existing_manager.department_id = VALID_DEPARTMENT["department_id"]
     test_db_session.add_all([existing_admin, existing_manager])
     test_db_session.flush()
 
@@ -641,9 +713,10 @@ def test_list_tasks_by_director_success(client, task_base_path, test_db_session)
         assert resp.status_code == 201
         task_ids.append(resp.json()['id'])
     
-    # Assign tasks to users - assign first 2 tasks to admin, last 2 to manager
+    # Assign tasks to users - assign first 2 tasks to admin, last 2 to manager, 1 repeat
     client.post(f"{task_base_path}/{task_ids[0]}/assignees", json={"user_ids": [existing_admin.user_id]})
     client.post(f"{task_base_path}/{task_ids[1]}/assignees", json={"user_ids": [existing_admin.user_id]})
+    client.post(f"{task_base_path}/{task_ids[1]}/assignees", json={"user_ids": [existing_manager.user_id]})
     client.post(f"{task_base_path}/{task_ids[2]}/assignees", json={"user_ids": [existing_manager.user_id]})
     client.post(f"{task_base_path}/{task_ids[3]}/assignees", json={"user_ids": [existing_manager.user_id]})
     
@@ -656,7 +729,7 @@ def test_list_tasks_by_director_success(client, task_base_path, test_db_session)
     assert isinstance(data[VALID_TEAM["team_number"]], list)
     assert len(data[VALID_TEAM["team_number"]]) >= 4
 
-# INT-002/017
+# INT-002/023
 def test_list_tasks_by_director_no_department(client, task_base_path, test_db_session):
     """Test getting tasks for a director with no department."""
     
@@ -665,3 +738,15 @@ def test_list_tasks_by_director_no_department(client, task_base_path, test_db_se
     data = response.json()
     assert isinstance(data, dict)
     assert len(data) == 0
+
+# INT-002/024
+def test_list_tasks_by_director_non_director(client, task_base_path):
+    """Test getting tasks for a non-director user."""
+    response = client.get(f"{task_base_path}/director/{VALID_USER_MANAGER['user_id']}")
+    assert response.status_code == 404
+
+# INT-002/025
+def test_list_tasks_by_director_invalid_director(client, task_base_path):
+    """Test getting tasks for an invalid director ID."""
+    response = client.get(f"{task_base_path}/director/{INVALID_USER_ID}")
+    assert response.status_code == 404

@@ -428,6 +428,14 @@ VALID_TEAM = {
     "manager_id": 1
 }
 
+VALID_SUBTEAM = {
+    "team_id": 2,
+    "team_name": "Integration Test Subteam",
+    "team_number": "010102",
+    "department_id": 1,
+    "manager_id": 1,
+}
+
 VALID_TEAM_ASSIGNMENT_1 = {
     "team_id": 1,
     "user_id": 1
@@ -436,6 +444,11 @@ VALID_TEAM_ASSIGNMENT_1 = {
 VALID_TEAM_ASSIGNMENT_2 = {
     "team_id": 1,
     "user_id": 3
+}
+
+VALID_SUBTEAM_ASSIGNMENT = {
+    "team_id": 2,
+    "user_id": 2
 }
 
 INVALID_USER_ID = 99999
