@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from backend.src.enums.task_status import TaskStatus
+from backend.src.enums.user_role import UserRole
 
 VALID_DEFAULT_TASK = {
     "id": 1,
@@ -235,3 +236,50 @@ INACTIVE_PARENT_TASK = {
 
 INVALID_PARENT_IDS = [0, -1]
 
+VALID_USER_ADMIN = {
+    "user_id": 1,
+    "name": "Alice Admin",
+    "email": "alice.admin@example.com",
+    "role": UserRole.MANAGER.value,
+    "department_id": 10,
+    "admin": True,
+    "password": "Adm!nPass123",
+}
+
+VALID_USER = {
+    "user_id": 2,
+    "name": "Bob Employee",
+    "email": "bob.employee@example.com",
+    "role": UserRole.STAFF.value,
+    "department_id": 20,
+    "admin": False,
+    "password": "Empl@yee123",
+}
+
+VALID_USER_DIRECTOR = {
+    "user_id": 3,
+    "name": "Charlie Director",
+    "email": "charlie.director@example.com",
+    "role": UserRole.DIRECTOR.value,
+    "department_id": 30,
+    "admin": False,
+    "password": "Dir3ct0rPass!",
+}
+
+INVALID_USER_ID = 9999
+
+VALID_TEAM = {
+    "team_id": 1,
+    "team_number": "010100",
+    "manager_id": 2,
+    "team_name": "Development Team",
+    "department_id": 1,
+}
+
+VALID_SUBTEAM = {
+    "team_id": 2,
+    "team_number": "010102",
+    "manager_id": 2,
+    "team_name": "Development Subteam",
+    "department_id": 1,
+}

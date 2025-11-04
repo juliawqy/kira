@@ -2,91 +2,179 @@ from __future__ import annotations
 
 import types
 import pytest
+from unittest.mock import MagicMock, patch
 
 from backend.src.handlers import task_assignment_handler as handler
+from tests.mock_data.task.unit_data import (
+    VALID_DEFAULT_TASK,
+    VALID_TASK_EXPLICIT_PRIORITY,
+    VALID_TASK_FULL,
+    INACTIVE_TASK,
+    INVALID_TASK_ID_NONEXISTENT,
+    VALID_USER_ADMIN,
+    VALID_USER,
+    INVALID_USER_ID,
+    VALID_USER_DIRECTOR,
+    VALID_TEAM,
+    VALID_SUBTEAM
+)
 
 
 def make_user(role: str | None):
     return types.SimpleNamespace(role=role)
 
+# ================================ list_tasks_by_manager Tests ================================
 
-class TestListTasksByManager:
-    def test_manager_not_found_raises(self, monkeypatch):
-        monkeypatch.setattr(handler.user_service, "get_user", lambda _id: None)
-        with pytest.raises(ValueError, match="Manager not found"):
-            handler.list_tasks_by_manager(3)
-
-    def test_user_not_manager_raises(self, monkeypatch):
-        monkeypatch.setattr(handler.user_service, "get_user", lambda _id: make_user("staff"))
-        with pytest.raises(ValueError, match="User is not a manager"):
-            handler.list_tasks_by_manager(3)
-
-    def test_no_teams_returns_empty(self, monkeypatch):
-        monkeypatch.setattr(handler.user_service, "get_user", lambda _id: make_user("manager"))
-        monkeypatch.setattr(handler.team_service, "get_team_by_manager", lambda _id: [])
-        assert handler.list_tasks_by_manager(3) == {}
-
-    def test_aggregates_tasks_by_team_and_subteam(self, monkeypatch):
-        monkeypatch.setattr(handler.user_service, "get_user", lambda _id: make_user("manager"))
-        teams = [
-            {"team_id": 10, "team_number": "010100"},
-        ]
-        subteams = [
-            {"team_id": 11, "team_number": "010101"},
-        ]
-        monkeypatch.setattr(handler.team_service, "get_team_by_manager", lambda _id: teams)
-        monkeypatch.setattr(handler.team_service, "get_users_in_team", lambda tid: ([{"user_id": 1}] if tid == 10 else [{"user_id": 2}]))
-        monkeypatch.setattr(handler.team_service, "get_subteam_by_team_number", lambda num: subteams if num == "010100" else [])
-        # Users map to task ids (ints); ensure dedupe works
-        user_tasks = {1: [101, 102], 2: [102, 103]}
-        monkeypatch.setattr(handler.assignment_service, "list_tasks_for_user", lambda uid: user_tasks.get(uid, []))
-
-        result = handler.list_tasks_by_manager(3)
-        assert set(result.keys()) == {"010100", "010101"}
-        assert result["010100"] == [101, 102]
-        assert result["010101"] == [102, 103]
+# UNI-028/001
+@patch("backend.src.handlers.task_assignment_handler.user_service")
+def test_manager_not_found_raises(mock_user_service):
+    mock_user_service.get_user.return_value = None
+    with pytest.raises(ValueError, match=r"Manager not found"):
+        handler.list_tasks_by_manager(INVALID_USER_ID)
 
 
-class TestListTasksByDirector:
-    def test_director_not_found_raises(self, monkeypatch):
-        monkeypatch.setattr(handler.user_service, "get_user", lambda _id: None)
-        with pytest.raises(ValueError, match="Director not found"):
-            handler.list_tasks_by_director(4)
+# UNI-028/002
+@patch("backend.src.handlers.task_assignment_handler.user_service")
+def test_user_not_manager_raises(mock_user_service):
+    mock_user = MagicMock()
+    mock_user.role = VALID_USER["role"]
+    mock_user_service.get_user.return_value = mock_user
 
-    def test_user_not_director_raises(self, monkeypatch):
-        monkeypatch.setattr(handler.user_service, "get_user", lambda _id: make_user("manager"))
-        with pytest.raises(ValueError, match="User is not a director"):
-            handler.list_tasks_by_director(4)
-
-    def test_no_department_returns_empty(self, monkeypatch):
-        monkeypatch.setattr(handler.user_service, "get_user", lambda _id: make_user("director"))
-        monkeypatch.setattr(handler.department_service, "get_department_by_director", lambda _id: None)
-        assert handler.list_tasks_by_director(4) == {}
-
-    def test_no_teams_returns_empty(self, monkeypatch):
-        monkeypatch.setattr(handler.user_service, "get_user", lambda _id: make_user("director"))
-        monkeypatch.setattr(handler.department_service, "get_department_by_director", lambda _id: {"department_id": 1})
-        monkeypatch.setattr(handler.team_service, "get_teams_by_department", lambda _id: [])
-        assert handler.list_tasks_by_director(4) == {}
-
-    def test_aggregates_tasks_by_team_and_subteam(self, monkeypatch):
-        monkeypatch.setattr(handler.user_service, "get_user", lambda _id: make_user("director"))
-        monkeypatch.setattr(handler.department_service, "get_department_by_director", lambda _id: {"department_id": 1})
-        teams = [
-            {"team_id": 21, "team_number": "020200"},
-        ]
-        subteams = [
-            {"team_id": 22, "team_number": "020201"},
-        ]
-        monkeypatch.setattr(handler.team_service, "get_teams_by_department", lambda _id: teams)
-        monkeypatch.setattr(handler.team_service, "get_users_in_team", lambda tid: ([{"user_id": 7}] if tid == 21 else [{"user_id": 8}]))
-        monkeypatch.setattr(handler.team_service, "get_subteam_by_team_number", lambda num: subteams if num == "020200" else [])
-        user_tasks = {7: [201, 202], 8: [202, 203]}
-        monkeypatch.setattr(handler.assignment_service, "list_tasks_for_user", lambda uid: user_tasks.get(uid, []))
-
-        result = handler.list_tasks_by_director(4)
-        assert set(result.keys()) == {"020200", "020201"}
-        assert result["020200"] == [201, 202]
-        assert result["020201"] == [202, 203]
+    with pytest.raises(ValueError, match=r"User is not a manager"):
+        handler.list_tasks_by_manager(VALID_USER["user_id"])
 
 
+# UNI-028/003
+@patch("backend.src.handlers.task_assignment_handler.team_service")
+@patch("backend.src.handlers.task_assignment_handler.user_service")
+def test_no_teams_returns_empty(mock_user_service, mock_team_service):
+    mock_user = MagicMock()
+    mock_user.role = VALID_USER_ADMIN["role"]
+    mock_user_service.get_user.return_value = mock_user
+    mock_team_service.get_team_by_manager.return_value = []
+
+    result = handler.list_tasks_by_manager(VALID_USER_ADMIN["user_id"])
+    assert result == {}
+
+
+# UNI-028/004
+@patch("backend.src.handlers.task_assignment_handler.assignment_service")
+@patch("backend.src.handlers.task_assignment_handler.team_service")
+@patch("backend.src.handlers.task_assignment_handler.user_service")
+def test_aggregates_tasks_by_team_and_subteam(mock_user_service, mock_team_service, mock_assignment_service):
+    mock_user = MagicMock()
+    mock_user.role = VALID_USER_ADMIN["role"]
+    mock_user_service.get_user.return_value = mock_user
+
+    teams = [VALID_TEAM]
+    subteams = [VALID_SUBTEAM]
+    mock_team_service.get_team_by_manager.return_value = teams
+
+    mock_team_service.get_users_in_team.side_effect = (
+        lambda tid: [{"user_id": VALID_USER_ADMIN["user_id"]}] if tid == VALID_TEAM["team_id"] else [{"user_id": VALID_USER["user_id"]}]
+    )
+    mock_team_service.get_subteam_by_team_number.side_effect = (
+        lambda num: subteams if num == VALID_TEAM["team_number"] else []
+    )
+
+    user_tasks = {
+        VALID_USER_ADMIN["user_id"]: [VALID_DEFAULT_TASK, VALID_TASK_EXPLICIT_PRIORITY],
+        VALID_USER["user_id"]: [VALID_TASK_FULL, VALID_TASK_EXPLICIT_PRIORITY],
+    }
+    mock_assignment_service.list_tasks_for_user.side_effect = (
+        lambda uid: user_tasks.get(uid, [])
+    )
+
+    result = handler.list_tasks_by_manager(VALID_USER_ADMIN["user_id"])
+    assert set(result.keys()) == {VALID_TEAM["team_number"], VALID_SUBTEAM["team_number"]}
+    assert result[VALID_TEAM["team_number"]] == [VALID_DEFAULT_TASK, VALID_TASK_EXPLICIT_PRIORITY]
+    assert result[VALID_SUBTEAM["team_number"]] == [VALID_TASK_FULL, VALID_TASK_EXPLICIT_PRIORITY]
+
+
+# ================================ list_tasks_by_director Tests ================================
+
+# UNI-028/005
+@patch("backend.src.handlers.task_assignment_handler.user_service")
+def test_director_not_found_raises(mock_user_service):
+    mock_user_service.get_user.return_value = None
+    with pytest.raises(ValueError, match=r"Director not found"):
+        handler.list_tasks_by_director(VALID_USER_DIRECTOR["user_id"])
+
+
+# UNI-028/006
+@patch("backend.src.handlers.task_assignment_handler.user_service")
+def test_user_not_director_raises(mock_user_service):
+    mock_user = MagicMock()
+    mock_user.role = VALID_USER_ADMIN["role"]
+    mock_user_service.get_user.return_value = mock_user
+
+    with pytest.raises(ValueError, match=r"User is not a director"):
+        handler.list_tasks_by_director(VALID_USER_ADMIN["user_id"])
+
+
+# UNI-028/007
+@patch("backend.src.handlers.task_assignment_handler.department_service")
+@patch("backend.src.handlers.task_assignment_handler.user_service")
+def test_no_department_returns_empty(mock_user_service, mock_department_service):
+    mock_user = MagicMock()
+    mock_user.role = VALID_USER_DIRECTOR["role"]
+    mock_user_service.get_user.return_value = mock_user
+    mock_department_service.get_department_by_director.return_value = None
+
+    result = handler.list_tasks_by_director(VALID_USER_DIRECTOR["user_id"])
+    assert result == {}
+
+
+# UNI-028/008
+@patch("backend.src.handlers.task_assignment_handler.team_service")
+@patch("backend.src.handlers.task_assignment_handler.department_service")
+@patch("backend.src.handlers.task_assignment_handler.user_service")
+def test_no_teams_returns_empty(mock_user_service, mock_department_service, mock_team_service):
+    mock_user = MagicMock()
+    mock_user.role = VALID_USER_DIRECTOR["role"]
+    mock_user_service.get_user.return_value = mock_user
+    mock_department_service.get_department_by_director.return_value = {
+        "department_id": VALID_USER_DIRECTOR["department_id"]
+    }
+    mock_team_service.get_teams_by_department.return_value = []
+
+    result = handler.list_tasks_by_director(VALID_USER_DIRECTOR["user_id"])
+    assert result == {}
+
+
+# UNI-028/009
+@patch("backend.src.handlers.task_assignment_handler.assignment_service")
+@patch("backend.src.handlers.task_assignment_handler.team_service")
+@patch("backend.src.handlers.task_assignment_handler.department_service")
+@patch("backend.src.handlers.task_assignment_handler.user_service")
+def test_aggregates_tasks_by_team_and_subteam(mock_user_service, mock_department_service, mock_team_service, mock_assignment_service):
+    mock_user = MagicMock()
+    mock_user.role = VALID_USER_DIRECTOR["role"]
+    mock_user_service.get_user.return_value = mock_user
+    mock_department_service.get_department_by_director.return_value = {
+        "department_id": VALID_USER_DIRECTOR["department_id"]
+    }
+
+    teams = [VALID_TEAM]
+    subteams = [VALID_SUBTEAM]
+    mock_team_service.get_teams_by_department.return_value = teams
+
+    mock_team_service.get_users_in_team.side_effect = (
+        lambda tid: [{"user_id": VALID_USER_ADMIN["user_id"]}] if tid == VALID_TEAM["team_id"] else [{"user_id": VALID_USER["user_id"]}]
+    )
+    mock_team_service.get_subteam_by_team_number.side_effect = (
+        lambda num: subteams if num == VALID_TEAM["team_number"] else []
+    )
+
+    user_tasks = {
+        VALID_USER_ADMIN["user_id"]: [VALID_DEFAULT_TASK, VALID_TASK_EXPLICIT_PRIORITY],
+        VALID_USER["user_id"]: [VALID_TASK_FULL, VALID_TASK_EXPLICIT_PRIORITY],
+    }
+    mock_assignment_service.list_tasks_for_user.side_effect = (
+        lambda uid: user_tasks.get(uid, [])
+    )
+
+    result = handler.list_tasks_by_director(VALID_USER_DIRECTOR["user_id"])
+    assert set(result.keys()) == {VALID_TEAM["team_number"], VALID_SUBTEAM["team_number"]}
+    assert result[VALID_TEAM["team_number"]] == [VALID_DEFAULT_TASK, VALID_TASK_EXPLICIT_PRIORITY]
+    assert result[VALID_SUBTEAM["team_number"]] == [VALID_TASK_FULL, VALID_TASK_EXPLICIT_PRIORITY]
