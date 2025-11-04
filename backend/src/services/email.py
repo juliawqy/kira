@@ -13,7 +13,7 @@ from ..templates.email_templates import EmailTemplates
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-# Add console handler if not already present
+
 if not logger.handlers:
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)

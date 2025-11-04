@@ -159,8 +159,7 @@ def update_task(
             new_values[f] = after
 
     if updated_fields:
-        # Compute assignee recipients; only pass explicitly if non-empty so
-        # tests can also exercise service-level recipient resolution when empty
+
         assignees = assignment_service.list_assignees(task_id)
         recipient_set = {u.email for u in assignees if getattr(u, 'email', None)}
         recipients = sorted(recipient_set) if recipient_set else None

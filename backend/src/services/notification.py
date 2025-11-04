@@ -10,7 +10,7 @@ from ..enums.notification import NotificationType
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-# Add console handler if not already present
+
 if not logger.handlers:
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
@@ -153,12 +153,11 @@ class NotificationService:
     def _resolve_recipients(
         self, *, task_id: int, to_recipients: Optional[List[str]], cc_recipients: Optional[List[str]]
     ) -> Tuple[List[str], List[str]]:
-        # Global gate: if no default/configured recipients, short-circuit regardless
+
         default_recipients = self.email_service._get_task_notification_recipients(task_id)
         if not default_recipients:
             return [], (cc_recipients or [])
 
-        # Otherwise prefer explicit recipients when provided
         if to_recipients:
             to_list = to_recipients
         else:
