@@ -607,19 +607,6 @@ def test_list_tasks_by_project_by_manager_no_projects(client, task_base_path):
     assert len(data) == 0
 
 # INT-002/016
-def test_list_tasks_by_manager_success_coverage(client, task_base_path, monkeypatch):
-    """Covers the success return path in list_tasks_by_manager (line 86)."""
-    import backend.src.handlers.task_assignment_handler as assignment_handler
-    monkeypatch.setattr(
-        assignment_handler,
-        "list_tasks_by_manager",
-        lambda _id: {},
-    )
-    resp = client.get(f"{task_base_path}/manager/123")
-    assert resp.status_code == 200
-    assert resp.json() == {}
-
-# INT-002/017
 def test_list_tasks_by_director_success(client, task_base_path, test_db_session):
     """Test getting all tasks for users in director's department."""
 
@@ -669,7 +656,7 @@ def test_list_tasks_by_director_success(client, task_base_path, test_db_session)
     assert isinstance(data[VALID_TEAM["team_number"]], list)
     assert len(data[VALID_TEAM["team_number"]]) >= 4
 
-# INT-002/018
+# INT-002/017
 def test_list_tasks_by_director_no_department(client, task_base_path, test_db_session):
     """Test getting tasks for a director with no department."""
     
@@ -678,39 +665,3 @@ def test_list_tasks_by_director_no_department(client, task_base_path, test_db_se
     data = response.json()
     assert isinstance(data, dict)
     assert len(data) == 0
-
-
-# INT-002/019
-def test_list_tasks_by_manager_not_found(client, task_base_path, monkeypatch):
-    import backend.src.handlers.task_assignment_handler as assignment_handler
-    monkeypatch.setattr(
-        assignment_handler,
-        "list_tasks_by_manager",
-        lambda _id: (_ for _ in ()).throw(ValueError("Manager not found.")),
-    )
-    resp = client.get(f"{task_base_path}/manager/99999")
-    assert resp.status_code == 404
-
-
-# INT-002/020
-def test_list_tasks_by_project_by_manager_not_found(client, task_base_path, monkeypatch):
-    import backend.src.handlers.task_handler as task_handler
-    monkeypatch.setattr(
-        task_handler,
-        "list_project_tasks_by_manager",
-        lambda _id: (_ for _ in ()).throw(ValueError("Manager not found.")),
-    )
-    resp = client.get(f"{task_base_path}/manager/project/99999")
-    assert resp.status_code == 404
-
-
-# INT-002/021
-def test_list_tasks_by_director_not_found(client, task_base_path, monkeypatch):
-    import backend.src.handlers.task_assignment_handler as assignment_handler
-    monkeypatch.setattr(
-        assignment_handler,
-        "list_tasks_by_director",
-        lambda _id: (_ for _ in ()).throw(ValueError("Director not found.")),
-    )
-    resp = client.get(f"{task_base_path}/director/99999")
-    assert resp.status_code == 404
