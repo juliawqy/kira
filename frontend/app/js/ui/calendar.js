@@ -1,6 +1,7 @@
 import { CAL_MONTH, setCalMonth, addMonths, fmtYMD, parseYMD, isCurrentUserStaff } from "../state.js";
 import { escapeHtml, getSubtasks } from "../state.js";
 import { openCalTaskPanel } from "./cards.js";
+import { loadReminderSettings, calculateReminderDates } from "./reminderSettings.js";
 
 function normalizeTaskDate(task, mode){
   const by = mode === "start" ? (task.start_date || task.startDate) : (task.deadline || task.due || task.due_date);
@@ -44,9 +45,16 @@ export function renderCalendar(tasks, { log, reload, targetCalendarId = "calenda
   const labels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
   const map = new Map();
+  const reminderMap = new Map(); // Map for reminders
+  
+  // Load reminder settings
+  const reminderSettings = loadReminderSettings();
+  
   // Filter out completed tasks for calendar view
   const activeTasks = (tasks || []).filter(t => t.status !== "Completed");
   const flat = flattenTasksWithSubs(activeTasks);
+  
+  // Add tasks to calendar
   flat.forEach(t => {
     const d = normalizeTaskDate(t, mode);
     if (!d) return;
@@ -54,6 +62,34 @@ export function renderCalendar(tasks, { log, reload, targetCalendarId = "calenda
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(t);
   });
+  
+  // Calculate and add reminders (only for deadline mode)
+  if (mode === "due" && reminderSettings.showUpcoming !== false) {
+    flat.forEach(t => {
+      if (!t.deadline) return;
+      
+      const reminders = calculateReminderDates(t, reminderSettings);
+      reminders.forEach(reminder => {
+        const reminderKey = fmtYMD(reminder.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const reminderDay = new Date(reminder.date);
+        reminderDay.setHours(0, 0, 0, 0);
+        
+        // Only show reminders for future dates (from today onwards)
+        // Skip reminders that are in the past
+        if (reminderDay >= today) {
+          const isOverdue = reminder.deadline < today;
+          const shouldShow = isOverdue ? reminderSettings.showOverdue !== false : reminderSettings.showUpcoming !== false;
+          
+          if (shouldShow) {
+            if (!reminderMap.has(reminderKey)) reminderMap.set(reminderKey, []);
+            reminderMap.get(reminderKey).push(reminder);
+          }
+        }
+      });
+    });
+  }
 
   calTitle.textContent = CAL_MONTH.toLocaleString(undefined, { month: "long", year: "numeric" });
 
@@ -86,7 +122,42 @@ export function renderCalendar(tasks, { log, reload, targetCalendarId = "calenda
 
       const key = fmtYMD(cur);
       const items = map.get(key) || [];
-      items.slice(0,5).forEach(t => {
+      const reminders = reminderMap.get(key) || [];
+      
+      // Render reminders first (up to 3, then show tasks)
+      let displayCount = 0;
+      const maxDisplay = 5;
+      
+      reminders.slice(0, Math.min(3, maxDisplay)).forEach(reminder => {
+        const el = document.createElement("div");
+        el.className = "cal-task cal-task-reminder";
+        
+        // Check if the reminder is for an overdue task
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (reminder.deadline < today) {
+          el.classList.add("cal-task-overdue-reminder");
+        }
+        
+        const title = escapeHtml(reminder.taskTitle || `Task #${reminder.taskId}`);
+        const reminderText = reminder.type === "1week" ? "1 week" : 
+                            reminder.type === "1day" ? "1 day" :
+                            reminder.type === "1hour" ? "1 hour" : "30 min";
+        el.innerHTML = `🔔 Reminder: ${title} <span class="small">(${reminderText} before)</span>`;
+        el.title = `Reminder: ${title} - ${reminderText} before deadline`;
+        
+        // Find the original task and open it on click
+        const originalTask = flat.find(t => t.id === reminder.taskId);
+        if (originalTask) {
+          el.addEventListener("click", () => openCalTaskPanel(originalTask, { log, reload }));
+        }
+        cell.appendChild(el);
+        displayCount++;
+      });
+      
+      // Render tasks (adjust count based on reminders shown)
+      const remainingSlots = maxDisplay - displayCount;
+      items.slice(0, remainingSlots).forEach(t => {
         const el = document.createElement("div");
         el.className = "cal-task";
         
@@ -107,11 +178,14 @@ export function renderCalendar(tasks, { log, reload, targetCalendarId = "calenda
         el.title = `${title}${project ? " " + project : ""}`;
         el.addEventListener("click", () => openCalTaskPanel(t, { log, reload }));
         cell.appendChild(el);
+        displayCount++;
       });
-      if (items.length > 5){
+      
+      const totalItems = items.length + reminders.length;
+      if (totalItems > maxDisplay) {
         const more = document.createElement("div");
         more.className = "small muted";
-        more.textContent = `+${items.length - 5} more`;
+        more.textContent = `+${totalItems - maxDisplay} more`;
         cell.appendChild(more);
       }
 

@@ -22,8 +22,11 @@
 
   <div class="wrap">
     <div class="header-bar">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <img src="./Kira_black.png" alt="Kira Logo" style="height: 60px; width: auto;" />
+      <div style="display: flex; align-items: center; gap: 8px; justify-content: space-between; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <img src="./Kira_black.png" alt="Kira Logo" style="height: 60px; width: auto;" />
+        </div>
+        <button class="btn" id="btnSettings" type="button" title="Reminder Settings" style="font-size: 14px;">⚙️ Settings</button>
       </div>
     </div>
 
@@ -155,6 +158,10 @@
             <div class="cal-legend-box cal-task-overdue"></div>
             <span>Overdue</span>
           </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-reminder"></div>
+            <span>Reminder</span>
+          </div>
         </div>
       </div>
     </div>
@@ -223,6 +230,10 @@
           <div class="cal-legend-item">
             <div class="cal-legend-box cal-task-overdue"></div>
             <span>Overdue</span>
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-box cal-task-reminder"></div>
+            <span>Reminder</span>
           </div>
         </div>
         </div>
@@ -389,6 +400,55 @@
         <span class="row-right">
           <button class="btn" value="cancel">Cancel</button>
           <button class="btn success" id="btnSaveEdit" value="default">Save</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Reminder Settings Dialog -->
+  <dialog id="dlgReminderSettings">
+    <form method="dialog" class="panel" style="min-width: 500px; background: var(--panel); padding: 24px;">
+      <h2 style="margin-top: 0; margin-bottom: 20px;">Reminder Settings</h2>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Default Reminder Times:</label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="reminder1day" value="1day" />
+              <span>1 day before deadline</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="reminder1hour" value="1hour" />
+              <span>1 hour before deadline</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="reminder30min" value="30min" />
+              <span>30 minutes before deadline</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="reminder1week" value="1week" />
+              <span>1 week before deadline</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Show reminders for:</label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="showUpcoming" checked />
+              <span>Upcoming deadlines</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="showOverdue" checked />
+              <span>Overdue tasks</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <span class="row-right" style="display: flex; gap: 8px;">
+          <button class="btn" value="cancel">Cancel</button>
+          <button class="btn primary" id="btnSaveReminderSettings" value="default">Save Settings</button>
         </span>
       </div>
     </form>

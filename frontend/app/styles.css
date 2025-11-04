@@ -1054,6 +1054,21 @@
   .cal-task-inprogress { background:#f3e8ff !important; border-color:#9333ea !important; }
   .cal-task-blocked { background:#fef3c7 !important; border-color:#f59e0b !important; }
   
+  /* Reminder styles */
+  .cal-task-reminder { 
+    background:#fef3c7 !important; 
+    border-color:#f59e0b !important; 
+    border-style: dashed !important;
+    font-weight: 500;
+    opacity: 0.9;
+  }
+  .cal-task-overdue-reminder { 
+    background:#fee2e2 !important; 
+    border-color:#dc2626 !important; 
+    border-style: dashed !important;
+    font-weight: 600;
+  }
+  
   .cal-legend {
     display: flex;
     gap: 16px;
@@ -1075,6 +1090,9 @@
     height: 16px;
     border-radius: 4px;
     border: 1px solid;
+  }
+  .cal-legend-box.cal-task-reminder {
+    border-style: dashed;
   }
   
   /* Calendar navigation buttons */

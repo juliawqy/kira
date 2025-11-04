@@ -577,11 +577,25 @@ def test_list_tasks_invalid_project(client, task_base_path):
     assert response.status_code == 400
 
 # INT-002/014
-def test_list_tasks_by_project_by_manager_success(client, task_base_path):
+def test_list_tasks_by_project_by_manager_success(client, task_base_path, test_db_session):
     """Test getting all tasks for projects managed by a manager."""
-
+    
+    # Create a project managed by the manager (user_id 3)
+    manager_project = Project(
+        project_id=3,
+        project_name="Manager Project",
+        project_manager=VALID_USER_MANAGER['user_id'],
+        active=True
+    )
+    test_db_session.add(manager_project)
+    test_db_session.commit()
+    
+    # Create tasks in the manager's project
     for payload in (TASK_CREATE_PAYLOAD, TASK_2_PAYLOAD, TASK_3_PAYLOAD, TASK_4_PAYLOAD):
-        resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
+        # Modify payload to use manager's project
+        modified_payload = serialize_payload(payload).copy()
+        modified_payload['project_id'] = 3
+        resp = client.post(f"{task_base_path}/", json=modified_payload)
         assert resp.status_code == 201
 
     response = client.get(f"{task_base_path}/manager/project/{VALID_USER_MANAGER['user_id']}")
@@ -635,18 +649,29 @@ def test_list_tasks_by_director_success(client, task_base_path, test_db_session)
     test_db_session.add_all([ta1, ta2])
     test_db_session.commit()
     
-    # Create tasks and assign them
+    # Create tasks and assign them to users in the team
+    task_ids = []
     for payload in (TASK_CREATE_PAYLOAD, TASK_2_PAYLOAD, TASK_3_PAYLOAD, TASK_4_PAYLOAD):
         resp = client.post(f"{task_base_path}/", json=serialize_payload(payload))
         assert resp.status_code == 201
+        task_ids.append(resp.json()['id'])
     
-    # Get tasks for director
+    # Assign tasks to users - assign first 2 tasks to admin, last 2 to manager
+    client.post(f"{task_base_path}/{task_ids[0]}/assignees", json={"user_ids": [existing_admin.user_id]})
+    client.post(f"{task_base_path}/{task_ids[1]}/assignees", json={"user_ids": [existing_admin.user_id]})
+    client.post(f"{task_base_path}/{task_ids[2]}/assignees", json={"user_ids": [existing_manager.user_id]})
+    client.post(f"{task_base_path}/{task_ids[3]}/assignees", json={"user_ids": [existing_manager.user_id]})
+    
+    # Get tasks for director - returns dict grouped by team number
     response = client.get(f"{task_base_path}/director/{director.user_id}")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
+    assert isinstance(data, dict)
+    # Should have tasks grouped by team number (010100)
+    assert "010100" in data
+    assert isinstance(data["010100"], list)
     # Should get all 4 tasks since both users in department have tasks
-    assert len(data) >= 4
+    assert len(data["010100"]) >= 4
 
 # INT-002/017
 def test_list_tasks_by_director_no_department(client, task_base_path, test_db_session):
@@ -661,5 +686,5 @@ def test_list_tasks_by_director_no_department(client, task_base_path, test_db_se
     response = client.get(f"{task_base_path}/director/{director.user_id}")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
+    assert isinstance(data, dict)
     assert len(data) == 0

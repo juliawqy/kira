@@ -7,6 +7,7 @@ import { bindEditDialog } from "./ui/editDialog.js";
 import { renderTimeline } from "./ui/timeline.js";
 import { renderGantt } from "./ui/gantt.js";
 import { renderTeamManagement } from "./ui/team-management.js";
+import { bindReminderSettings } from "./ui/reminderSettings.js";
 
 function log(label, payload) {
   const logEl = document.getElementById("log");
@@ -714,6 +715,7 @@ document.addEventListener("DOMContentLoaded", () => {
 bindCalendarNav();
 bindCreateForm(log, () => autoReload());
 bindEditDialog(log, () => autoReload());
+bindReminderSettings({ log, reload: () => autoReload() });
 
 // First load
 loadParents();
