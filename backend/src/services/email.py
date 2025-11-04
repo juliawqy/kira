@@ -45,7 +45,7 @@ class EmailService:
                 email_message.recipients,
                 email_message.cc,
             )
-            # Normalize message id to string for API/serialization
+    
             message_id_str = str(message_id) if message_id is not None else None
 
             to_list = [r.email for r in (email_message.recipients or [])]
