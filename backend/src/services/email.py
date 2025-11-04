@@ -45,21 +45,26 @@ class EmailService:
                 email_message.recipients,
                 email_message.cc,
             )
-            # Normalize message id to string for API response
-            message_id_str = str(message_id) if message_id is not None else None
 
             to_list = [r.email for r in (email_message.recipients or [])]
             cc_list = [r.email for r in (email_message.cc or [])]
             subj = getattr(email_message.content, 'subject', None) if not isinstance(email_message.content, dict) else email_message.content.get('subject')
             logger.info(
-                f"Email dispatched: msgid={message_id_str}, subject=\"{subj}\", to={to_list}, cc={cc_list}")
+                f"Email dispatched: msgid={message_id}, subject=\"{subj}\", to={to_list}, cc={cc_list}")
+            
+            # DEBUG: Log message_id details
+            logger.info(f"DEBUG - message_id value: {repr(message_id)}, type: {type(message_id)}")
             
             response = EmailResponse(
                 success=True,
                 message="Email sent successfully",
                 recipients_count=len(email_message.recipients),
-                email_id=message_id_str,
+                email_id=message_id,
             )
+            
+            # DEBUG: Log response details
+            logger.info(f"DEBUG - EmailResponse email_id: {repr(response.email_id)}, type: {type(response.email_id)}")
+            
             return response
             
         except Exception as e:
@@ -151,7 +156,9 @@ class EmailService:
             # return message_id
 
             # comment following line when actual email sending is enabled
-            return 1 # pragma: no cover
+            ret_val = f"kira-{str(uuid.uuid4())}"
+            logger.info(f"DEBUG _send_smtp_message returning: {repr(ret_val)}, type: {type(ret_val)}")
+            return ret_val # pragma: no cover
 
             
         finally:
