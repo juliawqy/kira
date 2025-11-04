@@ -159,11 +159,13 @@ def update_task(
             new_values[f] = after
 
     if updated_fields:
+        # Compute assignee recipients; only pass explicitly if non-empty so
+        # tests can also exercise service-level recipient resolution when empty
         assignees = assignment_service.list_assignees(task_id)
         recipient_set = {u.email for u in assignees if getattr(u, 'email', None)}
         recipients = sorted(recipient_set) if recipient_set else None
 
-        resp = get_notification_service().notify_activity(
+        notify_kwargs = dict(
             user_email=kwargs.get("user_email"),
             task_id=updated.id,
             task_title=updated.title or "",
@@ -171,8 +173,11 @@ def update_task(
             updated_fields=updated_fields,
             old_values=old_values,
             new_values=new_values,
-            to_recipients=recipients,
         )
+        if recipients:
+            notify_kwargs["to_recipients"] = recipients
+
+        resp = get_notification_service().notify_activity(**notify_kwargs)
         try:
             logger.info(
                 "Notification response",
