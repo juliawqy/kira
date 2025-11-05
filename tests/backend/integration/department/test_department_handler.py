@@ -22,7 +22,6 @@ from tests.mock_data.team_data import (
     VALID_TEAM, 
     VALID_SUBTEAM_CREATE, 
     VALID_SUBTEAM, 
-    NOT_FOUND_ID,
     INVALID_TEAM_NUMBER
 )
 from tests.mock_data.department_data import (
@@ -32,15 +31,10 @@ from tests.mock_data.department_data import (
     VALID_DEPARTMENT_2,
     INVALID_DEPARTMENT_NO_NAME,
     INVALID_DEPARTMENT_NO_MANAGER,
-    INVALID_DEPARTMENT_NON_HR
-)
-from tests.mock_data.user.integration_data import (
-    VALID_USER_ADMIN,
-    VALID_USER,
-    VALID_CREATE_PAYLOAD_USER,
+    INVALID_DEPARTMENT_NON_HR,
+    INVALID_DEPARTMENT_NONEXISTENT_HR,
     INVALID_USER_ID,
 )
-
 
 @pytest.fixture(autouse=True)
 def clean_db(test_engine):
@@ -256,7 +250,7 @@ def test_create_department(isolated_test_db):
     assert dept["department_id"] == VALID_DEPARTMENT_2["department_id"]
 
 # INT-067/002
-@pytest.mark.parametrize("invalid_payload", [INVALID_DEPARTMENT_NO_NAME, INVALID_DEPARTMENT_NO_MANAGER])
+@pytest.mark.parametrize("invalid_payload", [INVALID_DEPARTMENT_NO_NAME, INVALID_DEPARTMENT_NO_MANAGER, INVALID_DEPARTMENT_NON_HR, INVALID_DEPARTMENT_NONEXISTENT_HR])
 def test_create_department_validation_errors(isolated_test_db, invalid_payload):
     with pytest.raises(ValueError):
         department_handler.add_department(
