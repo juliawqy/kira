@@ -13,7 +13,7 @@ def test_add_department_success(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
     dept = dept_service.add_department(**SERVICE_ADD_DEPARTMENT)
-    assert getattr(dept, "department_name", None) == VALID_DEPARTMENT_1["department_name"]
-    assert getattr(dept, "manager_id", None) == VALID_DEPARTMENT_1["manager_id"]
+    assert dept["department_name"] == VALID_DEPARTMENT_1["department_name"]
+    assert dept["manager_id"] == VALID_DEPARTMENT_1["manager_id"]
 
 

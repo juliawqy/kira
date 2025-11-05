@@ -2,8 +2,8 @@
 from backend.src.enums.user_role import UserRole
 
 SERVICE_ADD_DEPARTMENT = {
-    "name": "Human Resources",
-    "manager": 2,
+    "name": "Engineering",
+    "manager": 1
 }
 
 VALID_ADD_DEPARTMENT = {
