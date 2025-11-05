@@ -8,7 +8,7 @@
 </head>
 <body>
   <!-- Top User Selection Bar -->
-  <div style="position: fixed; top: 0; right: 0; z-index: 1000; padding: 16px; background: var(--panel); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border);">
+  <div style="position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 16px; background: var(--panel); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); border-right: 1px solid var(--border);">
     <div style="display: flex; align-items: center; gap: 8px;">
       <span style="font-size: 14px; color: var(--sub);">Logged in as:</span>
       <div class="user-selection">
@@ -412,26 +412,11 @@
     <form method="dialog" class="panel" style="min-width: 500px; background: var(--panel); padding: 24px;">
       <h2 style="margin-top: 0; margin-bottom: 20px;">Reminder Settings</h2>
       <div style="display: flex; flex-direction: column; gap: 16px;">
-        <div>
-          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Default Reminder Times:</label>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="reminder1day" value="1day" />
-              <span>1 day before deadline</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="reminder1hour" value="1hour" />
-              <span>1 hour before deadline</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="reminder30min" value="30min" />
-              <span>30 minutes before deadline</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="reminder1week" value="1week" />
-              <span>1 week before deadline</span>
-            </label>
-          </div>
+        <div class="form-field">
+          <label for="reminderDays" style="display: block; margin-bottom: 8px; font-weight: 500;">Days before deadline:</label>
+          <input type="number" id="reminderDays" min="0" max="365" value="0" step="1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; box-sizing: border-box;" />
+          <div style="font-size: 12px; color: var(--sub); margin-top: 4px;">Enter the number of days before the deadline to receive a reminder (0-365 days).</div>
+          <div class="error" id="reminderDays_err" style="color: var(--danger); font-size: 12px; margin-top: 4px;"></div>
         </div>
         <div>
           <label style="display: block; margin-bottom: 8px; font-weight: 500;">Show reminders for:</label>
@@ -439,10 +424,6 @@
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="showUpcoming" checked />
               <span>Upcoming deadlines</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="showOverdue" checked />
-              <span>Overdue tasks</span>
             </label>
           </div>
         </div>
