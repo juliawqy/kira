@@ -21,6 +21,16 @@ MANAGER_USER = {
     "department_id": None,
 }
 
+HR_USER = {
+    "user_id": 4,
+    "name": "HR User",
+    "email": "hr@example.com",
+    "role": UserRole.HR.value,
+    "admin": False,
+    "hashed_pw": "hashed_pw",
+    "department_id": None,
+}
+
 DIRECTOR_USER = {
     "user_id": 3,
     "name": "Director User",

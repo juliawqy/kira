@@ -11,3 +11,7 @@ kira.db
 
 # Test cache
 .coverage
+
+# Node cache
+node_modules/
+package-lock.json
