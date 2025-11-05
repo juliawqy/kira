@@ -17,6 +17,7 @@ from tests.mock_data.team_data import (
     STAFF_USER, 
     MANAGER_USER, 
     DIRECTOR_USER,
+    HR_USER,
     VALID_TEAM_CREATE, 
     VALID_TEAM, 
     VALID_SUBTEAM_CREATE, 
@@ -26,7 +27,12 @@ from tests.mock_data.team_data import (
 )
 from tests.mock_data.department_data import (
     VALID_DEPARTMENT_1, 
-    INVALID_DEPARTMENT_ID
+    INVALID_DEPARTMENT_ID,
+    VALID_ADD_DEPARTMENT,
+    VALID_DEPARTMENT_2,
+    INVALID_DEPARTMENT_NO_NAME,
+    INVALID_DEPARTMENT_NO_MANAGER,
+    INVALID_DEPARTMENT_NON_HR
 )
 from tests.mock_data.user.integration_data import (
     VALID_USER_ADMIN,
@@ -82,7 +88,8 @@ def seed_users_and_department(isolated_test_db):
         staff = User(**{**STAFF_USER, "department_id": None})
         manager = User(**{**MANAGER_USER, "department_id": None})
         director = User(**{**DIRECTOR_USER, "department_id": None})
-        db.add_all([staff, manager, director])
+        hr = User(**{**HR_USER, "department_id": None})
+        db.add_all([staff, manager, director, hr])
         db.flush() 
         dept_payload = {**VALID_DEPARTMENT_1, "manager_id": manager.user_id}
         dept = Department(**dept_payload)
@@ -235,3 +242,25 @@ def test_route_list_users_in_department(isolated_test_db):
     assert hasattr(u0, "email")
     assert hasattr(u0, "role")
     assert hasattr(u0, "admin")
+
+# INT-067/001
+def test_create_department(isolated_test_db):
+    dept = department_handler.add_department(
+        VALID_ADD_DEPARTMENT["department_name"],
+        VALID_ADD_DEPARTMENT["manager_id"],
+        VALID_ADD_DEPARTMENT["creator_id"]
+    )
+
+    assert dept["department_name"] == VALID_DEPARTMENT_2["department_name"]
+    assert dept["manager_id"] == VALID_DEPARTMENT_2["manager_id"]
+    assert dept["department_id"] == VALID_DEPARTMENT_2["department_id"]
+
+# INT-067/002
+@pytest.mark.parametrize("invalid_payload", [INVALID_DEPARTMENT_NO_NAME, INVALID_DEPARTMENT_NO_MANAGER])
+def test_create_department_validation_errors(isolated_test_db, invalid_payload):
+    with pytest.raises(ValueError):
+        department_handler.add_department(
+            invalid_payload["department_name"],
+            invalid_payload["manager_id"],
+            invalid_payload["creator_id"]
+        )
