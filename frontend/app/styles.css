@@ -347,7 +347,15 @@
   }
   
   /* NEW: inline error + invalid state */
-  .error { color: var(--danger); font-size: 12px; margin-top: 4px; min-height: 16px; }
+  .error { 
+    color: var(--danger); 
+    font-size: 12px; 
+    margin-top: 4px; 
+    min-height: 16px; 
+    word-wrap: break-word; 
+    overflow-wrap: break-word;
+    line-height: 1.4;
+  }
   .invalid { border-color: var(--danger) !important; box-shadow: 0 0 0 2px rgba(220,38,38,0.13) !important; }
   
   /* Grid & rows */
