@@ -37,5 +37,12 @@ INVALID_DEPARTMENT_NON_HR = {
     "creator_id": 1, 
 }
 
+INVALID_DEPARTMENT_NONEXISTENT_HR = {
+    "department_name": "Human Resources",   
+    "manager_id": 2,
+    "creator_id": 9999,
+}
+
 VALID_DEPARTMENT_ID = 1
 INVALID_DEPARTMENT_ID = 999
+INVALID_USER_ID = 99999
