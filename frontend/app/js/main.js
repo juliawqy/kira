@@ -8,6 +8,7 @@ import { renderTimeline } from "./ui/timeline.js";
 import { renderGantt } from "./ui/gantt.js";
 import { renderTeamManagement } from "./ui/team-management.js";
 import { bindReminderSettings } from "./ui/reminderSettings.js";
+import { bindReportExport } from "./ui/reportExport.js";
 
 function log(label, payload) {
   const logEl = document.getElementById("log");
@@ -716,6 +717,7 @@ bindCalendarNav();
 bindCreateForm(log, () => autoReload());
 bindEditDialog(log, () => autoReload());
 bindReminderSettings({ log, reload: () => autoReload() });
+bindReportExport({ log });
 
 // First load
 loadParents();
