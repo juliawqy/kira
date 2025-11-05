@@ -2,9 +2,9 @@
 from backend.src.enums.user_role import UserRole
 
 VALID_ADD_DEPARTMENT = {
-    "name": "Engineering",
-    "manager": 1,
-    "user_role": UserRole.HR, 
+    "department_name": "Human Resources",
+    "manager_id": 2,
+    "creator_id": 4,
 }
 
 VALID_DEPARTMENT_1 = {
@@ -20,21 +20,21 @@ VALID_DEPARTMENT_2 = {
 }
 
 INVALID_DEPARTMENT_NO_NAME = {
-    "name": None,
-    "manager": 3,
-    "user_role": UserRole.HR,
+    "department_name": None,
+    "manager_id": 2,
+    "creator_id": 4, 
 }
 
 INVALID_DEPARTMENT_NO_MANAGER = {
-    "name": "Finance",
-    "manager": None,
-    "user_role": UserRole.HR,
+    "department_name": "Human Resources",
+    "manager_id": None,
+    "creator_id": 4, 
 }
 
 INVALID_DEPARTMENT_NON_HR = {
-    "name": "Engineering",
-    "manager": 4,
-    "user_role": UserRole.MANAGER, 
+    "department_name": "Human Resources",
+    "manager_id": 2,
+    "creator_id": 1, 
 }
 
 VALID_DEPARTMENT_ID = 1

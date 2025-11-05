@@ -5,6 +5,23 @@ from backend.src.services import user as user_service
 from backend.src.enums.user_role import UserRole
 
 
+def add_department(department_name: str, manager_id: int, creator_id: int):
+    if not department_name or not department_name.strip():
+        raise ValueError("Department name cannot be empty or whitespace.")
+    
+    if not user_service.get_user(manager_id):
+        raise ValueError(f"Manager {manager_id} not found")
+    
+    creator = user_service.get_user(creator_id)
+    if not creator:
+        raise ValueError(f"HR user {creator_id} not found")
+
+    if creator.role != UserRole.HR.value:
+        raise ValueError("Only HR can create a department.")
+
+    department = department_service.add_department(department_name, manager_id)
+    return department
+
 def view_teams_in_department(department_id: int):
     department = department_service.get_department_by_id(department_id)
     if not department:
