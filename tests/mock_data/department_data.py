@@ -1,6 +1,11 @@
 # tests/mock_data/department_data.py
 from backend.src.enums.user_role import UserRole
 
+SERVICE_ADD_DEPARTMENT = {
+    "name": "Human Resources",
+    "manager": 2,
+}
+
 VALID_ADD_DEPARTMENT = {
     "department_name": "Human Resources",
     "manager_id": 2,
