@@ -194,6 +194,16 @@
     color: var(--text);
     white-space: pre-wrap;
   }
+
+  .comment-mention {
+    background-color: #e0e7ff;
+    color: #4338ca;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 0 2px;
+  }
   
   .comment-actions {
     display: flex;

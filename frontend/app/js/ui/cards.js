@@ -1176,11 +1176,22 @@ function renderCommentsSection(task, { log, reload }) {
       return;
     }
     
-    // Get selected mention emails
+    // Get selected mention emails and user names
     const mentionedEmails = Array.from(mentionSelect.selectedOptions).map(opt => opt.value);
+    const mentionedUsers = Array.from(mentionSelect.selectedOptions).map(opt => {
+      const user = users.find(u => u.email === opt.value);
+      return user ? (user.name || user.full_name || user.email) : opt.value;
+    });
+    
+    // Append @mentions to comment text
+    let finalCommentText = commentText;
+    if (mentionedUsers.length > 0) {
+      const mentionString = mentionedUsers.map(name => `@${name}`).join(" ");
+      finalCommentText = `${commentText} ${mentionString}`;
+    }
     
     try {
-      await addCommentToTask(task.id, userId, commentText, mentionedEmails, slog);
+      await addCommentToTask(task.id, userId, finalCommentText, mentionedEmails, slog);
       textarea.value = "";
       mentionSelect.selectedIndex = -1; // Clear selections
       await loadComments();
@@ -1251,6 +1262,53 @@ function renderComments(comments, taskId) {
   });
 }
 
+/**
+ * Parses comment text and renders @mentions as highlighted spans
+ * @param {string} commentText - The comment text to parse
+ * @param {HTMLElement} container - The container element to append fragments to
+ */
+function parseAndRenderMentions(commentText, container) {
+  if (!commentText) {
+    container.textContent = "";
+    return;
+  }
+  
+  const mentionRegex = /@(\S+)/g;
+  let lastIndex = 0;
+  const fragments = [];
+  let match;
+  
+  while ((match = mentionRegex.exec(commentText)) !== null) {
+    // Add text before mention
+    if (match.index > lastIndex) {
+      const textNode = document.createTextNode(commentText.substring(lastIndex, match.index));
+      fragments.push(textNode);
+    }
+    
+    // Add mention as highlighted span
+    const mentionSpan = document.createElement("span");
+    mentionSpan.className = "comment-mention";
+    mentionSpan.textContent = match[0]; // @username
+    mentionSpan.title = `Mentioned: ${match[1]}`;
+    fragments.push(mentionSpan);
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < commentText.length) {
+    const textNode = document.createTextNode(commentText.substring(lastIndex));
+    fragments.push(textNode);
+  }
+  
+  // If no mentions found, just add the text as-is
+  if (fragments.length === 0) {
+    container.textContent = commentText;
+  } else {
+    fragments.forEach(fragment => container.appendChild(fragment));
+  }
+}
+
 function renderCommentCard(comment) {
   const card = document.createElement("div");
   card.className = "comment-card";
@@ -1288,7 +1346,7 @@ function renderCommentCard(comment) {
   userInfo.appendChild(userDetails);
   header.appendChild(userInfo);
   
-  // Actions (edit/delete) - only show for comment author
+  // Actions (edit) - only show for comment author
   const actions = document.createElement("div");
   actions.className = "comment-actions";
   
@@ -1303,24 +1361,16 @@ function renderCommentCard(comment) {
       editComment(comment, card);
     });
     
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "Delete";
-    deleteBtn.className = "btn-small comment-delete";
-    deleteBtn.addEventListener("click", () => {
-      if (confirm("Are you sure you want to delete this comment?")) {
-        deleteComment(comment.comment_id);
-      }
-    });
-    
     actions.appendChild(editBtn);
-    actions.appendChild(deleteBtn);
   }
   
   header.appendChild(actions);
   
   const content = document.createElement("div");
   content.className = "comment-content";
-  content.textContent = comment.comment;
+  
+  // Parse and render comment with @mentions highlighted
+  parseAndRenderMentions(comment.comment || "", content);
   
   card.appendChild(header);
   card.appendChild(content);
@@ -1397,8 +1447,9 @@ async function editComment(comment, commentCard) {
     
     try {
       await updateComment(comment.comment_id, newText);
-      // Replace the content
-      contentEl.textContent = newText;
+      // Replace the content with parsed mentions
+      contentEl.innerHTML = '';
+      parseAndRenderMentions(newText, contentEl);
       // Show content again
       contentEl.style.display = 'block';
       // Remove edit form
