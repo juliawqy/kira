@@ -85,7 +85,7 @@ def seed_users_and_department(isolated_test_db):
         hr = User(**{**HR_USER, "department_id": None})
         db.add_all([staff, manager, director, hr])
         db.flush() 
-        dept_payload = {**VALID_DEPARTMENT_1, "manager_id": manager.user_id}
+        dept_payload = {**VALID_DEPARTMENT_1}
         dept = Department(**dept_payload)
         db.add(dept)
         db.flush()
@@ -258,3 +258,15 @@ def test_create_department_validation_errors(isolated_test_db, invalid_payload):
             invalid_payload["manager_id"],
             invalid_payload["creator_id"]
         )
+
+# INT-067/003
+def test_view_department_by_id(isolated_test_db):
+    dept = department_handler.view_department_by_id(VALID_DEPARTMENT_1["department_id"])
+    assert dept["department_id"] == VALID_DEPARTMENT_1["department_id"]
+    assert dept["department_name"] == VALID_DEPARTMENT_1["department_name"]
+    assert dept["manager_id"] == VALID_DEPARTMENT_1["manager_id"]
+
+# INT-067/004
+def test_view_department_by_invalid_id(isolated_test_db):
+    with pytest.raises(ValueError):
+        department_handler.view_department_by_id(INVALID_DEPARTMENT_ID)
