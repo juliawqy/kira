@@ -1100,6 +1100,228 @@ def seed_database():
     print(f"\nTeam {it_team['team_name']} ({it_team['team_number']}) Members:")
     for u in team_users:
         print(f"{u['user_id']}: {user_handler.get_user(u['user_id']).name}, {user_handler.get_user(u['user_id']).email}, {department_handler.view_department_by_id(user_handler.get_user(u['user_id']).department_id)['department_name']}")
+    
+    print("\n" + "=" * 60)
+
+
+    # =================================================
+
+
+    # Create Project 
+
+    director_project_data = [
+        {"project_name": "Sales Automation Tool", "project_manager_id": directors[0].user_id},
+        {"project_name": "Consulting CRM System", "project_manager_id": directors[1].user_id},
+        {"project_name": "Software Solutions Development", "project_manager_id": directors[2].user_id},
+        {"project_name": "Enterprise Operations Dashboard", "project_manager_id": directors[3].user_id},
+        {"project_name": "HR Management Platform", "project_manager_id": directors[4].user_id},
+        {"project_name": "Financial Analytics Suite", "project_manager_id": directors[5].user_id},
+        {"project_name": "IT Infrastructure Upgrade", "project_manager_id": directors[6].user_id},
+    ]
+
+    sales_project_data = [
+        {"project_name": "Client Acquisition Campaign", "project_manager_id": sales_managers[0].user_id},
+        {"project_name": "Market Expansion Strategy", "project_manager_id": sales_managers[1].user_id},
+        {"project_name": "Sales Training Program", "project_manager_id": sales_managers[2].user_id},
+        {"project_name": "Product Launch Event", "project_manager_id": sales_managers[3].user_id},
+        {"project_name": "Customer Retention Initiative", "project_manager_id": sales_managers[4].user_id},
+    ]
+
+    finance_project_data = [
+        {"project_name": "Budget Planning Tool", "project_manager_id": finance_managers[0].user_id},
+        {"project_name": "Expense Tracking System", "project_manager_id": finance_managers[1].user_id},
+        {"project_name": "Payroll Automation", "project_manager_id": finance_managers[2].user_id},
+        {"project_name": "Financial Reporting Dashboard", "project_manager_id": finance_managers[3].user_id},
+        {"project_name": "Audit Compliance System", "project_manager_id": finance_managers[4].user_id},
+    ]
+
+    # Create projects for Directors
+    director_projects = []
+    for project_data in director_project_data:
+        project = project_handler.create_project(**project_data)
+        director_projects.append(project)
+        print(f"\nCreated Project: {project['project_id']}: {project['project_name']}, Managed by: {user_handler.get_user(project['project_manager']).name}")
+
+    # Create projects for Sales Managers
+    sales_projects = []
+    for project_data in sales_project_data:
+        project = project_handler.create_project(**project_data)
+        sales_projects.append(project)
+        print(f"\nCreated Project: {project['project_id']}: {project['project_name']}, Managed by: {user_handler.get_user(project['project_manager']).name}")
+
+    # Create projects for Finance Managers
+    finance_projects = []
+    for project_data in finance_project_data:
+        project = project_handler.create_project(**project_data)
+        finance_projects.append(project)
+        print(f"\nCreated Project: {project['project_id']}: {project['project_name']}, Managed by: {user_handler.get_user(project['project_manager']).name}")
+
+    print(f"\nCreated a total of {len(director_projects) + len(sales_projects) + len(finance_projects)} projects.\n")
+    for director in directors:
+        projects = project_handler.get_projects_by_manager(director.user_id)
+        for project in projects:
+            print(f"Project {project['project_name']} created under Director {director.name}.")
+    for manager in sales_managers:
+        projects = project_handler.get_projects_by_manager(manager.user_id)
+        for project in projects:
+            print(f"Project {project['project_name']} created under Sales Manager {manager.name}.")
+    for manager in finance_managers:
+        projects = project_handler.get_projects_by_manager(manager.user_id)
+        for project in projects:
+            print(f"Project {project['project_name']} created under Finance Manager {manager.name}.")
+    print("\n" + "=" * 60)
+
+    # Create task for sales managers
+    sales_manager_task = task_handler.create_task(**{"title": "Sales Strategy Development", "description": "Develop a comprehensive sales strategy for the upcoming quarter.", "start_date": date(2025, 11, 9), "deadline": date(2025, 11, 10), "priority": 4, "tag": "Sales", "project_id": 1, "recurring": 1, "creator_id": sales_managers[0].user_id})
+
+    sales_managers_ids = []
+    for manager in sales_managers:
+        sales_managers_ids.append(manager.user_id)
+    
+    task_assignment_handler.assign_users(sales_manager_task.id, sales_managers_ids)
+    comment_handler.add_comment(task_id=sales_manager_task.id, user_id=sales_managers[0].user_id, comment_text="Please ensure the strategy aligns with our overall business goals.")
+    print(f"\nCreated Task {sales_manager_task.id}: Assigned Task '{sales_manager_task.title}' to Sales Managers: {', '.join([user_handler.get_user(uid).name for uid in sales_managers_ids])}")
+
+    # Create task for account managers
+    account_manager_task = task_handler.create_task(**{"title": "Account Management Strategy", "description": "Develop a strategy for managing key accounts.", "start_date": date(2025, 11, 7), "deadline": date(2025, 11, 9), "priority": 5, "tag": "Accounts", "project_id": 8, "creator_id": account_managers[0].user_id})
+
+    account_managers_ids = []
+    for manager in account_managers:
+        account_managers_ids.append(manager.user_id)
+
+    task_assignment_handler.assign_users(account_manager_task.id, account_managers_ids)
+    comment_handler.add_comment(task_id=account_manager_task.id, user_id=account_managers[0].user_id, comment_text="Focus on high-value clients for this strategy.")
+    print(f"\nCreated Task {account_manager_task.id}: Assigned Task '{account_manager_task.title}' to Account Managers: {', '.join([user_handler.get_user(uid).name for uid in account_managers_ids])}")
+
+    # Create tasks for consultants
+    consultant_task = task_handler.create_task(**{"title": "Requirement Gathering", "description": "Collect all necessary requirements from stakeholders.", "start_date": date(2025, 11, 7), "deadline": date(2025, 11, 11), "priority": 5, "tag": "Consulting", "project_id": 2, "creator_id": consultants[0].user_id})
+    consultants_ids = []
+    for consultant in consultants:
+        consultants_ids.append(consultant.user_id)
+
+    task_assignment_handler.assign_users(consultant_task.id, consultants_ids)
+    comment_handler.add_comment(task_id=consultant_task.id, user_id=consultants[0].user_id, comment_text="Ensure all requirements are gathered before the deadline.")
+    print(f"\nCreated Task {consultant_task.id}: Assigned Task '{consultant_task.title}' to Consultants: {', '.join([user_handler.get_user(uid).name for uid in consultants_ids])}")
+
+    # Create tasks for developers
+    developer_task = task_handler.create_task(**{"title": "System Architecture Design", "description": "Design the architecture for the new software solution.", "start_date": date(2025, 11, 10), "deadline": date(2025, 11, 20), "priority": 3, "tag": "Development", "project_id": 3, "creator_id": developers[0].user_id})
+    developers_ids = []
+    for developer in developers:
+        developers_ids.append(developer.user_id)
+
+    task_assignment_handler.assign_users(developer_task.id, developers_ids)
+    comment_handler.add_comment(task_id=developer_task.id, user_id=developers[0].user_id, comment_text="Design the system with scalability in mind.")
+    print(f"\nCreated Task {developer_task.id}: Assigned Task '{developer_task.title}' to Developers: {', '.join([user_handler.get_user(uid).name for uid in developers_ids])}")
+
+    # Create tasks for support users
+    support_user_task = task_handler.create_task(**{"title": "Customer Support Ticket Resolution", "description": "Resolve customer support tickets in a timely manner.", "start_date": date(2025, 11, 5), "deadline": date(2025, 11, 12), "priority": 3, "tag": "Support", "project_id": 3, "creator_id": support_users[0].user_id})
+    support_users_ids = []
+    for support_user in support_users:
+        support_users_ids.append(support_user.user_id)
+
+    task_assignment_handler.assign_users(support_user_task.id, support_users_ids)
+    comment_handler.add_comment(task_id=support_user_task.id, user_id=support_users[0].user_id, comment_text="Prioritize urgent tickets and keep customers updated.")
+    print(f"\nCreated Task {support_user_task.id}: Assigned Task '{support_user_task.title}' to Support Users: {', '.join([user_handler.get_user(uid).name for uid in support_users_ids])}")
+
+    # Create tasks for senior engineers
+    senior_engineer_task = task_handler.create_task(**{"title": "Operational Workflow Analysis", "description": "Analyze current workflows to identify improvement areas.", "start_date": date(2025, 11, 5), "deadline": date(2025, 11, 12), "priority": 4, "tag": "Operations", "project_id": 4, "creator_id": senior_engineers[0].user_id})
+    senior_engineers_ids = []
+    for senior_engineer in senior_engineers:
+        senior_engineers_ids.append(senior_engineer.user_id)
+
+    task_assignment_handler.assign_users(senior_engineer_task.id, senior_engineers_ids)
+    comment_handler.add_comment(task_id=senior_engineer_task.id, user_id=senior_engineers[0].user_id, comment_text="Identify key bottlenecks and propose solutions.")
+    print(f"\nCreated Task {senior_engineer_task.id}: Assigned Task '{senior_engineer_task.title}' to Senior Engineers: {', '.join([user_handler.get_user(uid).name for uid in senior_engineers_ids])}")
+
+    # Create tasks for junior engineers
+    junior_engineer_task = task_handler.create_task(**{"title": "System Testing and QA", "description": "Conduct system testing and quality assurance for new software solutions.", "start_date": date(2025, 11, 10), "deadline": date(2025, 11, 18), "priority": 3, "tag": "Engineering", "project_id": 4, "creator_id": junior_engineers[0].user_id})
+    junior_engineers_ids = []
+    for junior_engineer in junior_engineers:
+        junior_engineers_ids.append(junior_engineer.user_id)
+
+    task_assignment_handler.assign_users(junior_engineer_task.id, junior_engineers_ids)
+    comment_handler.add_comment(task_id=junior_engineer_task.id, user_id=junior_engineers[0].user_id, comment_text="Ensure thorough testing and documentation.")
+    print(f"\nCreated Task {junior_engineer_task.id}: Assigned Task '{junior_engineer_task.title}' to Junior Engineers: {', '.join([user_handler.get_user(uid).name for uid in junior_engineers_ids])}")
+
+    # Create tasks for call center members
+    call_centre_member_task = task_handler.create_task(**{"title": "Customer Interaction Management", "description": "Manage customer interactions and provide support.", "start_date": date(2025, 11, 6), "deadline": date(2025, 11, 13), "priority": 4, "tag": "Call Center", "project_id": 4, "creator_id": call_centre_members[0].user_id})
+    call_centre_members_ids = []
+    for call_centre_member in call_centre_members:
+        call_centre_members_ids.append(call_centre_member.user_id)
+
+    task_assignment_handler.assign_users(call_centre_member_task.id, call_centre_members_ids)
+    comment_handler.add_comment(task_id=call_centre_member_task.id, user_id=call_centre_members[0].user_id, comment_text="Ensure all customer interactions are logged.")
+    print(f"\nCreated Task {call_centre_member_task.id}: Assigned Task '{call_centre_member_task.title}' to Call Centre Members: {', '.join([user_handler.get_user(uid).name for uid in call_centre_members_ids])}")
+
+    # Create tasks for operation planning members
+    operation_planning_member_task = task_handler.create_task(**{"title": "Operational Planning and Coordination", "description": "Plan and coordinate operational activities for efficiency.", "start_date": date(2025, 11, 5), "deadline": date(2025, 11, 12), "priority": 4, "tag": "Operations", "project_id": 4, "creator_id": operation_planning_members[0].user_id})
+    operation_planning_members_ids = []
+    for operation_planning_member in operation_planning_members:
+        operation_planning_members_ids.append(operation_planning_member.user_id)
+
+    task_assignment_handler.assign_users(operation_planning_member_task.id, operation_planning_members_ids)
+    comment_handler.add_comment(task_id=operation_planning_member_task.id, user_id=operation_planning_members[0].user_id, comment_text="Ensure all operational plans are documented.")
+    print(f"\nCreated Task {operation_planning_member_task.id}: Assigned Task '{operation_planning_member_task.title}' to Operation Planning Members: {', '.join([user_handler.get_user(uid).name for uid in operation_planning_members_ids])}")
+
+    # Create tasks for HR members
+    hr_member_task = task_handler.create_task(**{"title": "Employee Onboarding Process", "description": "Create a streamlined onboarding process for new hires.", "start_date": date(2025, 11, 9), "deadline": date(2025, 11, 10), "priority": 5, "tag": "HR", "project_id": 5, "creator_id": hr_members[0].user_id})
+    hr_members_ids = []
+    for hr_member in hr_members:
+        hr_members_ids.append(hr_member.user_id)
+
+    task_assignment_handler.assign_users(hr_member_task.id, hr_members_ids)
+    comment_handler.add_comment(task_id=hr_member_task.id, user_id=hr_members[0].user_id, comment_text="Ensure a smooth onboarding experience for new hires.")
+    print(f"\nCreated Task {hr_member_task.id}: Assigned Task '{hr_member_task.title}' to HR Members: {', '.join([user_handler.get_user(uid).name for uid in hr_members_ids])}")
+
+    # Create tasks for L&D members
+    lnd_member_task = task_handler.create_task(**{"title": "Learning and Development Programs", "description": "Design and implement learning and development programs for employees.", "start_date": date(2025, 11, 8), "deadline": date(2025, 11, 14), "priority": 4, "tag": "L&D", "project_id": 5, "creator_id": lnd_members[0].user_id})
+    lnd_members_ids = []
+    for lnd_member in lnd_members:
+        lnd_members_ids.append(lnd_member.user_id)
+
+    task_assignment_handler.assign_users(lnd_member_task.id, lnd_members_ids)
+    comment_handler.add_comment(task_id=lnd_member_task.id, user_id=lnd_members[0].user_id, comment_text="Ensure all training materials are up-to-date.")
+    print(f"\nCreated Task {lnd_member_task.id}: Assigned Task '{lnd_member_task.title}' to L&D Members: {', '.join([user_handler.get_user(uid).name for uid in lnd_members_ids])}")
+
+    # Create tasks for admin members
+    admin_member_task = task_handler.create_task(**{"title": "Administrative Support Tasks", "description": "Handle various administrative support tasks for the organization.", "start_date": date(2025, 11, 7), "deadline": date(2025, 11, 13), "priority": 3, "tag": "Admin", "project_id": 5, "creator_id": admin_members[0].user_id})
+    admin_members_ids = []
+    for admin_member in admin_members:
+        admin_members_ids.append(admin_member.user_id)
+
+    task_assignment_handler.assign_users(admin_member_task.id, admin_members_ids)
+    comment_handler.add_comment(task_id=admin_member_task.id, user_id=admin_members[0].user_id, comment_text="Ensure all administrative tasks are prioritized.")
+    print(f"\nCreated Task {admin_member_task.id}: Assigned Task '{admin_member_task.title}' to Admin Members: {', '.join([user_handler.get_user(uid).name for uid in admin_members_ids])}")
+
+    # Create tasks for finance managers
+    finance_manager_task = task_handler.create_task(**{"title": "Financial Data Analysis", "description": "Analyze financial data to identify trends and insights.", "start_date": date(2025, 11, 6), "deadline": date(2025, 11, 13), "priority": 4, "tag": "Finance", "project_id": 6, "creator_id": finance_managers[0].user_id})
+    finance_managers_ids = []
+    for finance_manager in finance_managers:
+        finance_managers_ids.append(finance_manager.user_id)
+
+    task_assignment_handler.assign_users(finance_manager_task.id, finance_managers_ids)
+    comment_handler.add_comment(task_id=finance_manager_task.id, user_id=finance_managers[0].user_id, comment_text="Focus on high-value clients for this strategy.")
+    print(f"\nCreated Task {finance_manager_task.id}: Assigned Task '{finance_manager_task.title}' to Finance Managers: {', '.join([user_handler.get_user(uid).name for uid in finance_managers_ids])}")
+
+    # Create tasks for finance executives
+    finance_exec_task = task_handler.create_task(**{"title": "Expense Report Preparation", "description": "Prepare and review expense reports for accuracy.", "start_date": date(2025, 11, 6), "deadline": date(2025, 11, 12), "priority": 4, "tag": "Finance", "project_id": 13, "creator_id": finance_execs[0].user_id})
+    finance_execs_ids = []
+    for finance_exec in finance_execs:
+        finance_execs_ids.append(finance_exec.user_id)
+
+    task_assignment_handler.assign_users(finance_exec_task.id, finance_execs_ids)
+    comment_handler.add_comment(task_id=finance_exec_task.id, user_id=finance_execs[0].user_id, comment_text="Ensure all expense reports comply with company policies.")
+    print(f"\nCreated Task {finance_exec_task.id}: Assigned Task '{finance_exec_task.title}' to Finance Executives: {', '.join([user_handler.get_user(uid).name for uid in finance_execs_ids])}")
+
+    # Create tasks for IT members
+    it_member_task = task_handler.create_task(**{"title": "Network Infrastructure Upgrade", "description": "Upgrade the existing network infrastructure for better performance.", "start_date": date(2025, 11, 9), "deadline": date(2025, 11, 18), "priority": 3, "tag": "IT", "project_id": 7, "creator_id": it_members[0].user_id})
+    it_members_ids = []
+    for it_member in it_members:
+        it_members_ids.append(it_member.user_id)
+
+    task_assignment_handler.assign_users(it_member_task.id, it_members_ids)
+    comment_handler.add_comment(task_id=it_member_task.id, user_id=it_members[0].user_id, comment_text="Coordinate with all teams to minimize downtime during the upgrade.")
+    print(f"Created Task {it_member_task.id}: Assigned Task '{it_member_task.title}' to IT Members: {', '.join([user_handler.get_user(uid).name for uid in it_members_ids])}")
 
 
 if __name__ == "__main__":

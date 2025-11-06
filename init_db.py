@@ -43,11 +43,6 @@ def main():
         print("=" * 60)
         print("\nYou can now run the backend server:")
         print("  python -m uvicorn backend.src.main:app --reload")
-        # print("\nDefault users:")
-        # print("  - Cong (Staff): cong@example.com / Password123!")
-        # print("  - Julia (Staff): julia@example.com / Password123!")
-        # print("  - Manager1: manager@example.com / Password123!")
-        # print("  - Director1: director@example.com / Password123!")
         
     except Exception as e:
         print(f"\n❌ Error during initialization: {e}")
