@@ -287,4 +287,5 @@ VALID_SUBTEAM = {
 VALID_DEPARTMENT = {
     "department_id": 1,
     "department_name": "Development",
+    "manager_id": 3,
 }
