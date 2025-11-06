@@ -26,6 +26,10 @@ Repeat steps 1-3 to create virtual enviroments in 3 separate terminals (1 for ba
    `python -m uvicorn backend.src.main:app --reload`
    Access swagger docs: http://localhost:8000/docs
 
+To remove database:
+   Windows: `del backend\src\database\kira.db`
+   macOS: `rm backend/src/database/kira.db`
+
 
 ### How to set up frontend (second terminal)
 
