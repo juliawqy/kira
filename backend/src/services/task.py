@@ -160,9 +160,8 @@ def set_task_status(task_id: int, new_status: str) -> Task:
             )
 
             session.add(new_task)
-            session.flush()  # Flush to get new_task.id
+            session.flush()  
             
-            # Copy task assignments from original task to new occurrence
             original_assignments = session.execute(
                 select(TaskAssignment.user_id).where(TaskAssignment.task_id == task_id)
             ).scalars().all()
