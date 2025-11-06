@@ -22,6 +22,12 @@ def add_department(department_name: str, manager_id: int, creator_id: int):
     department = department_service.add_department(department_name, manager_id)
     return department
 
+def view_department_by_id(department_id: int):
+    department = department_service.get_department_by_id(department_id)
+    if not department:
+        raise ValueError(f"Department {department_id} not found")
+    return department
+
 def view_teams_in_department(department_id: int):
     department = department_service.get_department_by_id(department_id)
     if not department:

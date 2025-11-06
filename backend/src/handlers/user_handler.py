@@ -66,7 +66,7 @@ def create_user(
 
 def get_user(identifier: str | int) -> Optional[User]:
 
-    if identifier.isdigit():
+    if isinstance(identifier, int) or identifier.isdigit():
         user = user_service.get_user(int(identifier))
     else:
         user = user_service.get_user(identifier)
