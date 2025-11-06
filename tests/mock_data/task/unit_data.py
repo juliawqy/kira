@@ -283,3 +283,8 @@ VALID_SUBTEAM = {
     "team_name": "Development Subteam",
     "department_id": 1,
 }
+
+VALID_DEPARTMENT = {
+    "department_id": 1,
+    "department_name": "Development",
+}

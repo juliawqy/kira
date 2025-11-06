@@ -16,7 +16,8 @@ from tests.mock_data.task.unit_data import (
     INVALID_USER_ID,
     VALID_USER_DIRECTOR,
     VALID_TEAM,
-    VALID_SUBTEAM
+    VALID_SUBTEAM,
+    VALID_DEPARTMENT
 )
 
 
@@ -74,7 +75,7 @@ def test_aggregates_tasks_by_team_and_subteam(mock_user_service, mock_team_servi
         lambda tid: [{"user_id": VALID_USER_ADMIN["user_id"]}] if tid == VALID_TEAM["team_id"] else [{"user_id": VALID_USER["user_id"]}]
     )
     mock_team_service.get_subteam_by_team_number.side_effect = (
-        lambda num: subteams if num == VALID_TEAM["team_number"] else []
+        lambda num: subteams if num == VALID_TEAM[f"{VALID_TEAM['team_number']}-{VALID_TEAM['team_name']}"] else []
     )
 
     user_tasks = {
@@ -87,8 +88,8 @@ def test_aggregates_tasks_by_team_and_subteam(mock_user_service, mock_team_servi
 
     result = handler.list_tasks_by_manager(VALID_USER_ADMIN["user_id"])
     assert set(result.keys()) == {VALID_TEAM["team_number"], VALID_SUBTEAM["team_number"]}
-    assert result[VALID_TEAM["team_number"]] == [VALID_DEFAULT_TASK, VALID_TASK_EXPLICIT_PRIORITY]
-    assert result[VALID_SUBTEAM["team_number"]] == [VALID_TASK_FULL, VALID_TASK_EXPLICIT_PRIORITY]
+    assert result[(VALID_TEAM["team_number"], VALID_TEAM["team_name"])] == [VALID_DEFAULT_TASK, VALID_TASK_EXPLICIT_PRIORITY]
+    assert result[(VALID_SUBTEAM["team_number"], VALID_SUBTEAM["team_name"])] == [VALID_TASK_FULL, VALID_TASK_EXPLICIT_PRIORITY]
 
 
 # ================================ list_tasks_by_director Tests ================================
@@ -165,6 +166,9 @@ def test_aggregates_tasks_by_team_and_subteam(mock_user_service, mock_department
     mock_team_service.get_subteam_by_team_number.side_effect = (
         lambda num: subteams if num == VALID_TEAM["team_number"] else []
     )
+    mock_department_service.get_department_by_id.return_value = {
+        "department_name": VALID_DEPARTMENT["department_name"]
+    }
 
     user_tasks = {
         VALID_USER_ADMIN["user_id"]: [VALID_DEFAULT_TASK, VALID_TASK_EXPLICIT_PRIORITY],
@@ -175,6 +179,6 @@ def test_aggregates_tasks_by_team_and_subteam(mock_user_service, mock_department
     )
 
     result = handler.list_tasks_by_director(VALID_USER_DIRECTOR["user_id"])
-    assert set(result.keys()) == {VALID_TEAM["team_number"], VALID_SUBTEAM["team_number"]}
+    assert set(result.keys()) == {VALID_TEAM["team_number"], VALID_SUBTEAM["team_number"]-VALID_DEPARTMENT["department_name"]}
     assert result[VALID_TEAM["team_number"]] == [VALID_DEFAULT_TASK, VALID_TASK_EXPLICIT_PRIORITY]
-    assert result[VALID_SUBTEAM["team_number"]] == [VALID_TASK_FULL, VALID_TASK_EXPLICIT_PRIORITY]
+    assert result[VALID_SUBTEAM["team_number"]-VALID_DEPARTMENT["department_name"]] == [VALID_TASK_FULL, VALID_TASK_EXPLICIT_PRIORITY]
