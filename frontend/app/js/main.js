@@ -7,7 +7,10 @@ import { bindEditDialog } from "./ui/editDialog.js";
 import { renderTimeline } from "./ui/timeline.js";
 import { renderGantt } from "./ui/gantt.js";
 import { renderTeamManagement } from "./ui/team-management.js";
-import { bindReminderSettings } from "./ui/reminderSettings.js";
+import { bindReminderSettings, resetReminderSettings } from "./ui/reminderSettings.js";
+import { resetNotificationTracking } from "./ui/taskNotifications.js";
+import { bindReportExport } from "./ui/reportExport.js";
+import { checkAndSendNotifications } from "./ui/taskNotifications.js";
 
 function log(label, payload) {
   const logEl = document.getElementById("log");
@@ -437,6 +440,13 @@ async function loadParents(){
       renderGanttView();
     }
     
+    // Check and send notifications for overdue/upcoming tasks
+    // This runs once per session/day (tracked via localStorage)
+    checkAndSendNotifications(userTasks, { log }).catch(err => {
+      log("Notification check error", String(err));
+      // Don't show toast for notification errors - they're not critical
+    });
+    
     log("GET /task/user/", userTasks);
   }catch(e){
     ongoingEl.innerHTML = "";
@@ -537,6 +547,9 @@ function switchUser(userId) {
   if (user) {
     setCurrentUser(user);
     updateUserSelectionUI();
+    // Reset reminder settings and notification tracking for the new user
+    resetReminderSettings();
+    resetNotificationTracking();
     // Reload tasks for the new user
     loadParents();
   }
@@ -716,6 +729,7 @@ bindCalendarNav();
 bindCreateForm(log, () => autoReload());
 bindEditDialog(log, () => autoReload());
 bindReminderSettings({ log, reload: () => autoReload() });
+bindReportExport({ log });
 
 // First load
 loadParents();

@@ -92,7 +92,7 @@ def test_set_task_status_completed_success(mock_session_local):
     
     mock_session.get.assert_called_once_with(task_service.Task, VALID_DEFAULT_TASK["id"])
     assert mock_session.add.call_count == 2
-    mock_session.flush.assert_called_once()
+    assert mock_session.flush.call_count == 2
     
     assert mock_task.status == TaskStatus.COMPLETED.value
     assert result == mock_task

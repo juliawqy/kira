@@ -8,7 +8,7 @@
 </head>
 <body>
   <!-- Top User Selection Bar -->
-  <div style="position: fixed; top: 0; right: 0; z-index: 1000; padding: 16px; background: var(--panel); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border);">
+  <div style="position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 16px; background: var(--panel); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); border-right: 1px solid var(--border);">
     <div style="display: flex; align-items: center; gap: 8px;">
       <span style="font-size: 14px; color: var(--sub);">Logged in as:</span>
       <div class="user-selection">
@@ -266,6 +266,8 @@
                 <option value="status">Sort by Status</option>
                 <option value="priority">Sort by Priority</option>
           </select>
+              <button class="btn" id="timelineExportPdf" data-export-pdf type="button" title="Export PDF Report" style="font-size: 12px; padding: 4px 12px;">📄 PDF</button>
+              <button class="btn" id="timelineExportExcel" data-export-excel type="button" title="Export Excel Report" style="font-size: 12px; padding: 4px 12px;">📊 Excel</button>
         </div>
         </div>
           <div id="timeline"></div>
@@ -297,8 +299,8 @@
                 <option value="medium">Medium (5-7)</option>
                 <option value="low">Low (1-4)</option>
               </select>
-              <button class="cal-nav-btn" id="ganttZoomOut" type="button" title="Zoom Out">−</button>
-              <button class="cal-nav-btn" id="ganttZoomIn" type="button" title="Zoom In">+</button>
+              <button class="btn" id="ganttExportPdf" data-export-pdf type="button" title="Export PDF Report" style="font-size: 12px; padding: 4px 12px;">📄 PDF</button>
+              <button class="btn" id="ganttExportExcel" data-export-excel type="button" title="Export Excel Report" style="font-size: 12px; padding: 4px 12px;">📊 Excel</button>
       </div>
     </div>
           <div id="timelineGantt"></div>
@@ -341,7 +343,7 @@
 
   <!-- Create dialog -->
   <dialog id="dlgCreate">
-    <form method="dialog" class="panel" style="min-width: 640px; background: var(--panel); padding: 24px;">
+    <form method="dialog" class="panel" style="width: 640px; max-width: 90vw; background: var(--panel); padding: 24px;">
       <h2 style="margin-top: 0; margin-bottom: 20px;">Create Task</h2>
       <div class="grid three" id="createForm" style="gap: 16px;">
         <div class="form-field"><label>Title</label><input id="c_title" /><div class="error" id="c_title_err"></div></div>
@@ -410,26 +412,11 @@
     <form method="dialog" class="panel" style="min-width: 500px; background: var(--panel); padding: 24px;">
       <h2 style="margin-top: 0; margin-bottom: 20px;">Reminder Settings</h2>
       <div style="display: flex; flex-direction: column; gap: 16px;">
-        <div>
-          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Default Reminder Times:</label>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="reminder1day" value="1day" />
-              <span>1 day before deadline</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="reminder1hour" value="1hour" />
-              <span>1 hour before deadline</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="reminder30min" value="30min" />
-              <span>30 minutes before deadline</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="reminder1week" value="1week" />
-              <span>1 week before deadline</span>
-            </label>
-          </div>
+        <div class="form-field">
+          <label for="reminderDays" style="display: block; margin-bottom: 8px; font-weight: 500;">Days before deadline:</label>
+          <input type="number" id="reminderDays" min="0" max="365" value="0" step="1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; box-sizing: border-box;" />
+          <div style="font-size: 12px; color: var(--sub); margin-top: 4px;">Enter the number of days before the deadline to receive a reminder (0-365 days).</div>
+          <div class="error" id="reminderDays_err" style="color: var(--danger); font-size: 12px; margin-top: 4px;"></div>
         </div>
         <div>
           <label style="display: block; margin-bottom: 8px; font-weight: 500;">Show reminders for:</label>
@@ -438,10 +425,6 @@
               <input type="checkbox" id="showUpcoming" checked />
               <span>Upcoming deadlines</span>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="showOverdue" checked />
-              <span>Overdue tasks</span>
-            </label>
           </div>
         </div>
       </div>
@@ -449,6 +432,29 @@
         <span class="row-right" style="display: flex; gap: 8px;">
           <button class="btn" value="cancel">Cancel</button>
           <button class="btn primary" id="btnSaveReminderSettings" value="default">Save Settings</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Export Report Dialog -->
+  <dialog id="dlgExportReport">
+    <form method="dialog" class="panel" style="min-width: 400px; background: var(--panel); padding: 24px;">
+      <h2 style="margin-top: 0; margin-bottom: 20px;" id="exportReportTitle">Export Report</h2>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="form-field">
+          <label for="exportProjectId" style="display: block; margin-bottom: 8px; font-weight: 500;">Project ID:</label>
+          <input type="number" id="exportProjectId" min="1" step="1" placeholder="e.g., 1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; box-sizing: border-box;" />
+          <div class="error" id="exportProjectId_err" style="color: var(--error); font-size: 12px; margin-top: 4px;"></div>
+        </div>
+        <div style="font-size: 12px; color: var(--sub); margin-top: -8px;">
+          Enter the project ID for the report you want to export.
+        </div>
+      </div>
+      <div class="row" style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <span class="row-right" style="display: flex; gap: 8px;">
+          <button class="btn" type="button" id="btnCancelExport" value="cancel">Cancel</button>
+          <button class="btn primary" type="button" id="btnConfirmExport" value="default">Export</button>
         </span>
       </div>
     </form>

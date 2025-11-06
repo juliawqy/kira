@@ -658,8 +658,7 @@ def test_list_tasks_by_manager(client, task_base_path, test_db_session):
     response = client.get(f"{task_base_path}/manager/{manager.user_id}")
     assert response.status_code == 200
     data = response.json()
-    print("help: ", data, len(data))
-    assert len(data[VALID_TEAM["team_number"]]) == 2
+    assert len(data[f"{VALID_TEAM['team_number']}-{VALID_TEAM['team_name']}"]) == 2
 
 # INT-002/019
 def test_list_tasks_by_manager_no_teams(client, task_base_path, test_db_session):
@@ -725,9 +724,9 @@ def test_list_tasks_by_director_success(client, task_base_path, test_db_session)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, dict)
-    assert VALID_TEAM["team_number"] in data
-    assert isinstance(data[VALID_TEAM["team_number"]], list)
-    assert len(data[VALID_TEAM["team_number"]]) >= 4
+    assert f"{VALID_TEAM['team_number']}-{VALID_TEAM['team_name']}-{VALID_DEPARTMENT['department_name']}" in data
+    assert isinstance(data[f"{VALID_TEAM['team_number']}-{VALID_TEAM['team_name']}-{VALID_DEPARTMENT['department_name']}"], list)
+    assert len(data[f"{VALID_TEAM['team_number']}-{VALID_TEAM['team_name']}-{VALID_DEPARTMENT['department_name']}"]) >= 4
 
 # INT-002/023
 def test_list_tasks_by_director_no_department(client, task_base_path, test_db_session):

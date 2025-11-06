@@ -79,13 +79,8 @@ export function renderCalendar(tasks, { log, reload, targetCalendarId = "calenda
         // Only show reminders for future dates (from today onwards)
         // Skip reminders that are in the past
         if (reminderDay >= today) {
-          const isOverdue = reminder.deadline < today;
-          const shouldShow = isOverdue ? reminderSettings.showOverdue !== false : reminderSettings.showUpcoming !== false;
-          
-          if (shouldShow) {
-            if (!reminderMap.has(reminderKey)) reminderMap.set(reminderKey, []);
-            reminderMap.get(reminderKey).push(reminder);
-          }
+          if (!reminderMap.has(reminderKey)) reminderMap.set(reminderKey, []);
+          reminderMap.get(reminderKey).push(reminder);
         }
       });
     });
@@ -132,17 +127,9 @@ export function renderCalendar(tasks, { log, reload, targetCalendarId = "calenda
         const el = document.createElement("div");
         el.className = "cal-task cal-task-reminder";
         
-        // Check if the reminder is for an overdue task
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (reminder.deadline < today) {
-          el.classList.add("cal-task-overdue-reminder");
-        }
-        
         const title = escapeHtml(reminder.taskTitle || `Task #${reminder.taskId}`);
-        const reminderText = reminder.type === "1week" ? "1 week" : 
-                            reminder.type === "1day" ? "1 day" :
-                            reminder.type === "1hour" ? "1 hour" : "30 min";
+        const days = reminder.days || 1;
+        const reminderText = days === 1 ? "1 day" : `${days} days`;
         el.innerHTML = `🔔 Reminder: ${title} <span class="small">(${reminderText} before)</span>`;
         el.title = `Reminder: ${title} - ${reminderText} before deadline`;
         

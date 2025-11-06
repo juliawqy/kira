@@ -75,6 +75,11 @@ export function bindCreateForm(log, reload) {
       [c_parent,e_parent],[c_tag,e_tag],[c_recurring,e_recurring]
     ].forEach(([i,e]) => setError(i,e,""));
 
+    // title required
+    if (!c_title.value || !c_title.value.trim()) {
+      ok = false; setError(c_title, e_title, "Title is required.");
+    }
+
     // priority
     const pb = Number(c_priority.value);
     if (Number.isNaN(pb) || pb < 1 || pb > 10) {
@@ -116,12 +121,29 @@ export function bindCreateForm(log, reload) {
     return { ok, pb, rec };
   }
 
-  btnCreate.addEventListener("click", async () => {
+  // Prevent form submission from closing dialog on validation errors
+  const form = btnCreate.closest("form");
+  const dlgCreate = document.getElementById("dlgCreate");
+  
+  if (form && dlgCreate) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault(); // Always prevent default form submission
+      // Dialog closing will be handled manually in the button click handler
+    });
+  }
+
+  btnCreate.addEventListener("click", async (e) => {
+    e.preventDefault(); // Prevent form submission
+    
     const { ok, pb, rec } = validate();
-    if (!ok) return;
+    if (!ok) {
+      // Keep dialog open when validation fails
+      return;
+    }
 
     if (!CURRENT_USER) {
       showToast("No current user set. Please select a user.", "warning");
+      // Keep dialog open
       return;
     }
 
@@ -155,7 +177,6 @@ export function bindCreateForm(log, reload) {
       c_recurring.value = "0";
 
       // Close the dialog after successful creation
-      const dlgCreate = document.getElementById("dlgCreate");
       if (dlgCreate) {
         dlgCreate.close();
       }
@@ -165,6 +186,18 @@ export function bindCreateForm(log, reload) {
     } catch (e) {
       log("Create error", String(e));
       showToast(e.message || "Failed to create task", "error");
+      // Keep dialog open on error so user can fix and retry
     }
   });
+  
+  // Handle cancel button - it should still close the dialog
+  const cancelBtn = form?.querySelector('button[value="cancel"]');
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (dlgCreate) {
+        dlgCreate.close();
+      }
+    });
+  }
 }
