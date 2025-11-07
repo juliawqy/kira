@@ -1202,6 +1202,40 @@ def seed_database():
     comment_handler.add_comment(task_id=account_manager_task.id, user_id=sales_managers[0].user_id, comment_text="Focus on high-value clients for this strategy.")
     print(f"\nCreated Task {account_manager_task.id}: Assigned Task '{account_manager_task.title}' to Account Managers: {', '.join([user_handler.get_user(uid).name for uid in account_managers_ids])}")
 
+    # Subtasks for demo staff (Aisha Rahman)
+    account_strategy_subtasks = [
+        {
+            "title": "Prepare outreach pitch deck",
+            "description": "Draft an updated deck tailored for high-value clients.",
+            "start_date": date(2025, 11, 7),
+            "deadline": date(2025, 11, 8),
+            "priority": 4,
+            "tag": "Accounts"
+        },
+        {
+            "title": "Compile client feedback summary",
+            "description": "Aggregate recent feedback to highlight quick wins.",
+            "start_date": date(2025, 11, 8),
+            "deadline": date(2025, 11, 9),
+            "priority": 3,
+            "tag": "Accounts"
+        }
+    ]
+
+    for subtask in account_strategy_subtasks:
+        sub_task = task_handler.create_task(**{
+            "title": subtask["title"],
+            "description": subtask["description"],
+            "start_date": subtask["start_date"],
+            "deadline": subtask["deadline"],
+            "priority": subtask["priority"],
+            "tag": subtask["tag"],
+            "project_id": account_manager_task.project_id,
+            "creator_id": account_managers[0].user_id,
+            "parent_id": account_manager_task.id,
+        })
+        print(f"      ↳ Subtask {sub_task.id} created for '{account_manager_task.title}': {sub_task.title}")
+
     # Create tasks for consultants
     consultant_task = task_handler.create_task(**{"title": "Requirement Gathering", "description": "Collect all necessary requirements from stakeholders.", "start_date": date(2025, 11, 7), "deadline": date(2025, 11, 11), "priority": 5, "tag": "Consulting", "project_id": 2, "creator_id": directors[1].user_id})
     consultants_ids = []
@@ -1332,10 +1366,109 @@ def seed_database():
     comment_handler.add_comment(task_id=it_member_task.id, user_id=directors[6].user_id, comment_text="Coordinate with all teams to minimize downtime during the upgrade.")
     print(f"Created Task {it_member_task.id}: Assigned Task '{it_member_task.title}' to IT Members: {', '.join([user_handler.get_user(uid).name for uid in it_members_ids])}")
 
+    it_upgrade_subtasks = [
+        {
+            "title": "Audit core network devices",
+            "description": "Document firmware versions and current configurations.",
+            "start_date": date(2025, 11, 11),
+            "deadline": date(2025, 11, 13),
+            "priority": 3,
+            "tag": "IT"
+        },
+        {
+            "title": "Stage firmware updates",
+            "description": "Prepare upgrade packages and rollback plans.",
+            "start_date": date(2025, 11, 14),
+            "deadline": date(2025, 11, 17),
+            "priority": 4,
+            "tag": "IT"
+        }
+    ]
+
+    for subtask in it_upgrade_subtasks:
+        sub_task = task_handler.create_task(**{
+            "title": subtask["title"],
+            "description": subtask["description"],
+            "start_date": subtask["start_date"],
+            "deadline": subtask["deadline"],
+            "priority": subtask["priority"],
+            "tag": subtask["tag"],
+            "project_id": it_member_task.project_id,
+            "creator_id": it_members[0].user_id,
+            "parent_id": it_member_task.id,
+        })
+        print(f"      ↳ Subtask {sub_task.id} created for '{it_member_task.title}': {sub_task.title}")
+
     # Create additional tasks for demo
     add_account_task = task_handler.create_task(**{"title": "Follow-up with Key Accounts", "description": "Reach out to key accounts for feedback and future opportunities.", "start_date": date(2025, 11, 8), "deadline": date(2025, 11, 15), "priority": 4, "tag": "Accounts", "project_id": 8, "creator_id": account_managers[0].user_id})
 
+    add_account_subtasks = [
+        {
+            "title": "Schedule follow-up calls",
+            "description": "Confirm availability with top-tier clients.",
+            "start_date": date(2025, 11, 8),
+            "deadline": date(2025, 11, 10),
+            "priority": 3,
+            "tag": "Accounts"
+        },
+        {
+            "title": "Document client insights",
+            "description": "Capture notes from conversations in the CRM.",
+            "start_date": date(2025, 11, 11),
+            "deadline": date(2025, 11, 15),
+            "priority": 3,
+            "tag": "Documentation"
+        }
+    ]
+
+    for subtask in add_account_subtasks:
+        sub_task = task_handler.create_task(**{
+            "title": subtask["title"],
+            "description": subtask["description"],
+            "start_date": subtask["start_date"],
+            "deadline": subtask["deadline"],
+            "priority": subtask["priority"],
+            "tag": subtask["tag"],
+            "project_id": add_account_task.project_id,
+            "creator_id": account_managers[0].user_id,
+            "parent_id": add_account_task.id,
+        })
+        print(f"      ↳ Subtask {sub_task.id} created for '{add_account_task.title}': {sub_task.title}")
+
     add_it_task = task_handler.create_task(**{"title": "System Maintenance", "description": "Perform regular system maintenance to ensure optimal performance.", "start_date": date(2025, 11, 12), "deadline": date(2025, 11, 19), "priority": 3, "tag": "IT", "project_id": 7, "creator_id": it_members[0].user_id})
+
+    add_it_subtasks = [
+        {
+            "title": "Perform system health checks",
+            "description": "Run diagnostics across critical servers.",
+            "start_date": date(2025, 11, 12),
+            "deadline": date(2025, 11, 14),
+            "priority": 3,
+            "tag": "IT"
+        },
+        {
+            "title": "Update maintenance logs",
+            "description": "Record outcomes and next steps in maintenance tracker.",
+            "start_date": date(2025, 11, 15),
+            "deadline": date(2025, 11, 19),
+            "priority": 2,
+            "tag": "Documentation"
+        }
+    ]
+
+    for subtask in add_it_subtasks:
+        sub_task = task_handler.create_task(**{
+            "title": subtask["title"],
+            "description": subtask["description"],
+            "start_date": subtask["start_date"],
+            "deadline": subtask["deadline"],
+            "priority": subtask["priority"],
+            "tag": subtask["tag"],
+            "project_id": add_it_task.project_id,
+            "creator_id": it_members[0].user_id,
+            "parent_id": add_it_task.id,
+        })
+        print(f"      ↳ Subtask {sub_task.id} created for '{add_it_task.title}': {sub_task.title}")
 
     print("\n" + "=" * 60)
     print("DEMO USER SELECTION - User IDs for Frontend")
