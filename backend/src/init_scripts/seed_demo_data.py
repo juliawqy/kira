@@ -1323,6 +1323,17 @@ def seed_database():
     comment_handler.add_comment(task_id=it_member_task.id, user_id=it_members[0].user_id, comment_text="Coordinate with all teams to minimize downtime during the upgrade.")
     print(f"Created Task {it_member_task.id}: Assigned Task '{it_member_task.title}' to IT Members: {', '.join([user_handler.get_user(uid).name for uid in it_members_ids])}")
 
+    print("\n" + "=" * 60)
+    print("DEMO USER SELECTION - User IDs for Frontend")
+    print("=" * 60)
+    print(f"Staff 1 (Account Manager - Overdue Task): {account_managers[0].user_id} - {account_managers[0].name}")
+    print(f"Staff 2 (IT Member - Upcoming Task): {it_members[0].user_id} - {it_members[0].name}")
+    print(f"Manager 1 (Sales Manager - Recurring Task): {sales_managers[0].user_id} - {sales_managers[0].name}")
+    print(f"Manager 2 (Finance Manager): {finance_managers[0].user_id} - {finance_managers[0].name}")
+    print(f"Director 1 (Sales Director): {directors[0].user_id} - {directors[0].name}")
+    print(f"Director 2 (HR Director): {directors[4].user_id} - {directors[4].name}")
+    print("=" * 60)
+
 
 if __name__ == "__main__":
     

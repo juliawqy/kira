@@ -29,6 +29,11 @@ def main():
     print("=" * 60)
     
     try:
+        # Step 0: Drop all tables (for clean reset)
+        print("\n🗑️  Step 0: Dropping all existing tables...")
+        Base.metadata.drop_all(engine)
+        print("✅ All tables dropped successfully!")
+        
         # Step 1: Create tables
         print("\n📋 Step 1: Creating database tables...")
         Base.metadata.create_all(engine)

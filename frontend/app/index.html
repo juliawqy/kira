@@ -12,10 +12,12 @@
     <div style="display: flex; align-items: center; gap: 8px;">
       <span style="font-size: 14px; color: var(--sub);">Logged in as:</span>
       <div class="user-selection">
-        <button class="user-btn" id="userCong" data-user-id="1">Cong</button>
-        <button class="user-btn" id="userJulia" data-user-id="2">Julia</button>
-        <button class="user-btn" id="userManager" data-user-id="3">Manager</button>
-        <button class="user-btn" id="userDirector" data-user-id="4">Director</button>
+        <button class="user-btn" id="userStaff1" data-user-id="15">Staff 1</button>
+        <button class="user-btn" id="userStaff2" data-user-id="571">Staff 2</button>
+        <button class="user-btn" id="userManager1" data-user-id="10">Manager 1</button>
+        <button class="user-btn" id="userManager2" data-user-id="516">Manager 2</button>
+        <button class="user-btn" id="userDirector1" data-user-id="3">Director 1</button>
+        <button class="user-btn" id="userDirector2" data-user-id="7">Director 2</button>
       </div>
     </div>
   </div>
@@ -62,9 +64,23 @@
             </select>
             <select id="filterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
               <option value="">All Projects</option>
-              <option value="1">Project Alpha (1)</option>
-              <option value="2">Project Beta (2)</option>
-              <option value="3">Project Gamma (3)</option>
+              <option value="1">Sales Automation Tool (1)</option>
+              <option value="2">Consulting CRM System (2)</option>
+              <option value="3">Software Solutions Development (3)</option>
+              <option value="4">Enterprise Operations Dashboard (4)</option>
+              <option value="5">HR Management Platform (5)</option>
+              <option value="6">Financial Analytics Suite (6)</option>
+              <option value="7">IT Infrastructure Upgrade (7)</option>
+              <option value="8">Client Acquisition Campaign (8)</option>
+              <option value="9">Market Expansion Strategy (9)</option>
+              <option value="10">Sales Training Program (10)</option>
+              <option value="11">Product Launch Event (11)</option>
+              <option value="12">Customer Retention Initiative (12)</option>
+              <option value="13">Budget Planning Tool (13)</option>
+              <option value="14">Expense Tracking System (14)</option>
+              <option value="15">Payroll Automation (15)</option>
+              <option value="16">Financial Reporting Dashboard (16)</option>
+              <option value="17">Audit Compliance System (17)</option>
             </select>
             <select id="filterTag" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
               <option value="">All Tags</option>
@@ -121,9 +137,23 @@
             </select>
             <select id="calFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
               <option value="">All Projects</option>
-              <option value="1">Project Alpha (1)</option>
-              <option value="2">Project Beta (2)</option>
-              <option value="3">Project Gamma (3)</option>
+              <option value="1">Sales Automation Tool (1)</option>
+              <option value="2">Consulting CRM System (2)</option>
+              <option value="3">Software Solutions Development (3)</option>
+              <option value="4">Enterprise Operations Dashboard (4)</option>
+              <option value="5">HR Management Platform (5)</option>
+              <option value="6">Financial Analytics Suite (6)</option>
+              <option value="7">IT Infrastructure Upgrade (7)</option>
+              <option value="8">Client Acquisition Campaign (8)</option>
+              <option value="9">Market Expansion Strategy (9)</option>
+              <option value="10">Sales Training Program (10)</option>
+              <option value="11">Product Launch Event (11)</option>
+              <option value="12">Customer Retention Initiative (12)</option>
+              <option value="13">Budget Planning Tool (13)</option>
+              <option value="14">Expense Tracking System (14)</option>
+              <option value="15">Payroll Automation (15)</option>
+              <option value="16">Financial Reporting Dashboard (16)</option>
+              <option value="17">Audit Compliance System (17)</option>
             </select>
             <select id="calFilterTag" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
               <option value="">All Tags</option>
@@ -194,9 +224,23 @@
               <option value="low">Low (1-4)</option>
             </select>
             <select id="teamCalFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
-              <option value="1" selected>Project Alpha (1)</option>
-              <option value="2">Project Beta (2)</option>
-              <option value="3">Project Gamma (3)</option>
+              <option value="1" selected>Sales Automation Tool (1)</option>
+              <option value="2">Consulting CRM System (2)</option>
+              <option value="3">Software Solutions Development (3)</option>
+              <option value="4">Enterprise Operations Dashboard (4)</option>
+              <option value="5">HR Management Platform (5)</option>
+              <option value="6">Financial Analytics Suite (6)</option>
+              <option value="7">IT Infrastructure Upgrade (7)</option>
+              <option value="8">Client Acquisition Campaign (8)</option>
+              <option value="9">Market Expansion Strategy (9)</option>
+              <option value="10">Sales Training Program (10)</option>
+              <option value="11">Product Launch Event (11)</option>
+              <option value="12">Customer Retention Initiative (12)</option>
+              <option value="13">Budget Planning Tool (13)</option>
+              <option value="14">Expense Tracking System (14)</option>
+              <option value="15">Payroll Automation (15)</option>
+              <option value="16">Financial Reporting Dashboard (16)</option>
+              <option value="17">Audit Compliance System (17)</option>
             </select>
             <select id="teamCalFilterTag" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
               <option value="">All Tags</option>
@@ -257,9 +301,23 @@
             <div style="display: flex; gap: 8px; align-items: center;">
               <select id="timelineFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
                 <option value="">All Projects</option>
-            <option value="1">Project Alpha (1)</option>
-                <option value="2">Project Beta (2)</option>
-                <option value="3">Project Gamma (3)</option>
+                <option value="1">Sales Automation Tool (1)</option>
+                <option value="2">Consulting CRM System (2)</option>
+                <option value="3">Software Solutions Development (3)</option>
+                <option value="4">Enterprise Operations Dashboard (4)</option>
+                <option value="5">HR Management Platform (5)</option>
+                <option value="6">Financial Analytics Suite (6)</option>
+                <option value="7">IT Infrastructure Upgrade (7)</option>
+                <option value="8">Client Acquisition Campaign (8)</option>
+                <option value="9">Market Expansion Strategy (9)</option>
+                <option value="10">Sales Training Program (10)</option>
+                <option value="11">Product Launch Event (11)</option>
+                <option value="12">Customer Retention Initiative (12)</option>
+                <option value="13">Budget Planning Tool (13)</option>
+                <option value="14">Expense Tracking System (14)</option>
+                <option value="15">Payroll Automation (15)</option>
+                <option value="16">Financial Reporting Dashboard (16)</option>
+                <option value="17">Audit Compliance System (17)</option>
               </select>
               <select id="timelineSortBy" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
                 <option value="">Sort by</option>
@@ -282,9 +340,23 @@
             <div style="display: flex; gap: 8px; align-items: center;">
               <select id="ganttFilterProject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
                 <option value="">All Projects</option>
-                <option value="1">Project Alpha (1)</option>
-                <option value="2">Project Beta (2)</option>
-                <option value="3">Project Gamma (3)</option>
+                <option value="1">Sales Automation Tool (1)</option>
+                <option value="2">Consulting CRM System (2)</option>
+                <option value="3">Software Solutions Development (3)</option>
+                <option value="4">Enterprise Operations Dashboard (4)</option>
+                <option value="5">HR Management Platform (5)</option>
+                <option value="6">Financial Analytics Suite (6)</option>
+                <option value="7">IT Infrastructure Upgrade (7)</option>
+                <option value="8">Client Acquisition Campaign (8)</option>
+                <option value="9">Market Expansion Strategy (9)</option>
+                <option value="10">Sales Training Program (10)</option>
+                <option value="11">Product Launch Event (11)</option>
+                <option value="12">Customer Retention Initiative (12)</option>
+                <option value="13">Budget Planning Tool (13)</option>
+                <option value="14">Expense Tracking System (14)</option>
+                <option value="15">Payroll Automation (15)</option>
+                <option value="16">Financial Reporting Dashboard (16)</option>
+                <option value="17">Audit Compliance System (17)</option>
               </select>
               <select id="ganttFilterStatus" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
                 <option value="">All Status</option>
@@ -355,9 +427,23 @@
           <label>Project</label>
           <select id="c_project">
             <option value="" disabled selected>Select a project</option>
-            <option value="1">Project Alpha (1)</option>
-            <option value="2">Project Beta (2)</option>
-            <option value="3">Project Gamma (3)</option>
+            <option value="1">Sales Automation Tool (1)</option>
+            <option value="2">Consulting CRM System (2)</option>
+            <option value="3">Software Solutions Development (3)</option>
+            <option value="4">Enterprise Operations Dashboard (4)</option>
+            <option value="5">HR Management Platform (5)</option>
+            <option value="6">Financial Analytics Suite (6)</option>
+            <option value="7">IT Infrastructure Upgrade (7)</option>
+            <option value="8">Client Acquisition Campaign (8)</option>
+            <option value="9">Market Expansion Strategy (9)</option>
+            <option value="10">Sales Training Program (10)</option>
+            <option value="11">Product Launch Event (11)</option>
+            <option value="12">Customer Retention Initiative (12)</option>
+            <option value="13">Budget Planning Tool (13)</option>
+            <option value="14">Expense Tracking System (14)</option>
+            <option value="15">Payroll Automation (15)</option>
+            <option value="16">Financial Reporting Dashboard (16)</option>
+            <option value="17">Audit Compliance System (17)</option>
           </select>
           <div class="error" id="c_project_err"></div>
         </div>
@@ -388,9 +474,23 @@
           <label>Project</label>
           <select id="e_project">
             <option value="" disabled selected>Select a project</option>
-            <option value="1">Project Alpha (1)</option>
-            <option value="100">Project Beta (100)</option>
-            <option value="123">Project Gamma (123)</option>
+            <option value="1">Sales Automation Tool (1)</option>
+            <option value="2">Consulting CRM System (2)</option>
+            <option value="3">Software Solutions Development (3)</option>
+            <option value="4">Enterprise Operations Dashboard (4)</option>
+            <option value="5">HR Management Platform (5)</option>
+            <option value="6">Financial Analytics Suite (6)</option>
+            <option value="7">IT Infrastructure Upgrade (7)</option>
+            <option value="8">Client Acquisition Campaign (8)</option>
+            <option value="9">Market Expansion Strategy (9)</option>
+            <option value="10">Sales Training Program (10)</option>
+            <option value="11">Product Launch Event (11)</option>
+            <option value="12">Customer Retention Initiative (12)</option>
+            <option value="13">Budget Planning Tool (13)</option>
+            <option value="14">Expense Tracking System (14)</option>
+            <option value="15">Payroll Automation (15)</option>
+            <option value="16">Financial Reporting Dashboard (16)</option>
+            <option value="17">Audit Compliance System (17)</option>
           </select>
           <div class="error" id="e_project_err"></div>
         </div>
@@ -438,6 +538,20 @@
   </dialog>
 
   <!-- Export Report Dialog -->
+  <dialog id="dlgAllAssignees">
+    <form method="dialog" class="panel" style="min-width: 400px; max-width: 600px; background: var(--panel); padding: 24px;">
+      <h2 style="margin-top: 0; margin-bottom: 20px;">All Assignees</h2>
+      <div id="allAssigneesList" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+        <!-- Assignees will be populated here -->
+      </div>
+      <div class="row" style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <span class="row-right">
+          <button class="btn primary" value="close">Close</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="dlgExportReport">
     <form method="dialog" class="panel" style="min-width: 400px; background: var(--panel); padding: 24px;">
       <h2 style="margin-top: 0; margin-bottom: 20px;" id="exportReportTitle">Export Report</h2>

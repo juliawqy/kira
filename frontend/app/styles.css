@@ -606,6 +606,8 @@
     align-items: center;
     gap: 6px;
     margin-left: 8px;
+    flex-wrap: wrap;
+    max-width: 100%;
   }
   .assignee-add-btn {
     background: #e0e7ff;
@@ -719,6 +721,15 @@
     color: var(--sub);
     font-size: 12px;
     font-style: italic;
+  }
+  .assignee-more {
+    background: #e0e7ff !important;
+    border-color: #c7d2fe !important;
+    color: #4338ca !important;
+    font-weight: 600;
+  }
+  .assignee-more:hover {
+    background: #c7d2fe !important;
   }
   
   /* Add spacing under the Parents header row */

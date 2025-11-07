@@ -214,12 +214,21 @@ function renderTimelineTaskCard(task, { log, reload }) {
   const taskMeta = document.createElement("div");
   taskMeta.className = "timeline-task-meta";
   
-  // Assignees with better formatting
+  // Assignees with better formatting (limit to prevent overflow)
   const assignees = getAssignees(task);
   if (assignees && assignees.length > 0) {
     const assigneesEl = document.createElement("div");
     assigneesEl.className = "timeline-task-assignees";
-    const assigneeNames = assignees.map(a => a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`).join(", ");
+    const MAX_VISIBLE = 5;
+    const visibleAssignees = assignees.slice(0, MAX_VISIBLE);
+    const remainingCount = assignees.length - MAX_VISIBLE;
+    
+    let assigneeNames = visibleAssignees.map(a => a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`).join(", ");
+    if (remainingCount > 0) {
+      assigneeNames += `, +${remainingCount} more`;
+      const allNames = assignees.map(a => a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`).join(", ");
+      assigneesEl.title = allNames;
+    }
     assigneesEl.innerHTML = `<span class="timeline-meta-label">Assigned:</span> <span>${escapeHtml(assigneeNames)}</span>`;
     taskMeta.appendChild(assigneesEl);
   }
