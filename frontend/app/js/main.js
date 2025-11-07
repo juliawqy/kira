@@ -23,7 +23,7 @@ const DEMO_USER_IDS = {
 };
 
 // Project ID to name mapping (from seeded data)
-const PROJECT_NAMES = {
+export const PROJECT_NAMES = {
   1: "Sales Automation Tool",
   2: "Consulting CRM System",
   3: "Software Solutions Development",

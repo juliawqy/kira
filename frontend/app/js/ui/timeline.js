@@ -1,5 +1,6 @@
 // js/ui/timeline.js
 import { parseYMD, escapeHtml, getSubtasks, getAssignees, getPriorityDisplay } from "../state.js";
+import { PROJECT_NAMES } from "../main.js";
 import { openCalTaskPanel } from "./cards.js";
 
 function isTaskOverdue(task) {
@@ -74,8 +75,10 @@ function renderProjectSection(projectId, tasks, { log, reload }) {
   projectInfo.className = "timeline-project-info";
   
   const projectTitle = document.createElement("h4");
+  const projectName = projectId === "unassigned" ? "Unassigned" : (PROJECT_NAMES[projectId] || `Project #${projectId}`);
+  const displayName = projectId === "unassigned" ? projectName : `Project ${projectId}: ${projectName}`;
   projectTitle.innerHTML = `
-    <span>Project ${projectId === "unassigned" ? "Unassigned" : `#${projectId}`}</span>
+    <span>${escapeHtml(displayName)}</span>
     <span class="timeline-project-meta">${totalTasks} ${totalTasks === 1 ? "task" : "tasks"}</span>
     ${overdueTasks.length > 0 ? `<span class="timeline-overdue-badge">${overdueTasks.length} overdue</span>` : ""}
   `;

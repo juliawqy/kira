@@ -1,5 +1,6 @@
 // js/ui/gantt.js
 import { parseYMD } from "../state.js";
+import { PROJECT_NAMES } from "../main.js";
 import { openCalTaskPanel } from "./cards.js";
 
 function isTaskOverdue(task) {
@@ -160,7 +161,8 @@ function renderGanttProject(projectId, tasks, dates, timelineStart, { log, reloa
   
   const projectName = document.createElement("div");
   projectName.className = "gantt-project-name";
-  projectName.textContent = projectId === "unassigned" ? "Unassigned" : `Project #${projectId}`;
+  const displayName = projectId === "unassigned" ? "Unassigned" : (PROJECT_NAMES[projectId] || `Project #${projectId}`);
+  projectName.textContent = projectId === "unassigned" ? displayName : `Project ${projectId}: ${displayName}`;
   
   const projectMeta = document.createElement("div");
   projectMeta.className = "gantt-project-meta";

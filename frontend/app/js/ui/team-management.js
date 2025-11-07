@@ -70,11 +70,19 @@ export async function renderTeamManagement(data, { log, reload } = {}) {
  * Render a single team section with all metrics and tasks
  */
 async function renderTeamSection(teamNumber, tasks, { log, reload }) {
+  const uniqueTasks = [];
+  const seen = new Set();
+  (tasks || []).forEach(task => {
+    if (!task || seen.has(task.id)) return;
+    seen.add(task.id);
+    uniqueTasks.push(task);
+  });
+
   const section = document.createElement("div");
   section.className = "team-section";
   
   // Fetch assignees for metrics calculation
-  const tasksNeedingAssignees = tasks.filter(t => !getAssignees(t) || getAssignees(t).length === 0);
+  const tasksNeedingAssignees = uniqueTasks.filter(t => !getAssignees(t) || getAssignees(t).length === 0);
   if (tasksNeedingAssignees.length > 0) {
     try {
       await Promise.all(
@@ -92,7 +100,7 @@ async function renderTeamSection(teamNumber, tasks, { log, reload }) {
     } catch {}
   }
   
-  const metrics = calculateTeamMetrics(tasks);
+  const metrics = calculateTeamMetrics(uniqueTasks);
   
   // Team header with title and key stats
   const header = document.createElement("div");
@@ -281,7 +289,10 @@ async function renderTeamSection(teamNumber, tasks, { log, reload }) {
   
   // Task cards grouped by project
   const tasksByProject = {};
-  tasks.forEach(task => {
+  const seenTaskIds = new Set();
+  uniqueTasks.forEach(task => {
+    if (!task || seenTaskIds.has(task.id)) return;
+    seenTaskIds.add(task.id);
     const projectId = task.project_id || "unassigned";
     if (!tasksByProject[projectId]) {
       tasksByProject[projectId] = [];
@@ -335,7 +346,10 @@ async function renderTeamSection(teamNumber, tasks, { log, reload }) {
   const renderByProject = () => {
     tasksContainer.innerHTML = "";
     const tasksByProject = {};
-    tasks.forEach(task => {
+    const seenTaskIds = new Set();
+    uniqueTasks.forEach(task => {
+      if (!task || seenTaskIds.has(task.id)) return;
+      seenTaskIds.add(task.id);
       const projectId = task.project_id || "unassigned";
       if (!tasksByProject[projectId]) tasksByProject[projectId] = [];
       tasksByProject[projectId].push(task);
@@ -363,7 +377,7 @@ async function renderTeamSection(teamNumber, tasks, { log, reload }) {
     tasksContainer.appendChild(loading);
 
     // Fetch assignees for tasks missing them
-    const tasksNeedingAssignees = tasks.filter(t => !getAssignees(t) || getAssignees(t).length === 0);
+    const tasksNeedingAssignees = uniqueTasks.filter(t => !getAssignees(t) || getAssignees(t).length === 0);
     if (tasksNeedingAssignees.length) {
       try {
         await Promise.all(
@@ -385,7 +399,7 @@ async function renderTeamSection(teamNumber, tasks, { log, reload }) {
     // Build groups
     const byMember = {};
     const unassigned = [];
-    tasks.forEach(task => {
+    uniqueTasks.forEach(task => {
       const assignees = getAssignees(task);
       if (!assignees || assignees.length === 0) {
         unassigned.push(task);
