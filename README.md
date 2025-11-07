@@ -66,7 +66,9 @@ To test working email service,
      
 2. Uncomment lines 141-151 in backend/src/services/email.py and comment out line 154     
      
-3. Uncomment tests UNI-124/004 to UNI-124/009 (lines 29-112) in tests/backend/unit/notification_and_email/test_email_service.py
+3. Uncomment tests
+   - UNI-124/004 to UNI-124/009 (lines 29-112) and UNI-124/015 to UNI-124/016 (lines 185-199) in tests/backend/unit/notification_and_email/test_email_service.py
+   - INT-124/001 to INT-124/002 (lines 110-129) and INT-124/005 (lines 152-162) in tests/backend/integration/notification_and_email/test_notification_email_flow.py
    
 Running tests:
      
