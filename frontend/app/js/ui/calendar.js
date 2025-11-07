@@ -1,7 +1,7 @@
 import { CAL_MONTH, setCalMonth, addMonths, fmtYMD, parseYMD, isCurrentUserStaff } from "../state.js";
 import { escapeHtml, getSubtasks } from "../state.js";
 import { openCalTaskPanel } from "./cards.js";
-import { loadReminderSettings, calculateReminderDates } from "./reminderSettings.js";
+import { loadReminderSettings, calculateReminderDates, isTaskUpcoming } from "./reminderSettings.js";
 
 function normalizeTaskDate(task, mode){
   const by = mode === "start" ? (task.start_date || task.startDate) : (task.deadline || task.due || task.due_date);
@@ -64,31 +64,46 @@ export function renderCalendar(tasks, { log, reload, targetCalendarId = "calenda
   });
   
   // Calculate and add reminders (only for deadline mode)
-  if (mode === "due" && reminderSettings.showUpcoming !== false) {
-    flat.forEach(t => {
-      if (!t.deadline) return;
-      
-      const reminders = calculateReminderDates(t, reminderSettings);
-      reminders.forEach(reminder => {
-        const reminderKey = fmtYMD(reminder.date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const reminderDay = new Date(reminder.date);
-        reminderDay.setHours(0, 0, 0, 0);
+  if (mode === "due") {
+    const reminderDays = reminderSettings.reminderDays || 0;
+    if (reminderDays > 0) {
+      flat.forEach(t => {
+        if (!t.deadline) return;
         
-        // Only show reminders for future dates (from today onwards)
-        // Skip reminders that are in the past
-        if (reminderDay >= today) {
-          const isOverdue = reminder.deadline < today;
-          const shouldShow = isOverdue ? reminderSettings.showOverdue !== false : reminderSettings.showUpcoming !== false;
-          
-          if (shouldShow) {
-            if (!reminderMap.has(reminderKey)) reminderMap.set(reminderKey, []);
-            reminderMap.get(reminderKey).push(reminder);
-          }
+        // Check if task is upcoming based on reminder settings
+        if (isTaskUpcoming(t, reminderSettings)) {
+          const reminders = calculateReminderDates(t, reminderSettings);
+          reminders.forEach(reminder => {
+            const reminderKey = fmtYMD(reminder.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const reminderDay = new Date(reminder.date);
+            reminderDay.setHours(0, 0, 0, 0);
+            
+            // Only show reminders for future dates (from today onwards)
+            // Skip reminders that are in the past
+            if (reminderDay >= today) {
+              if (!reminderMap.has(reminderKey)) reminderMap.set(reminderKey, []);
+              reminderMap.get(reminderKey).push(reminder);
+            }
+          });
+        }
+        
+        // Also show overdue tasks
+        if (isTaskOverdue(t)) {
+          const deadlineKey = fmtYMD(parseYMD(t.deadline));
+          if (!reminderMap.has(deadlineKey)) reminderMap.set(deadlineKey, []);
+          reminderMap.get(deadlineKey).push({
+            date: parseYMD(t.deadline),
+            days: 0,
+            taskId: t.id,
+            taskTitle: t.title,
+            deadline: parseYMD(t.deadline),
+            isOverdue: true
+          });
         }
       });
-    });
+    }
   }
 
   calTitle.textContent = CAL_MONTH.toLocaleString(undefined, { month: "long", year: "numeric" });
@@ -135,16 +150,22 @@ export function renderCalendar(tasks, { log, reload, targetCalendarId = "calenda
         // Check if the reminder is for an overdue task
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        if (reminder.deadline < today) {
+        if (reminder.isOverdue || reminder.deadline < today) {
           el.classList.add("cal-task-overdue-reminder");
         }
         
         const title = escapeHtml(reminder.taskTitle || `Task #${reminder.taskId}`);
-        const reminderText = reminder.type === "1week" ? "1 week" : 
-                            reminder.type === "1day" ? "1 day" :
-                            reminder.type === "1hour" ? "1 hour" : "30 min";
-        el.innerHTML = `🔔 Reminder: ${title} <span class="small">(${reminderText} before)</span>`;
-        el.title = `Reminder: ${title} - ${reminderText} before deadline`;
+        let reminderText = "";
+        if (reminder.isOverdue) {
+          const daysOverdue = Math.floor((today - reminder.deadline) / (24 * 60 * 60 * 1000));
+          reminderText = `${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue`;
+        } else if (reminder.days !== undefined) {
+          reminderText = reminder.days === 1 ? "1 day before" : `${reminder.days} days before`;
+        } else {
+          reminderText = "reminder";
+        }
+        el.innerHTML = `🔔 Reminder: ${title} <span class="small">(${reminderText})</span>`;
+        el.title = `Reminder: ${title} - ${reminderText}`;
         
         // Find the original task and open it on click
         const originalTask = flat.find(t => t.id === reminder.taskId);

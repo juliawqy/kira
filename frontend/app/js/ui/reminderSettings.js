@@ -6,26 +6,8 @@ const REMINDER_STORAGE_KEY = "kira_reminder_preferences";
 
 // Default reminder settings
 const DEFAULT_SETTINGS = {
-  reminderTimes: ["1day", "1hour"], // Default: 1 day and 1 hour before
-  showUpcoming: true,
-  showOverdue: true
+  reminderDays: 0  // Default: 0 days (no reminder)
 };
-
-// Convert reminder time string to milliseconds
-function reminderTimeToMs(reminderTime) {
-  switch(reminderTime) {
-    case "1week":
-      return 7 * 24 * 60 * 60 * 1000;
-    case "1day":
-      return 24 * 60 * 60 * 1000;
-    case "1hour":
-      return 60 * 60 * 1000;
-    case "30min":
-      return 30 * 60 * 1000;
-    default:
-      return 0;
-  }
-}
 
 // Load settings from localStorage
 export function loadReminderSettings() {
@@ -62,24 +44,47 @@ export function calculateReminderDates(task, settings) {
   const deadline = new Date(task.deadline);
   if (isNaN(deadline.getTime())) return [];
   
-  const reminders = [];
-  const reminderTimes = settings.reminderTimes || [];
+  const reminderDays = settings.reminderDays || 0;
   
-  reminderTimes.forEach(reminderTime => {
-    const msOffset = reminderTimeToMs(reminderTime);
-    if (msOffset > 0) {
-      const reminderDate = new Date(deadline.getTime() - msOffset);
-      reminders.push({
-        date: reminderDate,
-        type: reminderTime,
-        taskId: task.id,
-        taskTitle: task.title,
-        deadline: deadline
-      });
-    }
-  });
+  // If reminderDays is 0, no reminders
+  if (reminderDays <= 0) return [];
   
-  return reminders;
+  const reminderDate = new Date(deadline.getTime() - (reminderDays * 24 * 60 * 60 * 1000));
+  
+  return [{
+    date: reminderDate,
+    days: reminderDays,
+    taskId: task.id,
+    taskTitle: task.title,
+    deadline: deadline
+  }];
+}
+
+// Check if a task is upcoming based on reminder settings
+export function isTaskUpcoming(task, settings) {
+  if (!task.deadline) return false;
+  
+  const reminderDays = settings.reminderDays || 0;
+  if (reminderDays <= 0) return false;
+  
+  const deadline = new Date(task.deadline);
+  if (isNaN(deadline.getTime())) return false;
+  
+  const now = new Date();
+  const reminderDate = new Date(deadline.getTime() - (reminderDays * 24 * 60 * 60 * 1000));
+  
+  // Task is upcoming if we're within the reminder window (with 1 day tolerance)
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  return now >= reminderDate && now <= deadline.getTime() + oneDayMs;
+}
+
+// Load settings to UI
+function loadSettingsToUI() {
+  const settings = loadReminderSettings();
+  const reminderDaysInput = document.getElementById("reminderDays");
+  if (reminderDaysInput) {
+    reminderDaysInput.value = settings.reminderDays || 0;
+  }
 }
 
 // Bind reminder settings dialog
@@ -93,21 +98,6 @@ export function bindReminderSettings({ log, reload } = {}) {
     return;
   }
   
-  // Load and display current settings
-  function loadSettingsToUI() {
-    const settings = loadReminderSettings();
-    
-    // Set checkboxes for reminder times
-    document.getElementById("reminder1day").checked = settings.reminderTimes.includes("1day");
-    document.getElementById("reminder1hour").checked = settings.reminderTimes.includes("1hour");
-    document.getElementById("reminder30min").checked = settings.reminderTimes.includes("30min");
-    document.getElementById("reminder1week").checked = settings.reminderTimes.includes("1week");
-    
-    // Set checkboxes for show options
-    document.getElementById("showUpcoming").checked = settings.showUpcoming !== false;
-    document.getElementById("showOverdue").checked = settings.showOverdue !== false;
-  }
-  
   // Open settings dialog
   btnSettings.addEventListener("click", () => {
     loadSettingsToUI();
@@ -116,16 +106,22 @@ export function bindReminderSettings({ log, reload } = {}) {
   
   // Save settings
   btnSave.addEventListener("click", () => {
-    const reminderTimes = [];
-    if (document.getElementById("reminder1day").checked) reminderTimes.push("1day");
-    if (document.getElementById("reminder1hour").checked) reminderTimes.push("1hour");
-    if (document.getElementById("reminder30min").checked) reminderTimes.push("30min");
-    if (document.getElementById("reminder1week").checked) reminderTimes.push("1week");
+    const reminderDaysInput = document.getElementById("reminderDays");
+    if (!reminderDaysInput) {
+      showToast("Reminder days input not found", "error");
+      return;
+    }
+    
+    const reminderDays = parseInt(reminderDaysInput.value, 10);
+    
+    // Validate input
+    if (isNaN(reminderDays) || reminderDays < 0 || reminderDays > 365) {
+      showToast("Please enter a valid number between 0 and 365", "error");
+      return;
+    }
     
     const settings = {
-      reminderTimes,
-      showUpcoming: document.getElementById("showUpcoming").checked,
-      showOverdue: document.getElementById("showOverdue").checked
+      reminderDays: reminderDays
     };
     
     if (saveReminderSettings(settings)) {
@@ -151,3 +147,12 @@ export function bindReminderSettings({ log, reload } = {}) {
   });
 }
 
+// Reset reminder settings to defaults
+export function resetReminderSettings() {
+  try {
+    localStorage.removeItem(REMINDER_STORAGE_KEY);
+    console.log("Reminder settings reset to defaults");
+  } catch (e) {
+    console.warn("Failed to reset reminder settings:", e);
+  }
+}

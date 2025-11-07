@@ -7,7 +7,8 @@ import { bindEditDialog } from "./ui/editDialog.js";
 import { renderTimeline } from "./ui/timeline.js";
 import { renderGantt } from "./ui/gantt.js";
 import { renderTeamManagement } from "./ui/team-management.js";
-import { bindReminderSettings } from "./ui/reminderSettings.js";
+import { bindReminderSettings, resetReminderSettings } from "./ui/reminderSettings.js";
+import { checkAndSendNotifications, resetNotificationTracking } from "./ui/taskNotifications.js";
 
 function log(label, payload) {
   const logEl = document.getElementById("log");
@@ -537,8 +538,14 @@ function switchUser(userId) {
   if (user) {
     setCurrentUser(user);
     updateUserSelectionUI();
+    // Reset reminder settings and notification tracking when switching users
+    resetReminderSettings();
+    resetNotificationTracking();
     // Reload tasks for the new user
-    loadParents();
+    loadParents().then(() => {
+      // Check and send notifications after tasks are loaded
+      checkAndSendNotifications();
+    });
   }
 }
 
@@ -718,5 +725,8 @@ bindEditDialog(log, () => autoReload());
 bindReminderSettings({ log, reload: () => autoReload() });
 
 // First load
-loadParents();
+loadParents().then(() => {
+  // Check and send notifications after tasks are loaded
+  checkAndSendNotifications();
+});
 });
