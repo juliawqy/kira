@@ -4,7 +4,7 @@ from backend.src.enums.user_role import UserRole
 
 def create_project(project_name: str, project_manager_id: int = None):
     user_role = user_service.get_user(project_manager_id)
-    if str(getattr(user_role, "role", "")).lower() != (UserRole.MANAGER.value.lower() or UserRole.DIRECTOR.value.lower()):
+    if str(getattr(user_role, "role", "")).lower() != UserRole.MANAGER.value.lower() and str(getattr(user_role, "role", "")).lower() != UserRole.DIRECTOR.value.lower():
         raise ValueError(f"User {project_manager_id} cannot create a project.")
     
     if not project_name or not project_name.strip():
