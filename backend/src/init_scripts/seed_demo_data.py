@@ -1314,7 +1314,7 @@ def seed_database():
     print(f"\nCreated Task {finance_exec_task.id}: Assigned Task '{finance_exec_task.title}' to Finance Executives: {', '.join([user_handler.get_user(uid).name for uid in finance_execs_ids])}")
 
     # Create tasks for IT members
-    it_member_task = task_handler.create_task(**{"title": "Network Infrastructure Upgrade", "description": "Upgrade the existing network infrastructure for better performance.", "start_date": date(2025, 11, 9), "deadline": date(2025, 11, 18), "priority": 3, "tag": "IT", "project_id": 7, "creator_id": it_members[0].user_id})
+    it_member_task = task_handler.create_task(**{"title": "Network Infrastructure Upgrade", "description": "Upgrade the existing network infrastructure for better performance.", "start_date": date(2025, 11, 11), "deadline": date(2025, 11, 18), "priority": 3, "tag": "IT", "project_id": 7, "creator_id": it_members[0].user_id})
     it_members_ids = []
     for it_member in it_members:
         it_members_ids.append(it_member.user_id)

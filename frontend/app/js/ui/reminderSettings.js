@@ -6,14 +6,8 @@ const REMINDER_STORAGE_KEY = "kira_reminder_preferences";
 
 // Default reminder settings
 const DEFAULT_SETTINGS = {
-  reminderDays: 0, // Default: 0 days (no reminders)
-  showUpcoming: true
+  reminderDays: 0  // Default: 0 days (no reminder)
 };
-
-// Convert reminder days to milliseconds
-function reminderDaysToMs(days) {
-  return days * 24 * 60 * 60 * 1000;
-}
 
 // Load settings from localStorage
 export function loadReminderSettings() {
@@ -43,17 +37,6 @@ export function saveReminderSettings(settings) {
   }
 }
 
-// Reset reminder settings to defaults
-export function resetReminderSettings() {
-  try {
-    localStorage.removeItem(REMINDER_STORAGE_KEY);
-    return true;
-  } catch (e) {
-    console.error("Failed to reset reminder settings:", e);
-    return false;
-  }
-}
-
 // Calculate reminder dates for a task based on deadline
 export function calculateReminderDates(task, settings) {
   if (!task.deadline) return [];
@@ -61,22 +44,47 @@ export function calculateReminderDates(task, settings) {
   const deadline = new Date(task.deadline);
   if (isNaN(deadline.getTime())) return [];
   
-  const reminders = [];
-  const reminderDays = settings.reminderDays !== undefined ? settings.reminderDays : 0;
+  const reminderDays = settings.reminderDays || 0;
   
-  if (reminderDays > 0) {
-    const msOffset = reminderDaysToMs(reminderDays);
-    const reminderDate = new Date(deadline.getTime() - msOffset);
-    reminders.push({
-      date: reminderDate,
-      days: reminderDays,
-      taskId: task.id,
-      taskTitle: task.title,
-      deadline: deadline
-    });
+  // If reminderDays is 0, no reminders
+  if (reminderDays <= 0) return [];
+  
+  const reminderDate = new Date(deadline.getTime() - (reminderDays * 24 * 60 * 60 * 1000));
+  
+  return [{
+    date: reminderDate,
+    days: reminderDays,
+    taskId: task.id,
+    taskTitle: task.title,
+    deadline: deadline
+  }];
+}
+
+// Check if a task is upcoming based on reminder settings
+export function isTaskUpcoming(task, settings) {
+  if (!task.deadline) return false;
+  
+  const reminderDays = settings.reminderDays || 0;
+  if (reminderDays <= 0) return false;
+  
+  const deadline = new Date(task.deadline);
+  if (isNaN(deadline.getTime())) return false;
+  
+  const now = new Date();
+  const reminderDate = new Date(deadline.getTime() - (reminderDays * 24 * 60 * 60 * 1000));
+  
+  // Task is upcoming if we're within the reminder window (with 1 day tolerance)
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  return now >= reminderDate && now <= deadline.getTime() + oneDayMs;
+}
+
+// Load settings to UI
+function loadSettingsToUI() {
+  const settings = loadReminderSettings();
+  const reminderDaysInput = document.getElementById("reminderDays");
+  if (reminderDaysInput) {
+    reminderDaysInput.value = settings.reminderDays || 0;
   }
-  
-  return reminders;
 }
 
 // Bind reminder settings dialog
@@ -90,24 +98,6 @@ export function bindReminderSettings({ log, reload } = {}) {
     return;
   }
   
-  // Load and display current settings
-  function loadSettingsToUI() {
-    const settings = loadReminderSettings();
-    
-    // Set reminder days input
-    const reminderDaysInput = document.getElementById("reminderDays");
-    const reminderDaysErr = document.getElementById("reminderDays_err");
-    if (reminderDaysInput) {
-      reminderDaysInput.value = settings.reminderDays !== undefined ? settings.reminderDays : 0;
-    }
-    if (reminderDaysErr) {
-      reminderDaysErr.textContent = "";
-    }
-    
-    // Set checkbox for show options
-    document.getElementById("showUpcoming").checked = settings.showUpcoming !== false;
-  }
-  
   // Open settings dialog
   btnSettings.addEventListener("click", () => {
     loadSettingsToUI();
@@ -117,26 +107,21 @@ export function bindReminderSettings({ log, reload } = {}) {
   // Save settings
   btnSave.addEventListener("click", () => {
     const reminderDaysInput = document.getElementById("reminderDays");
-    const reminderDaysErr = document.getElementById("reminderDays_err");
-    
-    // Validate reminder days
-    const reminderDays = parseInt(reminderDaysInput.value);
-    if (isNaN(reminderDays) || reminderDays < 0 || reminderDays > 365) {
-      if (reminderDaysErr) {
-        reminderDaysErr.textContent = "Please enter a number between 0 and 365";
-      }
-      reminderDaysInput.focus();
+    if (!reminderDaysInput) {
+      showToast("Reminder days input not found", "error");
       return;
     }
     
-    // Clear error
-    if (reminderDaysErr) {
-      reminderDaysErr.textContent = "";
+    const reminderDays = parseInt(reminderDaysInput.value, 10);
+    
+    // Validate input
+    if (isNaN(reminderDays) || reminderDays < 0 || reminderDays > 365) {
+      showToast("Please enter a valid number between 0 and 365", "error");
+      return;
     }
     
     const settings = {
-      reminderDays,
-      showUpcoming: document.getElementById("showUpcoming").checked
+      reminderDays: reminderDays
     };
     
     if (saveReminderSettings(settings)) {
@@ -162,3 +147,12 @@ export function bindReminderSettings({ log, reload } = {}) {
   });
 }
 
+// Reset reminder settings to defaults
+export function resetReminderSettings() {
+  try {
+    localStorage.removeItem(REMINDER_STORAGE_KEY);
+    console.log("Reminder settings reset to defaults");
+  } catch (e) {
+    console.warn("Failed to reset reminder settings:", e);
+  }
+}
