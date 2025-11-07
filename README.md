@@ -30,6 +30,17 @@ To remove database:
    Windows: `del backend\src\database\kira.db`     
    macOS: `rm backend/src/database/kira.db`     
      
+Currently email is verified through logger, to route notification emails to a fixed test inbox during local runs     
+     
+1. Set these environment variables before running tests or starting the app.     
+     
+   Windows (PowerShell):     
+  `$env:TEST_RECIPIENT_EMAIL = "kirahoora@gmail.com"; $env:TEST_RECIPIENT_NAME = "Kira Local"`     
+   macOS/Linux (bash/zsh):     
+  `export TEST_RECIPIENT_EMAIL = "kirahoora@gmail.com"; export TEST_RECIPIENT_NAME="Kira Local"`
+     
+2. Uncomment lines 141-151 in backend/src/services/email.py and comment out line 154     
+
      
 ### How to set up frontend (second terminal)     
      
@@ -44,12 +55,20 @@ To remove database:
      
 ### Testing (third terminal)     
      
-To route notification emails to a fixed test inbox during local runs, set these environment variables before running tests or starting the app.     
+To test working email service,      
+
+1. Set these environment variables before running tests or starting the app.     
      
    Windows (PowerShell):     
   `$env:TEST_RECIPIENT_EMAIL = "kirahoora@gmail.com"; $env:TEST_RECIPIENT_NAME = "Kira Local"`     
    macOS/Linux (bash/zsh):     
-  `export TEST_RECIPIENT_EMAIL = "kirahoora@gmail.com"; export TEST_RECIPIENT_NAME="Kira Local"`     
+  `export TEST_RECIPIENT_EMAIL = "kirahoora@gmail.com"; export TEST_RECIPIENT_NAME="Kira Local"`
+     
+2. Uncomment lines 141-151 in backend/src/services/email.py and comment out line 154     
+     
+3. Uncomment tests UNI-124/004 to UNI-124/009 (lines 29-112) in tests/backend/unit/notification_and_email/test_email_service.py
+   
+Running tests:
      
 1. Run all backend tests     
    `pytest`     
