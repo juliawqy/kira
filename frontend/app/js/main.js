@@ -12,6 +12,37 @@ import { resetNotificationTracking } from "./ui/taskNotifications.js";
 import { bindReportExport } from "./ui/reportExport.js";
 import { checkAndSendNotifications } from "./ui/taskNotifications.js";
 
+// Demo user IDs - used for presentation demo
+const DEMO_USER_IDS = {
+  STAFF1: 15,    // Aisha Rahman (Account Manager - Overdue Task)
+  STAFF2: 571,   // Aaron Koh (IT Member - Upcoming Task)
+  MANAGER1: 10,  // Alice Tan (Sales Manager - Recurring Task)
+  MANAGER2: 516, // Ivan Lee (Finance Manager)
+  DIRECTOR1: 3,  // Derek Tan (Sales Director)
+  DIRECTOR2: 7   // Sally Loh (HR Director)
+};
+
+// Project ID to name mapping (from seeded data)
+export const PROJECT_NAMES = {
+  1: "Sales Automation Tool",
+  2: "Consulting CRM System",
+  3: "Software Solutions Development",
+  4: "Enterprise Operations Dashboard",
+  5: "HR Management Platform",
+  6: "Financial Analytics Suite",
+  7: "IT Infrastructure Upgrade",
+  8: "Client Acquisition Campaign",
+  9: "Market Expansion Strategy",
+  10: "Sales Training Program",
+  11: "Product Launch Event",
+  12: "Customer Retention Initiative",
+  13: "Budget Planning Tool",
+  14: "Expense Tracking System",
+  15: "Payroll Automation",
+  16: "Financial Reporting Dashboard",
+  17: "Audit Compliance System"
+};
+
 function log(label, payload) {
   const logEl = document.getElementById("log");
   const line = `[${new Date().toLocaleTimeString()}] ${label}: ${typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)}`;
@@ -122,61 +153,234 @@ function applyCalendarFilters() {
   renderCalendar(filteredTasks, { log, reload: () => autoReload() });
 }
 
-function updateTeamProjectFilter(userTasks) {
-  const projectSelect = document.getElementById("teamCalFilterProject");
-  if (!projectSelect) return;
-  
-  // Extract unique project IDs from user's tasks
-  const userProjectIds = new Set();
-  userTasks.forEach(task => {
+// Extract unique project IDs from tasks (including subtasks)
+function extractProjectIdsFromTasks(tasks) {
+  const projectIds = new Set();
+  tasks.forEach(task => {
     if (task.project_id) {
-      userProjectIds.add(task.project_id.toString());
+      projectIds.add(task.project_id);
     }
     // Also check subtasks
     if (task.subTasks && Array.isArray(task.subTasks)) {
       task.subTasks.forEach(subtask => {
         if (subtask.project_id) {
-          userProjectIds.add(subtask.project_id.toString());
+          projectIds.add(subtask.project_id);
         }
       });
     }
   });
-  
-  // Get all option elements
-  const options = Array.from(projectSelect.options);
-  const currentValue = projectSelect.value;
-  
-  // Filter and re-populate options
-  projectSelect.innerHTML = "";
-  let validCurrentValue = null;
-  
-  options.forEach(option => {
-    const projectId = option.value;
-    if (userProjectIds.has(projectId)) {
-      const newOption = document.createElement("option");
-      newOption.value = projectId;
-      newOption.textContent = option.textContent;
-      if (option.selected || projectId === currentValue) {
-        newOption.selected = true;
-        validCurrentValue = projectId;
-      }
-      projectSelect.appendChild(newOption);
+  return Array.from(projectIds).sort((a, b) => a - b);
+}
+
+// Extract unique tags from tasks (including subtasks)
+function extractTagsFromTasks(tasks) {
+  const tags = new Set();
+  tasks.forEach(task => {
+    if (task.tag && task.tag.trim() !== "") {
+      tags.add(task.tag.trim());
+    }
+    // Also check subtasks
+    if (task.subTasks && Array.isArray(task.subTasks)) {
+      task.subTasks.forEach(subtask => {
+        if (subtask.tag && subtask.tag.trim() !== "") {
+          tags.add(subtask.tag.trim());
+        }
+      });
     }
   });
+  return Array.from(tags).sort(); // Sort alphabetically
+}
+
+// Update a single project filter dropdown
+function updateProjectFilterDropdown(selectId, projectIds, includeAllOption = true, defaultSelectedId = null) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
   
-  // If current selection is invalid, select first available
-  if (!validCurrentValue && projectSelect.options.length > 0) {
-    projectSelect.options[0].selected = true;
+  const currentValue = select.value;
+  select.innerHTML = "";
+  
+  // Add "All Projects" option if needed
+  if (includeAllOption) {
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = "All Projects";
+    select.appendChild(allOption);
+  }
+  
+  // Add project options
+  let validCurrentValue = null;
+  projectIds.forEach(projectId => {
+    const option = document.createElement("option");
+    option.value = projectId.toString();
+    const projectName = PROJECT_NAMES[projectId] || `Project ${projectId}`;
+    option.textContent = `${projectName} (${projectId})`;
+    
+    // Preserve current selection or use default
+    if (defaultSelectedId && projectId === defaultSelectedId) {
+      option.selected = true;
+      validCurrentValue = projectId.toString();
+    } else if (currentValue === projectId.toString()) {
+      option.selected = true;
+      validCurrentValue = projectId.toString();
+    }
+    
+    select.appendChild(option);
+  });
+  
+  // If current selection is invalid, select first available (or "All Projects")
+  if (!validCurrentValue && select.options.length > 0) {
+    select.options[0].selected = true;
   }
   
   // If no projects available, show message
-  if (projectSelect.options.length === 0) {
+  if (projectIds.length === 0) {
     const noProjectsOption = document.createElement("option");
     noProjectsOption.value = "";
     noProjectsOption.textContent = "No projects available";
     noProjectsOption.disabled = true;
-    projectSelect.appendChild(noProjectsOption);
+    select.appendChild(noProjectsOption);
   }
+}
+
+// Update a single tag filter dropdown
+function updateTagFilterDropdown(selectId, tags, includeAllOption = true) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  
+  const currentValue = select.value;
+  select.innerHTML = "";
+  
+  // Add "All Tags" option if needed
+  if (includeAllOption) {
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = "All Tags";
+    select.appendChild(allOption);
+  }
+  
+  // Add tag options
+  let validCurrentValue = null;
+  tags.forEach(tag => {
+    const option = document.createElement("option");
+    option.value = tag;
+    option.textContent = tag;
+    
+    // Preserve current selection
+    if (currentValue === tag) {
+      option.selected = true;
+      validCurrentValue = tag;
+    }
+    
+    select.appendChild(option);
+  });
+  
+  // If current selection is invalid, select first available (or "All Tags")
+  if (!validCurrentValue && select.options.length > 0) {
+    select.options[0].selected = true;
+  }
+  
+  // If no tags available, show message
+  if (tags.length === 0 && includeAllOption) {
+    // Keep "All Tags" option, no additional message needed
+  } else if (tags.length === 0 && !includeAllOption) {
+    const noTagsOption = document.createElement("option");
+    noTagsOption.value = "";
+    noTagsOption.textContent = "No tags available";
+    noTagsOption.disabled = true;
+    select.appendChild(noTagsOption);
+  }
+}
+
+// Update all project filters based on user's tasks
+function updateAllProjectFilters(userTasks) {
+  const projectIds = extractProjectIdsFromTasks(userTasks);
+  
+  // Update all filter dropdowns
+  updateProjectFilterDropdown("filterProject", projectIds, true);
+  updateProjectFilterDropdown("calFilterProject", projectIds, true);
+  updateProjectFilterDropdown("timelineFilterProject", projectIds, true);
+  updateProjectFilterDropdown("ganttFilterProject", projectIds, true);
+  
+  // Team calendar filter (no "All Projects" option, defaults to first project)
+  const teamProjectIds = projectIds.length > 0 ? projectIds : [];
+  updateProjectFilterDropdown("teamCalFilterProject", teamProjectIds, false, teamProjectIds[0] || null);
+  
+  // Update create form project dropdown - restrict to user's projects only
+  const cProjectSelect = document.getElementById("c_project");
+  if (cProjectSelect) {
+    cProjectSelect.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.textContent = projectIds.length > 0 ? "Select a project" : "No projects available";
+    cProjectSelect.appendChild(placeholder);
+    
+    if (projectIds.length > 0) {
+      projectIds.forEach(projectId => {
+        const option = document.createElement("option");
+        option.value = projectId.toString();
+        const projectName = PROJECT_NAMES[projectId] || `Project ${projectId}`;
+        option.textContent = `${projectName} (${projectId})`;
+        cProjectSelect.appendChild(option);
+      });
+    }
+  }
+  
+  // For edit form, show all projects (so users can change to any project when editing)
+  // This ensures existing tasks can be edited even if the user no longer has tasks in that project
+  const allProjectIds = Object.keys(PROJECT_NAMES).map(id => parseInt(id)).sort((a, b) => a - b);
+  const eProjectSelect = document.getElementById("e_project");
+  if (eProjectSelect) {
+    // Don't clear if already populated (during edit), just ensure all options exist
+    const existingValue = eProjectSelect.value;
+    const existingOptions = Array.from(eProjectSelect.options).map(opt => opt.value);
+    allProjectIds.forEach(projectId => {
+      const projectIdStr = projectId.toString();
+      if (!existingOptions.includes(projectIdStr)) {
+        const option = document.createElement("option");
+        option.value = projectIdStr;
+        const projectName = PROJECT_NAMES[projectId] || `Project ${projectId}`;
+        option.textContent = `${projectName} (${projectId})`;
+        eProjectSelect.appendChild(option);
+      }
+    });
+    // Restore selection if it was set
+    if (existingValue) {
+      eProjectSelect.value = existingValue;
+    }
+  }
+}
+
+// Update all tag filters based on user's tasks
+function updateAllTagFilters(userTasks) {
+  const tags = extractTagsFromTasks(userTasks);
+  
+  // Update all tag filter dropdowns
+  updateTagFilterDropdown("filterTag", tags, true);
+  updateTagFilterDropdown("calFilterTag", tags, true);
+  updateTagFilterDropdown("teamCalFilterTag", tags, true);
+}
+
+function mergeTasksById(...taskLists) {
+  const merged = new Map();
+  taskLists.forEach(list => {
+    if (!Array.isArray(list)) return;
+    list.forEach(task => {
+      if (!task || task.id === undefined || task.id === null) return;
+      if (!merged.has(task.id)) {
+        merged.set(task.id, task);
+      }
+    });
+  });
+  return Array.from(merged.values());
+}
+
+function updateTeamProjectFilter(userTasks) {
+  // This function is now a wrapper for the new updateAllProjectFilters
+  // Kept for backward compatibility
+  const projectIds = extractProjectIdsFromTasks(userTasks);
+  updateProjectFilterDropdown("teamCalFilterProject", projectIds, false, projectIds[0] || null);
 }
 
 async function renderTeamCalendar() {
@@ -380,29 +584,30 @@ async function loadParents(){
     // Get tasks for current user using API endpoint
     let userTasks = [];
     if (CURRENT_USER && CURRENT_USER.user_id) {
-      // For managers, load tasks from their managed projects
+      // For managers, load tasks from their managed projects plus their own assignments
       if (isCurrentUserManager() && !isCurrentUserDirector()) {
-        const data = await apiTask(`/manager/project/${CURRENT_USER.user_id}`, { method: "GET" });
-        userTasks = Array.isArray(data) ? data : [];
+        const [managedData, ownData] = await Promise.all([
+          apiTask(`/manager/project/${CURRENT_USER.user_id}`, { method: "GET" }),
+          apiTask(`/user/${CURRENT_USER.user_id}`, { method: "GET" })
+        ]);
+        const managedTasks = Array.isArray(managedData) ? managedData : [];
+        const ownTasks = Array.isArray(ownData) ? ownData : [];
+        userTasks = mergeTasksById(managedTasks, ownTasks);
         setLastTasks(userTasks);
       } else if (isCurrentUserDirector()) {
-        // For directors, load tasks from their managed departments (returns dict grouped by team)
-        const data = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
-        // Flatten the dict into an array of all tasks, deduplicating by task ID
-        userTasks = [];
-        const taskIdsSeen = new Set();
-        if (data && typeof data === 'object') {
-          Object.values(data).forEach(teamTaskList => {
+        // For directors, combine department tasks with their own assignments
+        const directorData = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
+        let directorTasks = [];
+        if (directorData && typeof directorData === "object") {
+          Object.values(directorData).forEach(teamTaskList => {
             if (Array.isArray(teamTaskList)) {
-              teamTaskList.forEach(task => {
-                if (!taskIdsSeen.has(task.id)) {
-                  taskIdsSeen.add(task.id);
-                  userTasks.push(task);
-                }
-              });
+              directorTasks = directorTasks.concat(teamTaskList);
             }
           });
         }
+        const ownData = await apiTask(`/user/${CURRENT_USER.user_id}`, { method: "GET" });
+        const ownTasks = Array.isArray(ownData) ? ownData : [];
+        userTasks = mergeTasksById(directorTasks, ownTasks);
         setLastTasks(userTasks);
       } else {
         // For staff, load only their assigned tasks
@@ -428,9 +633,12 @@ async function loadParents(){
     // Apply calendar filters
     applyCalendarFilters();
     
+    // Update all project and tag filters based on user's tasks
+    updateAllProjectFilters(userTasks);
+    updateAllTagFilters(userTasks);
+    
     // Apply team calendar filters if staff user
     if (isCurrentUserStaff()) {
-      updateTeamProjectFilter(userTasks);
       renderTeamCalendar();
     }
     
@@ -461,9 +669,9 @@ function autoReload(delay=80){ clearTimeout(_reloadTimer); _reloadTimer = setTim
 
 // User selection functionality
 function initializeUserSelection() {
-  // Set default user (Cong) only if no user is currently selected
+  // Set default user (Staff 1) only if no user is currently selected
   if (!CURRENT_USER) {
-    const defaultUser = USERS.find(u => u.user_id === 1) || USERS[0];
+    const defaultUser = USERS.find(u => u.user_id === DEMO_USER_IDS.STAFF1) || USERS[0];
     if (defaultUser) {
       setCurrentUser(defaultUser);
     }
@@ -488,27 +696,35 @@ function initializeUserSelection() {
 }
 
 function updateUserSelectionUI() {
-  const congBtn = document.getElementById("userCong");
-  const juliaBtn = document.getElementById("userJulia");
-  const managerBtn = document.getElementById("userManager");
-  const directorBtn = document.getElementById("userDirector");
+  const staff1Btn = document.getElementById("userStaff1");
+  const staff2Btn = document.getElementById("userStaff2");
+  const manager1Btn = document.getElementById("userManager1");
+  const manager2Btn = document.getElementById("userManager2");
+  const director1Btn = document.getElementById("userDirector1");
+  const director2Btn = document.getElementById("userDirector2");
   
   if (CURRENT_USER) {
     // Remove active class from all buttons
-    congBtn?.classList.remove("active");
-    juliaBtn?.classList.remove("active");
-    managerBtn?.classList.remove("active");
-    directorBtn?.classList.remove("active");
+    staff1Btn?.classList.remove("active");
+    staff2Btn?.classList.remove("active");
+    manager1Btn?.classList.remove("active");
+    manager2Btn?.classList.remove("active");
+    director1Btn?.classList.remove("active");
+    director2Btn?.classList.remove("active");
     
     // Add active class to current user button
-    if (CURRENT_USER.user_id === 1) {
-      congBtn?.classList.add("active");
-    } else if (CURRENT_USER.user_id === 2) {
-      juliaBtn?.classList.add("active");
-    } else if (CURRENT_USER.user_id === 3) {
-      managerBtn?.classList.add("active");
-    } else if (CURRENT_USER.user_id === 4) {
-      directorBtn?.classList.add("active");
+    if (CURRENT_USER.user_id === DEMO_USER_IDS.STAFF1) {
+      staff1Btn?.classList.add("active");
+    } else if (CURRENT_USER.user_id === DEMO_USER_IDS.STAFF2) {
+      staff2Btn?.classList.add("active");
+    } else if (CURRENT_USER.user_id === DEMO_USER_IDS.MANAGER1) {
+      manager1Btn?.classList.add("active");
+    } else if (CURRENT_USER.user_id === DEMO_USER_IDS.MANAGER2) {
+      manager2Btn?.classList.add("active");
+    } else if (CURRENT_USER.user_id === DEMO_USER_IDS.DIRECTOR1) {
+      director1Btn?.classList.add("active");
+    } else if (CURRENT_USER.user_id === DEMO_USER_IDS.DIRECTOR2) {
+      director2Btn?.classList.add("active");
     }
     
     // Show/hide staff-only tab
@@ -542,15 +758,70 @@ function updateUserSelectionUI() {
   }
 }
 
+// Reset all filters to their default values
+function resetAllFilters() {
+  // List view filters
+  const filterStatus = document.getElementById("filterStatus");
+  const filterPriority = document.getElementById("filterPriority");
+  const filterProject = document.getElementById("filterProject");
+  const filterTag = document.getElementById("filterTag");
+  
+  if (filterStatus) filterStatus.value = "";
+  if (filterPriority) filterPriority.value = "";
+  if (filterProject) filterProject.value = "";
+  if (filterTag) filterTag.value = "";
+  
+  // Calendar view filters
+  const calFilterStatus = document.getElementById("calFilterStatus");
+  const calFilterPriority = document.getElementById("calFilterPriority");
+  const calFilterProject = document.getElementById("calFilterProject");
+  const calFilterTag = document.getElementById("calFilterTag");
+  
+  if (calFilterStatus) calFilterStatus.value = "";
+  if (calFilterPriority) calFilterPriority.value = "";
+  if (calFilterProject) calFilterProject.value = "";
+  if (calFilterTag) calFilterTag.value = "";
+  
+  // Team calendar filters
+  const teamCalFilterStatus = document.getElementById("teamCalFilterStatus");
+  const teamCalFilterPriority = document.getElementById("teamCalFilterPriority");
+  const teamCalFilterProject = document.getElementById("teamCalFilterProject");
+  const teamCalFilterTag = document.getElementById("teamCalFilterTag");
+  
+  if (teamCalFilterStatus) teamCalFilterStatus.value = "";
+  if (teamCalFilterPriority) teamCalFilterPriority.value = "";
+  // Team calendar project filter will be set by updateAllProjectFilters, but reset it here too
+  if (teamCalFilterProject) teamCalFilterProject.value = "";
+  if (teamCalFilterTag) teamCalFilterTag.value = "";
+  
+  // Timeline view filters
+  const timelineFilterProject = document.getElementById("timelineFilterProject");
+  const timelineSortBy = document.getElementById("timelineSortBy");
+  
+  if (timelineFilterProject) timelineFilterProject.value = "";
+  if (timelineSortBy) timelineSortBy.value = "";
+  
+  // Gantt view filters
+  const ganttFilterProject = document.getElementById("ganttFilterProject");
+  const ganttFilterStatus = document.getElementById("ganttFilterStatus");
+  const ganttFilterPriority = document.getElementById("ganttFilterPriority");
+  
+  if (ganttFilterProject) ganttFilterProject.value = "";
+  if (ganttFilterStatus) ganttFilterStatus.value = "";
+  if (ganttFilterPriority) ganttFilterPriority.value = "";
+}
+
 function switchUser(userId) {
   const user = USERS.find(u => u.user_id === userId);
   if (user) {
     setCurrentUser(user);
     updateUserSelectionUI();
+    // Reset all filters for the new user
+    resetAllFilters();
     // Reset reminder settings and notification tracking for the new user
     resetReminderSettings();
     resetNotificationTracking();
-    // Reload tasks for the new user
+    // Reload tasks for the new user (this will also update filters with new user's projects/tags)
     loadParents();
   }
 }
@@ -684,15 +955,20 @@ document.addEventListener("DOMContentLoaded", () => {
     syncCalendarFilter("calFilterTag", e.target.value);
   });
 
-  // Wire user selection buttons
-  const congBtn = document.getElementById("userCong");
-  const juliaBtn = document.getElementById("userJulia");
-  const managerBtn = document.getElementById("userManager");
-  const directorBtn = document.getElementById("userDirector");
-  congBtn?.addEventListener("click", () => switchUser(1));
-  juliaBtn?.addEventListener("click", () => switchUser(2));
-  managerBtn?.addEventListener("click", () => switchUser(3));
-  directorBtn?.addEventListener("click", () => switchUser(4));
+  // Wire user selection buttons - Demo users
+  const staff1Btn = document.getElementById("userStaff1");
+  const staff2Btn = document.getElementById("userStaff2");
+  const manager1Btn = document.getElementById("userManager1");
+  const manager2Btn = document.getElementById("userManager2");
+  const director1Btn = document.getElementById("userDirector1");
+  const director2Btn = document.getElementById("userDirector2");
+  
+  staff1Btn?.addEventListener("click", () => switchUser(DEMO_USER_IDS.STAFF1));
+  staff2Btn?.addEventListener("click", () => switchUser(DEMO_USER_IDS.STAFF2));
+  manager1Btn?.addEventListener("click", () => switchUser(DEMO_USER_IDS.MANAGER1));
+  manager2Btn?.addEventListener("click", () => switchUser(DEMO_USER_IDS.MANAGER2));
+  director1Btn?.addEventListener("click", () => switchUser(DEMO_USER_IDS.DIRECTOR1));
+  director2Btn?.addEventListener("click", () => switchUser(DEMO_USER_IDS.DIRECTOR2));
 
   // Wire team calendar navigation
   document.getElementById("teamCalPrev")?.addEventListener("click", () => {

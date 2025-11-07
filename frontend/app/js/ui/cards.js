@@ -98,6 +98,100 @@ async function loadAssigneesForTask(taskId, log) {
   }
 }
 
+function showAllAssigneesDialog(allAssignees, taskId, log, onUpdateCallback) {
+  const dialog = document.getElementById("dlgAllAssignees");
+  const listContainer = document.getElementById("allAssigneesList");
+  
+  if (!dialog || !listContainer) {
+    console.error("Dialog elements not found");
+    return;
+  }
+  
+  // Clear previous content
+  listContainer.innerHTML = "";
+  
+  if (!allAssignees || allAssignees.length === 0) {
+    const emptyMsg = document.createElement("div");
+    emptyMsg.textContent = "No assignees";
+    emptyMsg.style.color = "var(--sub)";
+    emptyMsg.style.fontStyle = "italic";
+    listContainer.appendChild(emptyMsg);
+  } else {
+    // Render all assignees
+    allAssignees.forEach(a => {
+      const assigneeItem = document.createElement("div");
+      assigneeItem.style.display = "flex";
+      assigneeItem.style.alignItems = "center";
+      assigneeItem.style.justifyContent = "space-between";
+      assigneeItem.style.padding = "8px 12px";
+      assigneeItem.style.border = "1px solid var(--border)";
+      assigneeItem.style.borderRadius = "8px";
+      assigneeItem.style.backgroundColor = "var(--panel)";
+      
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`;
+      nameSpan.style.flex = "1";
+      
+      assigneeItem.appendChild(nameSpan);
+      
+      // Add remove button if callback is provided (editable mode)
+      if (onUpdateCallback) {
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "assignee-remove";
+        removeBtn.innerHTML = "×";
+        removeBtn.setAttribute("aria-label", "Remove assignee");
+        removeBtn.style.marginLeft = "8px";
+        removeBtn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            const body = JSON.stringify({ user_ids: [Number(a.user_id ?? a.id)] });
+            await apiTask(`/${taskId}/assignees`, { method: "DELETE", body });
+            const slog = asLog(log);
+            slog(`DELETE /task/${taskId}/assignees`, body);
+            
+            // Reload assignees and update both dialog and main view
+            const updatedAssignees = await loadAssigneesForTask(taskId, slog);
+            showAllAssigneesDialog(updatedAssignees, taskId, log, onUpdateCallback);
+            if (onUpdateCallback) {
+              onUpdateCallback(updatedAssignees || []);
+            }
+            showToast("User unassigned successfully", "success");
+          } catch (err) {
+            const slog = asLog(log);
+            slog("Unassign error", String(err));
+            showToast(err.message || "Failed to unassign user", "error");
+          }
+        });
+        assigneeItem.appendChild(removeBtn);
+      }
+      
+      listContainer.appendChild(assigneeItem);
+    });
+  }
+  
+  // Close dialog on backdrop click
+  const backdropClickHandler = (e) => {
+    if (e.target === dialog) {
+      dialog.close();
+    }
+  };
+  
+  // Remove any existing listener and add new one
+  dialog.removeEventListener("click", backdropClickHandler);
+  dialog.addEventListener("click", backdropClickHandler);
+  
+  // Clean up listener when dialog closes
+  const closeHandler = () => {
+    dialog.removeEventListener("click", backdropClickHandler);
+    dialog.removeEventListener("close", closeHandler);
+  };
+  dialog.addEventListener("close", closeHandler);
+  
+  // Show dialog
+  dialog.showModal();
+}
+
 /* ----------------------------- cards ----------------------------- */
 
 // Exported so main.js can import by name.
@@ -430,8 +524,13 @@ function renderAssigneeControls(task, { log, reload }) {
       return;
     }
     
-    // Render chips inline with the label
-    list.forEach(a => {
+    // Limit visible chips to prevent overflow (show max 5, then "+X more")
+    const MAX_VISIBLE_CHIPS = 5;
+    const visibleAssignees = list.slice(0, MAX_VISIBLE_CHIPS);
+    const remainingCount = list.length - MAX_VISIBLE_CHIPS;
+    
+    // Render visible chips inline with the label
+    visibleAssignees.forEach(a => {
       const chip = document.createElement("span");
       chip.className = "assignee-chip";
       chip.textContent = a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`;
@@ -459,6 +558,20 @@ function renderAssigneeControls(task, { log, reload }) {
       // Add to inline container
       chipsContainer.appendChild(chip);
     });
+    
+    // Add "+X more" indicator if there are remaining assignees (clickable to show dialog)
+    if (remainingCount > 0) {
+      const moreChip = document.createElement("span");
+      moreChip.className = "assignee-chip assignee-more";
+      moreChip.textContent = `+${remainingCount} more`;
+      moreChip.style.cursor = "pointer";
+      moreChip.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showAllAssigneesDialog(list, task.id, slog, renderAssignees);
+      });
+      chipsContainer.appendChild(moreChip);
+    }
   };
 
   const assignees = getAssignees(task);
@@ -519,13 +632,32 @@ function renderAssigneeDisplay(task, { log }) {
       return;
     }
     
-    // Render chips inline with the label (read-only, no remove buttons)
-    list.forEach(a => {
+    // Limit visible chips to prevent overflow (show max 5, then "+X more")
+    const MAX_VISIBLE_CHIPS = 5;
+    const visibleAssignees = list.slice(0, MAX_VISIBLE_CHIPS);
+    const remainingCount = list.length - MAX_VISIBLE_CHIPS;
+    
+    // Render visible chips inline with the label (read-only, no remove buttons)
+    visibleAssignees.forEach(a => {
       const chip = document.createElement("span");
       chip.className = "assignee-chip";
       chip.textContent = a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`;
       chipsContainer.appendChild(chip);
     });
+    
+    // Add "+X more" indicator if there are remaining assignees (clickable to show dialog)
+    if (remainingCount > 0) {
+      const moreChip = document.createElement("span");
+      moreChip.className = "assignee-chip assignee-more";
+      moreChip.textContent = `+${remainingCount} more`;
+      moreChip.style.cursor = "pointer";
+      moreChip.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showAllAssigneesDialog(list, task.id, slog, null);
+      });
+      chipsContainer.appendChild(moreChip);
+    }
   };
 
   const assignees = getAssignees(task);
@@ -1144,7 +1276,7 @@ function renderCommentsSection(task, { log, reload }) {
   
   // Add label for mentions dropdown
   const mentionLabel = document.createElement("label");
-  mentionLabel.textContent = "Tag users (optional):";
+  mentionLabel.textContent = "Mention users (optional, hold Ctrl/Cmd to select multiple):";
   mentionLabel.className = "comment-mention-label";
   mentionLabel.setAttribute("for", mentionSelect.id);
   
@@ -1152,6 +1284,10 @@ function renderCommentsSection(task, { log, reload }) {
   // Reuse the users list already fetched above
   if (users && users.length > 0) {
     users.forEach(user => {
+      // Skip root/admin users from mention list
+      if (user?.admin) {
+        return;
+      }
       // Skip current user (commenter)
       if (CURRENT_USER && (user.user_id || user.id) === CURRENT_USER.user_id) {
         return;
@@ -1186,14 +1322,14 @@ function renderCommentsSection(task, { log, reload }) {
     // Append @mentions to comment text
     let finalCommentText = commentText;
     if (mentionedUsers.length > 0) {
-      const mentionString = mentionedUsers.map(name => `@${name}`).join(" ");
+      const mentionString = mentionedUsers.map(name => `@[${name}]`).join(" ");
       finalCommentText = `${commentText} ${mentionString}`;
     }
     
     try {
       await addCommentToTask(task.id, userId, finalCommentText, mentionedEmails, slog);
       textarea.value = "";
-      mentionSelect.selectedIndex = -1; // Clear selections
+      Array.from(mentionSelect.options).forEach(opt => { opt.selected = false; });
       await loadComments();
       showToast("Comment added successfully", "success");
       // Don't reload - just refresh comments locally to keep task expanded
@@ -1273,7 +1409,7 @@ function parseAndRenderMentions(commentText, container) {
     return;
   }
   
-  const mentionRegex = /@(\S+)/g;
+  const mentionRegex = /@\[[^\]]+\]|@\S+/g;
   let lastIndex = 0;
   const fragments = [];
   let match;
@@ -1286,13 +1422,24 @@ function parseAndRenderMentions(commentText, container) {
     }
     
     // Add mention as highlighted span
+    const rawMention = match[0];
     const mentionSpan = document.createElement("span");
     mentionSpan.className = "comment-mention";
-    mentionSpan.textContent = match[0]; // @username
-    mentionSpan.title = `Mentioned: ${match[1]}`;
+
+    let displayText = rawMention;
+    let titleText = rawMention.slice(1); // strip leading @
+
+    if (rawMention.startsWith("@[") && rawMention.endsWith("]")) {
+      const name = rawMention.slice(2, -1);
+      displayText = `@${name}`;
+      titleText = name;
+    }
+
+    mentionSpan.textContent = displayText;
+    mentionSpan.title = `Mentioned: ${titleText}`;
     fragments.push(mentionSpan);
     
-    lastIndex = match.index + match[0].length;
+    lastIndex = match.index + rawMention.length;
   }
   
   // Add remaining text

@@ -147,6 +147,14 @@ export function bindCreateForm(log, reload) {
       return;
     }
 
+    // Get creator_id from current user (handle both user_id and id properties)
+    const creatorId = CURRENT_USER.user_id || CURRENT_USER.id;
+    if (!creatorId) {
+      showToast("Unable to determine user ID. Please refresh and try again.", "error");
+      log("Create error: No user_id or id found in CURRENT_USER", CURRENT_USER);
+      return;
+    }
+
     const payload = {
       title: c_title.value || "",
       description: c_desc?.value || null,
@@ -158,8 +166,10 @@ export function bindCreateForm(log, reload) {
       parent_id: c_parent?.value === "" ? null : (c_parent ? Number(c_parent.value) : null),
       tag: c_tag?.value || null,
       recurring: rec,
-      creator_id: CURRENT_USER.user_id
+      creator_id: Number(creatorId)
     };
+    
+    log("Creating task with creator_id:", creatorId, "Current user:", CURRENT_USER);
 
     try {
       const res = await apiTask("/", { method: "POST", body: JSON.stringify(payload) });

@@ -1,5 +1,6 @@
 // js/ui/timeline.js
 import { parseYMD, escapeHtml, getSubtasks, getAssignees, getPriorityDisplay } from "../state.js";
+import { PROJECT_NAMES } from "../main.js";
 import { openCalTaskPanel } from "./cards.js";
 
 function isTaskOverdue(task) {
@@ -74,8 +75,10 @@ function renderProjectSection(projectId, tasks, { log, reload }) {
   projectInfo.className = "timeline-project-info";
   
   const projectTitle = document.createElement("h4");
+  const projectName = projectId === "unassigned" ? "Unassigned" : (PROJECT_NAMES[projectId] || `Project #${projectId}`);
+  const displayName = projectId === "unassigned" ? projectName : `Project ${projectId}: ${projectName}`;
   projectTitle.innerHTML = `
-    <span>Project ${projectId === "unassigned" ? "Unassigned" : `#${projectId}`}</span>
+    <span>${escapeHtml(displayName)}</span>
     <span class="timeline-project-meta">${totalTasks} ${totalTasks === 1 ? "task" : "tasks"}</span>
     ${overdueTasks.length > 0 ? `<span class="timeline-overdue-badge">${overdueTasks.length} overdue</span>` : ""}
   `;
@@ -214,12 +217,21 @@ function renderTimelineTaskCard(task, { log, reload }) {
   const taskMeta = document.createElement("div");
   taskMeta.className = "timeline-task-meta";
   
-  // Assignees with better formatting
+  // Assignees with better formatting (limit to prevent overflow)
   const assignees = getAssignees(task);
   if (assignees && assignees.length > 0) {
     const assigneesEl = document.createElement("div");
     assigneesEl.className = "timeline-task-assignees";
-    const assigneeNames = assignees.map(a => a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`).join(", ");
+    const MAX_VISIBLE = 5;
+    const visibleAssignees = assignees.slice(0, MAX_VISIBLE);
+    const remainingCount = assignees.length - MAX_VISIBLE;
+    
+    let assigneeNames = visibleAssignees.map(a => a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`).join(", ");
+    if (remainingCount > 0) {
+      assigneeNames += `, +${remainingCount} more`;
+      const allNames = assignees.map(a => a.name || a.full_name || a.email || `user ${a.user_id ?? a.id}`).join(", ");
+      assigneesEl.title = allNames;
+    }
     assigneesEl.innerHTML = `<span class="timeline-meta-label">Assigned:</span> <span>${escapeHtml(assigneeNames)}</span>`;
     taskMeta.appendChild(assigneesEl);
   }

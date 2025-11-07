@@ -131,7 +131,7 @@ def setup_project_with_tasks(isolated_test_db):
 
 class TestReportExport:
     """Test report export functionality."""
-    
+    #INT-123/001
     def test_generate_pdf_report_success(self, setup_project_with_tasks):
         """Test successful PDF report generation."""
         project_id = setup_project_with_tasks["project_id"]
@@ -146,6 +146,7 @@ class TestReportExport:
         assert len(content) > 0
         assert content.startswith(b'%PDF')
     
+    #INT-123/002
     def test_generate_excel_report_success(self, setup_project_with_tasks):
         """Test successful Excel report generation."""
         project_id = setup_project_with_tasks["project_id"]
@@ -160,18 +161,21 @@ class TestReportExport:
         assert len(content) > 0
         assert content.startswith(b'PK')
     
+    #INT-123/003
     def test_generate_pdf_report_project_not_found(self, isolated_test_db):
         """Test PDF generation with non-existent project."""
         expected_error = EXPECTED_ERROR_PROJECT_NOT_FOUND.format(project_id=NOT_FOUND_PROJECT_ID)
         with pytest.raises(ValueError, match=expected_error):
             generate_pdf_report(NOT_FOUND_PROJECT_ID)
     
+    #INT-123/004
     def test_generate_excel_report_project_not_found(self, isolated_test_db):
         """Test Excel generation with non-existent project."""
         expected_error = EXPECTED_ERROR_PROJECT_NOT_FOUND.format(project_id=NOT_FOUND_PROJECT_ID)
         with pytest.raises(ValueError, match=expected_error):
             generate_excel_report(NOT_FOUND_PROJECT_ID)
     
+    #INT-123/005
     def test_pdf_report_contains_all_statuses(self, setup_project_with_tasks):
         """Verify PDF report includes all task statuses."""
         project_id = setup_project_with_tasks["project_id"]
@@ -182,6 +186,7 @@ class TestReportExport:
         assert content.startswith(b'%PDF')
         assert len(content) > 1000
     
+    #INT-123/006
     def test_excel_report_has_summary_sheet(self, setup_project_with_tasks):
         """Verify Excel report has summary information in the single sheet."""
         from openpyxl import load_workbook
@@ -208,6 +213,7 @@ class TestReportExport:
         assert EXPECTED_REPORT_METRIC_TOTAL_TASKS in summary_values
         assert EXPECTED_REPORT_METRIC_PROJECTED_TASKS in summary_values or EXPECTED_REPORT_METRIC_COMPLETED_TASKS in summary_values
 
+    #INT-123/007
     def test_generate_pdf_report_service_exception(self, setup_project_with_tasks, monkeypatch):
         """Test PDF generation when report service raises a non-ValueError exception."""
         project_id = setup_project_with_tasks["project_id"]
@@ -221,6 +227,7 @@ class TestReportExport:
         with pytest.raises(RuntimeError, match="PDF generation failed"):
             generate_pdf_report(project_id)
 
+    #INT-123/008
     def test_generate_excel_report_service_exception(self, setup_project_with_tasks, monkeypatch):
         """Test Excel generation when report service raises a non-ValueError exception."""
         project_id = setup_project_with_tasks["project_id"]
@@ -332,6 +339,7 @@ class TestReportAPI:
         finally:
             session.close()
 
+    #INT-123/009
     def test_api_export_pdf_report_project_not_found(self, api_client):
         """Test PDF export API with non-existent project returns 404."""
         expected_error = EXPECTED_ERROR_PROJECT_NOT_FOUND.format(project_id=NOT_FOUND_PROJECT_ID)
@@ -339,6 +347,7 @@ class TestReportAPI:
         assert response.status_code == 404
         assert expected_error in response.json()["detail"]
 
+    #INT-123/010
     def test_api_export_excel_report_project_not_found(self, api_client):
         """Test Excel export API with non-existent project returns 404."""
         expected_error = EXPECTED_ERROR_PROJECT_NOT_FOUND.format(project_id=NOT_FOUND_PROJECT_ID)
@@ -346,6 +355,7 @@ class TestReportAPI:
         assert response.status_code == 404
         assert expected_error in response.json()["detail"]
 
+    #INT-123/011
     def test_api_export_pdf_report_general_exception(self, api_client, api_setup_project, monkeypatch):
         """Test PDF export API returns 500 when handler raises non-ValueError exception."""
         project_id = api_setup_project["project_id"]
@@ -360,6 +370,7 @@ class TestReportAPI:
         assert response.status_code == 500
         assert "Error generating PDF report" in response.json()["detail"]
 
+    #INT-123/012
     def test_api_export_excel_report_general_exception(self, api_client, api_setup_project, monkeypatch):
         """Test Excel export API returns 500 when handler raises non-ValueError exception."""
         project_id = api_setup_project["project_id"]
@@ -374,6 +385,7 @@ class TestReportAPI:
         assert response.status_code == 500
         assert "Error generating Excel report" in response.json()["detail"]
 
+    #INT-123/013
     def test_api_export_pdf_report_success(self, api_client, api_setup_project):
         """Test successful PDF export via API."""
         project_id = api_setup_project["project_id"]
@@ -386,6 +398,7 @@ class TestReportAPI:
         assert len(response.content) > 0
         assert response.content.startswith(b'%PDF')
 
+    #INT-123/014
     def test_api_export_excel_report_success(self, api_client, api_setup_project):
         """Test successful Excel export via API."""
         project_id = api_setup_project["project_id"]
