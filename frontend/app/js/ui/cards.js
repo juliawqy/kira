@@ -1276,7 +1276,7 @@ function renderCommentsSection(task, { log, reload }) {
   
   // Add label for mentions dropdown
   const mentionLabel = document.createElement("label");
-  mentionLabel.textContent = "Tag users (optional):";
+  mentionLabel.textContent = "Mention users (optional, hold Ctrl/Cmd to select multiple):";
   mentionLabel.className = "comment-mention-label";
   mentionLabel.setAttribute("for", mentionSelect.id);
   
@@ -1284,6 +1284,10 @@ function renderCommentsSection(task, { log, reload }) {
   // Reuse the users list already fetched above
   if (users && users.length > 0) {
     users.forEach(user => {
+      // Skip root/admin users from mention list
+      if (user?.admin) {
+        return;
+      }
       // Skip current user (commenter)
       if (CURRENT_USER && (user.user_id || user.id) === CURRENT_USER.user_id) {
         return;
@@ -1318,14 +1322,14 @@ function renderCommentsSection(task, { log, reload }) {
     // Append @mentions to comment text
     let finalCommentText = commentText;
     if (mentionedUsers.length > 0) {
-      const mentionString = mentionedUsers.map(name => `@${name}`).join(" ");
+      const mentionString = mentionedUsers.map(name => `@[${name}]`).join(" ");
       finalCommentText = `${commentText} ${mentionString}`;
     }
     
     try {
       await addCommentToTask(task.id, userId, finalCommentText, mentionedEmails, slog);
       textarea.value = "";
-      mentionSelect.selectedIndex = -1; // Clear selections
+      Array.from(mentionSelect.options).forEach(opt => { opt.selected = false; });
       await loadComments();
       showToast("Comment added successfully", "success");
       // Don't reload - just refresh comments locally to keep task expanded
@@ -1405,7 +1409,7 @@ function parseAndRenderMentions(commentText, container) {
     return;
   }
   
-  const mentionRegex = /@(\S+)/g;
+  const mentionRegex = /@\[[^\]]+\]|@\S+/g;
   let lastIndex = 0;
   const fragments = [];
   let match;
@@ -1418,13 +1422,24 @@ function parseAndRenderMentions(commentText, container) {
     }
     
     // Add mention as highlighted span
+    const rawMention = match[0];
     const mentionSpan = document.createElement("span");
     mentionSpan.className = "comment-mention";
-    mentionSpan.textContent = match[0]; // @username
-    mentionSpan.title = `Mentioned: ${match[1]}`;
+
+    let displayText = rawMention;
+    let titleText = rawMention.slice(1); // strip leading @
+
+    if (rawMention.startsWith("@[") && rawMention.endsWith("]")) {
+      const name = rawMention.slice(2, -1);
+      displayText = `@${name}`;
+      titleText = name;
+    }
+
+    mentionSpan.textContent = displayText;
+    mentionSpan.title = `Mentioned: ${titleText}`;
     fragments.push(mentionSpan);
     
-    lastIndex = match.index + match[0].length;
+    lastIndex = match.index + rawMention.length;
   }
   
   // Add remaining text

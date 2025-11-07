@@ -362,6 +362,20 @@ function updateAllTagFilters(userTasks) {
   updateTagFilterDropdown("teamCalFilterTag", tags, true);
 }
 
+function mergeTasksById(...taskLists) {
+  const merged = new Map();
+  taskLists.forEach(list => {
+    if (!Array.isArray(list)) return;
+    list.forEach(task => {
+      if (!task || task.id === undefined || task.id === null) return;
+      if (!merged.has(task.id)) {
+        merged.set(task.id, task);
+      }
+    });
+  });
+  return Array.from(merged.values());
+}
+
 function updateTeamProjectFilter(userTasks) {
   // This function is now a wrapper for the new updateAllProjectFilters
   // Kept for backward compatibility
@@ -570,29 +584,30 @@ async function loadParents(){
     // Get tasks for current user using API endpoint
     let userTasks = [];
     if (CURRENT_USER && CURRENT_USER.user_id) {
-      // For managers, load tasks from their managed projects
+      // For managers, load tasks from their managed projects plus their own assignments
       if (isCurrentUserManager() && !isCurrentUserDirector()) {
-        const data = await apiTask(`/manager/project/${CURRENT_USER.user_id}`, { method: "GET" });
-        userTasks = Array.isArray(data) ? data : [];
+        const [managedData, ownData] = await Promise.all([
+          apiTask(`/manager/project/${CURRENT_USER.user_id}`, { method: "GET" }),
+          apiTask(`/user/${CURRENT_USER.user_id}`, { method: "GET" })
+        ]);
+        const managedTasks = Array.isArray(managedData) ? managedData : [];
+        const ownTasks = Array.isArray(ownData) ? ownData : [];
+        userTasks = mergeTasksById(managedTasks, ownTasks);
         setLastTasks(userTasks);
       } else if (isCurrentUserDirector()) {
-        // For directors, load tasks from their managed departments (returns dict grouped by team)
-        const data = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
-        // Flatten the dict into an array of all tasks, deduplicating by task ID
-        userTasks = [];
-        const taskIdsSeen = new Set();
-        if (data && typeof data === 'object') {
-          Object.values(data).forEach(teamTaskList => {
+        // For directors, combine department tasks with their own assignments
+        const directorData = await apiTask(`/director/${CURRENT_USER.user_id}`, { method: "GET" });
+        let directorTasks = [];
+        if (directorData && typeof directorData === "object") {
+          Object.values(directorData).forEach(teamTaskList => {
             if (Array.isArray(teamTaskList)) {
-              teamTaskList.forEach(task => {
-                if (!taskIdsSeen.has(task.id)) {
-                  taskIdsSeen.add(task.id);
-                  userTasks.push(task);
-                }
-              });
+              directorTasks = directorTasks.concat(teamTaskList);
             }
           });
         }
+        const ownData = await apiTask(`/user/${CURRENT_USER.user_id}`, { method: "GET" });
+        const ownTasks = Array.isArray(ownData) ? ownData : [];
+        userTasks = mergeTasksById(directorTasks, ownTasks);
         setLastTasks(userTasks);
       } else {
         // For staff, load only their assigned tasks
