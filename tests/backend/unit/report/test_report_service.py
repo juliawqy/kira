@@ -46,6 +46,7 @@ def dicts_to_objects(task_dicts: list):
 
 class TestGeneratePDFReport:
 
+    #UNI-123/001
     def test_generate_pdf_report_success_with_all_statuses(self):
         pdf_buffer = report_service.generate_pdf_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
 
@@ -57,6 +58,7 @@ class TestGeneratePDFReport:
         assert len(content) > 0
         assert content.startswith(b'%PDF')
 
+    #UNI-123/002
     def test_generate_pdf_report_success_empty_tasks(self):
         pdf_buffer = report_service.generate_pdf_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_EMPTY), MOCK_TASK_ASSIGNEES_EMPTY)
 
@@ -68,6 +70,7 @@ class TestGeneratePDFReport:
         assert len(content) > 0
         assert content.startswith(b'%PDF')
 
+    #UNI-123/003
     def test_generate_pdf_report_with_null_dates(self):
         pdf_buffer = report_service.generate_pdf_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_WITH_NULLS), MOCK_TASK_ASSIGNEES)
 
@@ -77,6 +80,7 @@ class TestGeneratePDFReport:
         assert len(content) > 0
         assert content.startswith(b'%PDF')
 
+    #UNI-123/004
     def test_generate_pdf_report_with_long_title(self):
         tasks = [dict_to_object(MOCK_TASK_LONG_TITLE)]
         assignees = {6: ["Assignee"]}
@@ -88,6 +92,7 @@ class TestGeneratePDFReport:
         assert len(content) > 0
         assert content.startswith(b'%PDF')
 
+    #UNI-123/005
     def test_generate_pdf_report_all_unassigned(self):
         pdf_buffer = report_service.generate_pdf_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES_ALL_UNASSIGNED)
 
@@ -97,6 +102,7 @@ class TestGeneratePDFReport:
         assert len(content) > 0
         assert content.startswith(b'%PDF')
 
+    #UNI-123/006
     def test_generate_pdf_report_minimal_project(self):
         pdf_buffer = report_service.generate_pdf_report(MOCK_PROJECT_MINIMAL, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
 
@@ -106,16 +112,19 @@ class TestGeneratePDFReport:
         assert len(content) > 0
         assert content.startswith(b'%PDF')
 
+    #UNI-123/007
     def test_generate_pdf_report_empty_project_raises_error(self):
         with pytest.raises(ValueError, match="Project data is required"):
             report_service.generate_pdf_report(INVALID_PROJECT_EMPTY, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
 
+    #UNI-123/008
     def test_generate_pdf_report_no_project_name_raises_error(self):
         with pytest.raises(ValueError, match="Project name is required"):
             report_service.generate_pdf_report(INVALID_PROJECT_NO_NAME, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
 
 
 class TestGenerateExcelReport:
+    #UNI-123/009
     def test_generate_excel_report_success_with_all_statuses(self):
         excel_buffer = report_service.generate_excel_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
 
@@ -126,6 +135,7 @@ class TestGenerateExcelReport:
         assert len(content) > 0
         assert content.startswith(b'PK')
 
+    #UNI-123/010
     def test_generate_excel_report_success_empty_tasks(self):
         excel_buffer = report_service.generate_excel_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_EMPTY), MOCK_TASK_ASSIGNEES_EMPTY)
 
@@ -137,6 +147,7 @@ class TestGenerateExcelReport:
         assert len(content) > 0
         assert content.startswith(b'PK')
 
+    #UNI-123/011
     def test_generate_excel_report_with_null_dates(self):
         excel_buffer = report_service.generate_excel_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_WITH_NULLS), MOCK_TASK_ASSIGNEES)
 
@@ -146,6 +157,7 @@ class TestGenerateExcelReport:
         assert len(content) > 0
         assert content.startswith(b'PK')
 
+    #UNI-123/012
     def test_generate_excel_report_validates_content(self):
         from openpyxl import load_workbook
 
@@ -168,6 +180,7 @@ class TestGenerateExcelReport:
         assert ws["A5"].value == EXPECTED_REPORT_CELL_A5
         assert ws["B5"].value == EXPECTED_REPORT_CELL_B5
 
+    #UNI-123/013
     def test_generate_excel_report_all_unassigned(self):
         excel_buffer = report_service.generate_excel_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES_ALL_UNASSIGNED)
 
@@ -177,6 +190,7 @@ class TestGenerateExcelReport:
         assert len(content) > 0
         assert content.startswith(b'PK')
 
+    #UNI-123/014
     def test_generate_excel_report_minimal_project(self):
         excel_buffer = report_service.generate_excel_report(MOCK_PROJECT_MINIMAL, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
 
@@ -186,15 +200,17 @@ class TestGenerateExcelReport:
         assert len(content) > 0
         assert content.startswith(b'PK')
 
+    #UNI-123/015
     def test_generate_excel_report_empty_project_raises_error(self):
         with pytest.raises(ValueError, match="Project data is required"):
             report_service.generate_excel_report(INVALID_PROJECT_EMPTY, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
 
+    #UNI-123/016
     def test_generate_excel_report_no_project_name_raises_error(self):
         with pytest.raises(ValueError, match="Project name is required"):
             report_service.generate_excel_report(INVALID_PROJECT_NO_NAME, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)
 
-
+    #UNI-123/017
     def test_generate_excel_report_task_summary_counts(self):
         from openpyxl import load_workbook
 
@@ -215,6 +231,7 @@ class TestGenerateExcelReport:
         assert summary_dict.get(EXPECTED_REPORT_METRIC_COMPLETED_TASKS) == 1 
         assert summary_dict.get(EXPECTED_REPORT_METRIC_UNDER_REVIEW_TASKS) == 1
 
+    #UNI-123/018
     def test_generate_excel_report_column_width(self):
         from openpyxl import load_workbook
         excel_buffer = report_service.generate_excel_report(MOCK_PROJECT, dicts_to_objects(MOCK_TASKS_ALL_STATUSES), MOCK_TASK_ASSIGNEES)

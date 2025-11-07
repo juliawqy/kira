@@ -289,6 +289,7 @@ def setup_report_test_data(isolated_database):
 class TestReportE2E:
     """End-to-end tests for report generation."""
 
+    #E2E-123/001
     def test_generate_pdf_report_e2e(self, setup_report_test_data):
         """Test PDF report generation end-to-end with real data."""
         project_id = setup_report_test_data["project_id"]
@@ -305,6 +306,7 @@ class TestReportE2E:
 
         assert len(content) > 1000, "PDF should be at least 1KB"
 
+    #E2E-123/002
     def test_generate_excel_report_e2e(self, setup_report_test_data):
         """Test Excel report generation end-to-end with real data."""
         project_id = setup_report_test_data["project_id"]
@@ -321,6 +323,7 @@ class TestReportE2E:
 
         assert len(content) > 1000, "Excel file should be at least 1KB"
 
+    #E2E-123/003
     def test_excel_report_contains_correct_data(self, setup_report_test_data):
         """Test that Excel report contains expected data from mock data."""
         from openpyxl import load_workbook
@@ -360,6 +363,7 @@ class TestReportE2E:
         assert summary_dict.get("Completed Tasks") == 1  # COMPLETED
         assert summary_dict.get("Under Review Tasks") == 1  # BLOCKED
 
+    #E2E-123/004
     def test_pdf_report_contains_project_info(self, setup_report_test_data):
         """Test that PDF report contains project information."""
         project_id = setup_report_test_data["project_id"]
@@ -372,6 +376,7 @@ class TestReportE2E:
 
         assert len(content) > 2000, "PDF should contain substantial content"
 
+    #E2E-123/005
     def test_report_generation_with_multiple_tasks(self, setup_report_test_data):
         """Test that reports handle multiple tasks correctly."""
         project_id = setup_report_test_data["project_id"]
@@ -408,6 +413,7 @@ class TestReportE2E:
 class TestReportE2EBrowser:
     """Browser-based E2E tests for report generation UI."""
 
+    #E2E-123/006
     def test_report_export_page_loads(self, driver, app_server, setup_report_test_data):
         """Test that the report export page loads correctly."""
         html_file = os.path.join(os.getcwd(), "frontend", "report", "export_report.html")
@@ -429,6 +435,7 @@ class TestReportE2EBrowser:
         assert pdf_btn.get_attribute("disabled") is not None
         assert excel_btn.get_attribute("disabled") is not None
 
+    #E2E-123/007
     def test_report_export_ui_interaction(self, driver, app_server, setup_report_test_data):
         """Test UI interaction for report export."""
         project_id = setup_report_test_data["project_id"]
@@ -449,6 +456,7 @@ class TestReportE2EBrowser:
         assert pdf_btn.get_attribute("disabled") is None, "PDF button should be enabled"
         assert excel_btn.get_attribute("disabled") is None, "Excel button should be enabled"
 
+    #E2E-123/008
     def test_report_download_pdf(self, driver, app_server, setup_report_test_data, tmp_path):
         """Test downloading PDF report file."""
         from pathlib import Path
@@ -501,6 +509,7 @@ class TestReportE2EBrowser:
             assert content.startswith(b'%PDF')
         time.sleep(20)
 
+    #E2E-123/009
     def test_report_download_excel(self, driver, app_server, setup_report_test_data, tmp_path):
         """Test downloading Excel report file."""
         from pathlib import Path
